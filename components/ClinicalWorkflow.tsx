@@ -22,15 +22,15 @@ export default function ClinicalWorkflow() {
   return (
     <div className="flex h-full overflow-hidden flex-col">
       {/* Main Board Area */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        <div className="flex-1 flex flex-col h-full overflow-hidden pr-0 lg:pr-4">
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-hidden pr-0 md:pr-4">
           
           {/* Kanban Columns */}
           <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
-            <div className="flex h-full gap-4 md:gap-6 min-w-[1000px] px-1">
+            <div className="flex h-full gap-6 min-w-[1000px]">
               
               {/* Column 1: Pending Review */}
-              <div className="flex-1 flex flex-col min-w-[260px] md:min-w-[280px]">
+              <div className="flex-1 flex flex-col min-w-[280px]">
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-bold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-gray-400"></span>
@@ -41,7 +41,7 @@ export default function ClinicalWorkflow() {
                     <MoreHorizontal size={16} />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar pb-10">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   
                   {/* Card 1 - URGENT HIGHLIGHT */}
                   <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-[0_0_15px_rgba(254,87,150,0.2)] dark:shadow-[0_0_15px_rgba(254,87,150,0.1)] ring-1 ring-accent/40 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden">
@@ -115,7 +115,7 @@ export default function ClinicalWorkflow() {
               </div>
 
               {/* Column 2: Analysis in Progress */}
-              <div className="flex-1 flex flex-col min-w-[260px] md:min-w-[280px]">
+              <div className="flex-1 flex flex-col min-w-[280px]">
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-bold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-cyan"></span>
@@ -126,7 +126,7 @@ export default function ClinicalWorkflow() {
                     <Plus size={16} />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar pb-10">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   
                   {/* Active Analysis Card - AI HIGHLIGHT */}
                   <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-[0_0_15px_rgba(20,245,214,0.15)] ring-1 ring-cyan/40 cursor-pointer group border-l-4 border-l-cyan relative overflow-hidden">
@@ -167,7 +167,7 @@ export default function ClinicalWorkflow() {
               </div>
 
               {/* Column 3: Consultation */}
-              <div className="flex-1 flex flex-col min-w-[260px] md:min-w-[280px]">
+              <div className="flex-1 flex flex-col min-w-[280px]">
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-bold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-purple-400"></span>
@@ -178,7 +178,7 @@ export default function ClinicalWorkflow() {
                     <Plus size={16} />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar pb-10">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   
                   <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group border border-transparent hover:border-border-light dark:hover:border-border-dark relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
@@ -212,7 +212,7 @@ export default function ClinicalWorkflow() {
               </div>
 
               {/* Column 4: Treatment Plan */}
-              <div className="flex-1 flex flex-col min-w-[260px] md:min-w-[280px]">
+              <div className="flex-1 flex flex-col min-w-[280px]">
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-bold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-secondary"></span>
@@ -223,7 +223,7 @@ export default function ClinicalWorkflow() {
                     <Plus size={16} />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar pb-10">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   
                   <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group border border-transparent hover:border-border-light dark:hover:border-border-dark relative overflow-hidden opacity-75 hover:opacity-100">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent"></div>
@@ -248,9 +248,9 @@ export default function ClinicalWorkflow() {
           </div>
         </div>
 
-        {/* Assistant Side Panel - Stack below on mobile, side on lg */}
-        <aside className="w-full lg:w-80 bg-white/60 dark:bg-card-dark/60 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-border-light dark:border-border-dark flex flex-col transition-all duration-300 lg:rounded-l-3xl shadow-2xl z-10 h-[400px] lg:h-full flex-shrink-0">
-          <div className="p-6 border-b border-border-light dark:border-border-dark flex items-center justify-between sticky top-0 bg-white/50 dark:bg-card-dark/50 backdrop-blur-md z-10">
+        {/* Assistant Side Panel */}
+        <aside className="w-80 bg-white/60 dark:bg-card-dark/60 backdrop-blur-xl border-l border-border-light dark:border-border-dark flex flex-col transition-all duration-300 rounded-l-3xl shadow-2xl z-10">
+          <div className="p-6 border-b border-border-light dark:border-border-dark flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary dark:text-white">
               <Sparkles size={18} className="text-cyan" />
               <h3 className="font-bold text-sm">Workflow Assistant</h3>

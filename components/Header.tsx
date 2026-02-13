@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, LogOut, Menu } from 'lucide-react';
+import { Bell, ChevronDown, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   title?: string;
   subtitle?: string;
   onNavigate?: (view: string) => void;
-  onMenuClick?: () => void;
 }
 
-export default function Header({ title = "Clinical Dashboard", subtitle = "Welcome back, Dr. Williamson", onNavigate, onMenuClick }: HeaderProps) {
+export default function Header({ title = "Clinical Dashboard", subtitle = "Welcome back, Dr. Williamson", onNavigate }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -34,21 +33,13 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
   };
 
   return (
-    <header className="flex items-center justify-between mb-6 md:mb-8 gap-4 flex-shrink-0 z-40 relative">
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={onMenuClick}
-          className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <Menu size={24} />
-        </button>
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-primary dark:text-white mb-1 leading-tight">{title}</h2>
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium hidden sm:block">{subtitle}</p>
-        </div>
+    <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 flex-shrink-0 z-40 relative">
+      <div>
+        <h2 className="text-2xl font-bold text-primary dark:text-white mb-1">{title}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{subtitle}</p>
       </div>
 
-      <div className="flex items-center gap-3 md:gap-6">
+      <div className="flex items-center gap-6">
         {/* Active Doctors Stack - Only show on large screens */}
         <div className="hidden lg:flex items-center gap-3">
             <div className="flex -space-x-3">
@@ -70,7 +61,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
 
         <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 hidden md:block"></div>
 
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-4">
             <button 
               onClick={() => onNavigate && onNavigate('notifications')}
               className="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors relative rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -88,7 +79,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
                     <img 
                     src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=100&h=100" 
                     alt="Profile" 
-                    className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover shadow-sm"
+                    className="w-10 h-10 rounded-full object-cover shadow-sm"
                     />
                     <div className="hidden md:block">
                     <p className="text-sm font-bold text-primary dark:text-white leading-tight group-hover:text-secondary transition-colors">Alex Williamson</p>
