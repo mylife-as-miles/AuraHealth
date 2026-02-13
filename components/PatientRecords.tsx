@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { 
   Search, 
   Plus, 
-  Bell, 
-  ChevronDown, 
   Filter, 
   ArrowUpDown, 
   MoreVertical, 
@@ -23,9 +21,9 @@ import {
   Download,
   Pill,
   Syringe,
-  FileText
+  ChevronLeft
 } from 'lucide-react';
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, YAxis, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const patients = [
   {
@@ -114,6 +112,7 @@ const medicalTimeline = [
 export default function PatientRecords() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>("#AH-8832");
   const [activeVital, setActiveVital] = useState<'hr' | 'bp' | 'temp' | 'weight'>('hr');
+  const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
   
   const selectedPatient = patients.find(p => p.id === selectedPatientId) || patients[0];
 
@@ -148,10 +147,15 @@ export default function PatientRecords() {
     document.body.removeChild(link);
   };
 
+  const handlePatientSelect = (id: string) => {
+    setSelectedPatientId(id);
+    setShowDetailOnMobile(true);
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Action Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-end mb-6 gap-4 flex-shrink-0">
+      {/* Action Toolbar - Hide on mobile when in detail view */}
+      <div className={`flex flex-col md:flex-row md:items-center justify-end mb-6 gap-4 flex-shrink-0 ${showDetailOnMobile ? 'hidden md:flex' : 'flex'}`}>
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative w-full md:w-72 group">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-secondary transition-colors" />
@@ -163,15 +167,19 @@ export default function PatientRecords() {
           </div>
           <button className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 text-sm font-semibold whitespace-nowrap">
             <Plus size={18} />
-            Add Patient
+            <span className="hidden sm:inline">Add Patient</span>
           </button>
         </div>
       </div>
 
       {/* Main Content Split View */}
-      <div className="flex flex-1 gap-6 overflow-hidden h-full">
+      <div className="flex flex-1 gap-6 overflow-hidden h-full relative">
+        
         {/* Left List Panel */}
-        <div className="flex-1 bg-white/60 dark:bg-card-dark/60 backdrop-blur-md rounded-3xl border border-white/20 dark:border-white/5 shadow-soft dark:shadow-none dark:border-border-dark overflow-hidden flex flex-col hidden lg:flex">
+        <div className={`
+          flex-1 bg-white/60 dark:bg-card-dark/60 backdrop-blur-md rounded-3xl border border-white/20 dark:border-white/5 shadow-soft dark:shadow-none dark:border-border-dark overflow-hidden flex flex-col
+          ${showDetailOnMobile ? 'hidden lg:flex' : 'flex'}
+        `}>
           {/* Toolbar */}
           <div className="p-5 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -185,15 +193,15 @@ export default function PatientRecords() {
             <div className="text-xs text-gray-500">Showing <span className="font-bold text-primary dark:text-white">12</span> of <span className="font-bold text-primary dark:text-white">462</span> patients</div>
           </div>
 
-          {/* Table */}
+          {/* Table Container - Horizontal scroll for small screens within the list view */}
           <div className="flex-1 overflow-auto custom-scrollbar p-2">
             <table className="w-full text-left border-separate border-spacing-y-2">
               <thead className="bg-gray-50/50 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-xs font-semibold sticky top-0 z-10 backdrop-blur-sm">
                 <tr>
                   <th className="px-4 py-3 rounded-l-xl">Patient Name</th>
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Last Visit</th>
-                  <th className="px-4 py-3">Condition</th>
+                  <th className="px-4 py-3 hidden sm:table-cell">ID</th>
+                  <th className="px-4 py-3 hidden md:table-cell">Last Visit</th>
+                  <th className="px-4 py-3 hidden sm:table-cell">Condition</th>
                   <th className="px-4 py-3">AI Severity</th>
                   <th className="px-4 py-3 rounded-r-xl"></th>
                 </tr>
@@ -202,7 +210,7 @@ export default function PatientRecords() {
                 {patients.map((patient) => (
                   <tr 
                     key={patient.id}
-                    onClick={() => setSelectedPatientId(patient.id)}
+                    onClick={() => handlePatientSelect(patient.id)}
                     className={`group bg-white dark:bg-card-dark hover:bg-primary/5 dark:hover:bg-white/5 transition-all cursor-pointer shadow-sm relative z-0 ${selectedPatientId === patient.id ? 'ring-2 ring-primary/10 dark:ring-white/10' : ''}`}
                   >
                     <td className={`px-4 py-3 rounded-l-xl border-l-4 transition-colors ${selectedPatientId === patient.id ? 'border-secondary' : 'border-transparent hover:border-accent/50'}`}>
@@ -220,12 +228,14 @@ export default function PatientRecords() {
                         <div>
                           <div className="font-bold text-primary dark:text-white">{patient.name}</div>
                           <div className="text-xs text-gray-400">{patient.age} yrs, {patient.gender}</div>
+                          {/* Mobile only details */}
+                          <div className="sm:hidden text-xs text-gray-500 mt-0.5">{patient.condition}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{patient.id}</td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{patient.lastVisit}</td>
-                    <td className="px-4 py-3 font-medium text-primary dark:text-white">{patient.condition}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{patient.id}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 hidden md:table-cell">{patient.lastVisit}</td>
+                    <td className="px-4 py-3 font-medium text-primary dark:text-white hidden sm:table-cell">{patient.condition}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getRiskStyles(patient.riskColor || 'secondary')}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${getRiskDot(patient.riskColor || 'secondary')}`}></span> {patient.risk}
@@ -245,8 +255,8 @@ export default function PatientRecords() {
             <button className="px-3 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 text-xs font-medium transition-colors disabled:opacity-50">Previous</button>
             <div className="flex items-center gap-1">
               <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white text-xs font-bold">1</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 text-xs font-medium transition-colors">2</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 text-xs font-medium transition-colors">3</button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 text-xs font-medium transition-colors hidden sm:flex">2</button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 text-xs font-medium transition-colors hidden sm:flex">3</button>
               <span className="text-gray-400 text-xs px-1">...</span>
               <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 text-xs font-medium transition-colors">12</button>
             </div>
@@ -254,12 +264,24 @@ export default function PatientRecords() {
           </div>
         </div>
 
-        {/* Right Detail Panel */}
-        <div className="w-full lg:w-96 xl:w-[420px] bg-card-light dark:bg-card-dark rounded-3xl shadow-soft dark:shadow-none dark:border dark:border-border-dark flex flex-col overflow-hidden relative border border-border-light transition-all flex-shrink-0">
+        {/* Right Detail Panel - Full width on mobile when active */}
+        <div className={`
+          w-full lg:w-96 xl:w-[420px] bg-card-light dark:bg-card-dark rounded-3xl shadow-soft dark:shadow-none dark:border dark:border-border-dark flex flex-col overflow-hidden relative border border-border-light transition-all flex-shrink-0
+          ${showDetailOnMobile ? 'flex absolute inset-0 z-20 lg:static' : 'hidden lg:flex'}
+        `}>
           {/* Header Background */}
           <div className="h-28 bg-primary relative overflow-hidden flex-shrink-0">
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
             <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-secondary blur-3xl opacity-20"></div>
+            
+            {/* Mobile Back Button */}
+            <button 
+                onClick={() => setShowDetailOnMobile(false)}
+                className="absolute top-4 left-4 text-white/80 cursor-pointer hover:text-white hover:bg-white/10 rounded-full p-2 transition-colors lg:hidden flex items-center gap-1"
+            >
+              <ChevronLeft size={20} /> <span className="text-xs font-bold">Back</span>
+            </button>
+
             <button className="absolute top-4 right-4 text-white/80 cursor-pointer hover:text-white hover:bg-white/10 rounded-full p-1 transition-colors">
               <X size={20} />
             </button>
@@ -346,10 +368,10 @@ export default function PatientRecords() {
                 {/* Vitals Selectors */}
                 <div className="grid grid-cols-4 gap-2 mb-4">
                     {[
-                      { id: 'hr', label: 'Heart Rate', val: '88', unit: 'bpm', icon: Activity },
+                      { id: 'hr', label: 'HR', val: '88', unit: 'bpm', icon: Activity },
                       { id: 'bp', label: 'BP', val: '120/80', unit: '', icon: Activity },
                       { id: 'temp', label: 'Temp', val: '98.6', unit: '°F', icon: Thermometer },
-                      { id: 'weight', label: 'Weight', val: '142', unit: 'lbs', icon: Weight },
+                      { id: 'weight', label: 'Wt', val: '142', unit: 'lbs', icon: Weight },
                     ].map((v) => (
                       <button
                         key={v.id}

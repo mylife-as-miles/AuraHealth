@@ -8,7 +8,9 @@ import {
   Sparkles, 
   ScanEye,
   IdCard,
-  HelpCircle
+  HelpCircle,
+  Camera,
+  UserCircle
 } from 'lucide-react';
 
 const Toggle = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
@@ -53,39 +55,73 @@ export default function Settings() {
                   </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Inputs */}
-                  <div className="space-y-4">
-                      <div>
-                          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Full Name</label>
-                          <input 
-                            type="text" 
-                            defaultValue="Alex Williamson" 
-                            className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+              <div className="flex flex-col md:flex-row gap-8">
+                  {/* Profile Picture Section */}
+                  <div className="flex flex-col items-center space-y-3">
+                      <div className="relative group cursor-pointer">
+                          <img 
+                            src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=200&h=200" 
+                            alt="Profile" 
+                            className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg group-hover:brightness-90 transition-all"
                           />
+                          <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                              <Camera className="text-white drop-shadow-md" size={24} />
+                          </div>
+                          <div className="absolute bottom-0 right-0 bg-secondary border-2 border-white dark:border-card-dark w-6 h-6 rounded-full flex items-center justify-center shadow-md">
+                             <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
                       </div>
-                      <div>
-                          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Email Address</label>
-                          <input 
-                            type="email" 
-                            defaultValue="alex.w@aurahealth.med" 
-                            className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
-                          />
-                      </div>
+                      <button className="text-xs font-bold text-secondary hover:text-secondary/80 transition-colors">
+                          Change Photo
+                      </button>
                   </div>
 
-                  {/* 2FA Toggle */}
-                  <div className="space-y-4">
-                      <div className="bg-background-light dark:bg-black/20 p-4 rounded-2xl flex items-center justify-between border border-transparent dark:border-white/5">
+                  {/* Inputs Section */}
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
                           <div>
-                              <div className="text-sm font-bold text-primary dark:text-white mb-1">Two-Factor Authentication</div>
-                              <div className="text-xs text-gray-500">Secure your account with 2FA.</div>
+                              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Full Name</label>
+                              <div className="relative">
+                                  <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                  <input 
+                                    type="text" 
+                                    defaultValue="Alex Williamson" 
+                                    className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl pl-10 pr-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+                                  />
+                              </div>
                           </div>
-                          <Toggle checked={mfa} onChange={() => setMfa(!mfa)} />
+                          <div>
+                              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Profession / Title</label>
+                              <input 
+                                type="text" 
+                                defaultValue="Chief Resident" 
+                                className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+                                placeholder="e.g. Cardiologist"
+                              />
+                          </div>
                       </div>
-                      <div className="flex items-center justify-between pt-2 px-1">
-                          <button className="text-xs text-accent font-bold hover:underline">Change Password</button>
-                          <button className="text-xs text-gray-500 hover:text-primary dark:hover:text-white font-medium transition-colors">View Login History</button>
+
+                      <div className="space-y-4">
+                          <div>
+                              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Email Address</label>
+                              <input 
+                                type="email" 
+                                defaultValue="alex.w@aurahealth.med" 
+                                className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+                              />
+                          </div>
+                          
+                          <div className="bg-background-light dark:bg-black/20 p-3 rounded-xl border border-transparent dark:border-white/5">
+                             <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-bold text-primary dark:text-white">Two-Factor Auth</span>
+                                <Toggle checked={mfa} onChange={() => setMfa(!mfa)} />
+                             </div>
+                             <p className="text-[10px] text-gray-500">Secure your account with 2FA.</p>
+                          </div>
+                          
+                          <div className="flex justify-end pt-1">
+                             <button className="text-xs text-accent font-bold hover:underline">Change Password</button>
+                          </div>
                       </div>
                   </div>
               </div>

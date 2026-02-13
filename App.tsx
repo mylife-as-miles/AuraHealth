@@ -7,6 +7,7 @@ import AIInsights from './components/AIInsights';
 import ClinicalWorkflow from './components/ClinicalWorkflow';
 import Settings from './components/Settings';
 import Diagnostics from './components/Diagnostics';
+import Notifications from './components/Notifications';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -21,6 +22,7 @@ const PlaceholderView = ({ title }: { title: string }) => (
 
 export default function App() {
   const [currentView, setCurrentView] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const getHeaderInfo = () => {
     switch(currentView) {
@@ -36,6 +38,8 @@ export default function App() {
         return { title: "Clinical Workflow", subtitle: "Triage Board • Cardiology Unit A" };
       case 'settings': 
         return { title: "Settings & Configuration", subtitle: "Manage your profile, HAI-DEF models, and system privacy." };
+      case 'notifications': 
+        return { title: "Notifications", subtitle: "Stay updated with critical alerts and system changes." };
       default: 
         return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
     }
@@ -60,19 +64,47 @@ export default function App() {
     if (currentView === 'diagnostics') {
       return <Diagnostics />;
     }
+    if (currentView === 'notifications') {
+      return <Notifications />;
+    }
     return <PlaceholderView title={getHeaderInfo().title} />;
   };
 
   const { title, subtitle } = getHeaderInfo();
 
+  const handleNavigate = (view: string) => {
+    setCurrentView(view);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8 flex items-center justify-center bg-background-light dark:bg-black transition-colors duration-300">
-      <div className="w-full max-w-[1440px] bg-white dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[850px] border border-border-light dark:border-border-dark transition-colors duration-300 h-[calc(100vh-4rem)]">
-        <Sidebar currentView={currentView} onNavigate={setCurrentView} />
-        <main className="flex-1 bg-background-light dark:bg-background-dark p-6 md:p-8 flex flex-col overflow-hidden relative">
-          <Header title={title} subtitle={subtitle} />
+    <div className="min-h-screen p-0 md:p-4 lg:p-6 flex items-center justify-center bg-background-light dark:bg-black transition-colors duration-300">
+      <div className="w-full max-w-[1440px] bg-white dark:bg-card-dark md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-screen md:h-[calc(100vh-2rem)] border-none md:border border-border-light dark:border-border-dark transition-colors duration-300 relative">
+        
+        {/* Mobile Sidebar Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+        )}
+
+        <Sidebar 
+          currentView={currentView} 
+          onNavigate={handleNavigate} 
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+        />
+        
+        <main className="flex-1 bg-background-light dark:bg-background-dark p-4 md:p-8 flex flex-col overflow-hidden relative w-full">
+          <Header 
+            title={title} 
+            subtitle={subtitle} 
+            onNavigate={setCurrentView} 
+            onMenuClick={() => setIsMobileMenuOpen(true)}
+          />
           
-          <div className="flex-1 overflow-hidden h-full">
+          <div className="flex-1 overflow-hidden h-full relative">
             {renderView()}
           </div>
         </main>

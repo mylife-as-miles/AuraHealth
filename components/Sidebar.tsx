@@ -9,7 +9,8 @@ import {
   Search, 
   Command,
   Hospital,
-  Cpu
+  Cpu,
+  X
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -49,17 +50,32 @@ const NavItem = ({ icon: Icon, label, id, active = false, isNew = false, onClick
 interface SidebarProps {
   currentView: string;
   onNavigate: (view: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
+export default function Sidebar({ currentView, onNavigate, isOpen = false, onClose }: SidebarProps) {
   return (
-    <aside className="w-full md:w-64 flex-shrink-0 p-6 flex flex-col border-r border-border-light dark:border-border-dark bg-white dark:bg-card-dark">
+    <aside className={`
+      fixed md:relative inset-y-0 left-0 z-50 w-64 bg-white dark:bg-card-dark border-r border-border-light dark:border-border-dark
+      transform transition-transform duration-300 ease-in-out flex flex-col p-6 h-full
+      ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+    `}>
       {/* Brand */}
-      <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-cyan flex items-center justify-center text-primary shadow-glow">
-          <Hospital size={18} strokeWidth={2.5} />
+      <div className="flex items-center justify-between mb-8 px-2">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-cyan flex items-center justify-center text-primary shadow-glow">
+            <Hospital size={18} strokeWidth={2.5} />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white">AuraHealth</h1>
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white">AuraHealth</h1>
+        {/* Mobile Close Button */}
+        <button 
+          onClick={onClose}
+          className="md:hidden p-1 text-gray-400 hover:text-primary dark:hover:text-white"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Search */}
@@ -76,7 +92,7 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Overview</div>
         <NavItem icon={LayoutDashboard} label="Dashboard" id="dashboard" active={currentView === 'dashboard'} onClick={onNavigate} />
         <NavItem icon={FolderOpen} label="Patient Records" id="patients" active={currentView === 'patients'} onClick={onNavigate} />
@@ -87,11 +103,12 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
         <div className="pt-8 pb-2">
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Support</div>
           <NavItem icon={Settings} label="Settings" id="settings" active={currentView === 'settings'} onClick={onNavigate} />
+          <NavItem icon={Activity} label="Notifications" id="notifications" active={currentView === 'notifications'} onClick={onNavigate} />
         </div>
       </nav>
 
       {/* Upgrade Card */}
-      <div className="mt-auto relative rounded-2xl overflow-hidden p-4">
+      <div className="mt-auto relative rounded-2xl overflow-hidden p-4 shrink-0">
         <div className="absolute inset-0 bg-primary"></div>
         {/* Abstract Pattern overlay */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
