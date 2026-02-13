@@ -46,35 +46,19 @@ export default function AIInsights() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2 relative">
-      {/* Header */}
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between mb-8 gap-6 flex-shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold text-primary dark:text-white mb-1">Population Analytics</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">AI-driven insights powered by MedGemma & HAI-DEF</p>
-        </div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-end mb-6 gap-4 flex-shrink-0">
         <div className="flex items-center gap-4 flex-wrap">
-          <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-card-dark border border-gray-200 dark:border-border-dark text-sm font-semibold text-primary dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-soft">
+          <button className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white dark:bg-card-dark border border-gray-200 dark:border-border-dark text-sm font-semibold text-primary dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-soft">
             <SlidersHorizontal size={18} />
             Model Settings
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+          <button className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
             <Download size={18} />
             Export Report
           </button>
-          <div className="h-8 w-[1px] bg-gray-300 dark:bg-gray-700 mx-1 hidden xl:block"></div>
-          <div className="flex items-center gap-3 pl-2 cursor-pointer">
-            <img 
-              alt="Profile" 
-              className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-card-dark shadow-sm" 
-              src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=100&h=100" 
-            />
-            <div className="hidden xl:block">
-              <p className="text-sm font-bold text-primary dark:text-white leading-tight">Dr. Williamson</p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">Lead Data Scientist</p>
-            </div>
-          </div>
         </div>
-      </header>
+      </div>
 
       {/* Top Section Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
@@ -94,7 +78,7 @@ export default function AIInsights() {
               <span className="flex items-center text-[10px] text-gray-400 font-medium ml-2 border-l pl-2 border-gray-300"><span className="w-3 h-0.5 border-t border-dashed border-gray-400 mr-1.5"></span>Projection</span>
             </div>
           </div>
-          <div className="flex-1 w-full relative">
+          <div className="w-full relative h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={diseaseData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                 <defs>

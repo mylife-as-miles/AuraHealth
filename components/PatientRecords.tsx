@@ -150,13 +150,9 @@ export default function PatientRecords() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Custom Header for Patient Directory */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 flex-shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold text-primary dark:text-white mb-1">Patient Directory</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Manage patient records and diagnostic history</p>
-        </div>
-        <div className="flex items-center gap-4">
+      {/* Action Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end mb-6 gap-4 flex-shrink-0">
+        <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative w-full md:w-72 group">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-secondary transition-colors" />
             <input 
@@ -167,22 +163,10 @@ export default function PatientRecords() {
           </div>
           <button className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 text-sm font-semibold whitespace-nowrap">
             <Plus size={18} />
-            Add New Patient
+            Add Patient
           </button>
-          <div className="h-8 w-[1px] bg-gray-300 dark:bg-gray-700 mx-1 hidden md:block"></div>
-          <button className="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background-light dark:border-background-dark"></span>
-          </button>
-          <div className="flex items-center gap-3 pl-2 cursor-pointer">
-            <img 
-              src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=100&h=100" 
-              alt="Profile" 
-              className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-card-dark shadow-sm"
-            />
-          </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content Split View */}
       <div className="flex flex-1 gap-6 overflow-hidden h-full">

@@ -1,17 +1,22 @@
 import React from 'react';
 import { Bell, ChevronDown } from 'lucide-react';
 
-export default function Header({ title = "Clinical Dashboard" }: { title?: string }) {
+interface HeaderProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export default function Header({ title = "Clinical Dashboard", subtitle = "Welcome back, Dr. Williamson" }: HeaderProps) {
   return (
-    <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 flex-shrink-0">
       <div>
         <h2 className="text-2xl font-bold text-primary dark:text-white mb-1">{title}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Welcome back, Dr. Williamson</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{subtitle}</p>
       </div>
 
       <div className="flex items-center gap-6">
-        {/* Active Doctors Stack */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Active Doctors Stack - Only show on large screens */}
+        <div className="hidden lg:flex items-center gap-3">
             <div className="flex -space-x-3">
             <img 
                 src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=100&h=100" 

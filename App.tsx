@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import PatientRecords from './components/PatientRecords';
 import AIInsights from './components/AIInsights';
+import ClinicalWorkflow from './components/ClinicalWorkflow';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -19,15 +20,22 @@ const PlaceholderView = ({ title }: { title: string }) => (
 export default function App() {
   const [currentView, setCurrentView] = useState('dashboard');
 
-  const getTitle = () => {
+  const getHeaderInfo = () => {
     switch(currentView) {
-      case 'dashboard': return "Clinical Dashboard";
-      case 'patients': return "Patient Records";
-      case 'diagnostics': return "Diagnostics Center";
-      case 'ai-insights': return "AI Insights";
-      case 'workflow': return "Clinical Workflow";
-      case 'settings': return "Settings";
-      default: return "Clinical Dashboard";
+      case 'dashboard': 
+        return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
+      case 'patients': 
+        return { title: "Patient Directory", subtitle: "Manage patient records and diagnostic history" };
+      case 'diagnostics': 
+        return { title: "Diagnostics Center", subtitle: "Real-time diagnostic analysis" };
+      case 'ai-insights': 
+        return { title: "Population Analytics", subtitle: "AI-driven insights powered by MedGemma & HAI-DEF" };
+      case 'workflow': 
+        return { title: "Clinical Workflow", subtitle: "Triage Board • Cardiology Unit A" };
+      case 'settings': 
+        return { title: "Settings", subtitle: "System preferences and configurations" };
+      default: 
+        return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
     }
   };
 
@@ -41,16 +49,20 @@ export default function App() {
     if (currentView === 'ai-insights') {
       return <AIInsights />;
     }
-    return <PlaceholderView title={getTitle()} />;
+    if (currentView === 'workflow') {
+      return <ClinicalWorkflow />;
+    }
+    return <PlaceholderView title={getHeaderInfo().title} />;
   };
+
+  const { title, subtitle } = getHeaderInfo();
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8 flex items-center justify-center bg-background-light dark:bg-black transition-colors duration-300">
       <div className="w-full max-w-[1440px] bg-white dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[850px] border border-border-light dark:border-border-dark transition-colors duration-300 h-[calc(100vh-4rem)]">
         <Sidebar currentView={currentView} onNavigate={setCurrentView} />
         <main className="flex-1 bg-background-light dark:bg-background-dark p-6 md:p-8 flex flex-col overflow-hidden relative">
-          {/* Conditionally render default header only for non-custom views */}
-          {currentView !== 'patients' && currentView !== 'ai-insights' && <Header title={getTitle()} />}
+          <Header title={title} subtitle={subtitle} />
           
           <div className="flex-1 overflow-hidden h-full">
             {renderView()}
