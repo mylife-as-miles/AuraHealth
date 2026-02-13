@@ -6,6 +6,7 @@ import PatientRecords from './components/PatientRecords';
 import AIInsights from './components/AIInsights';
 import ClinicalWorkflow from './components/ClinicalWorkflow';
 import Settings from './components/Settings';
+import Diagnostics from './components/Diagnostics';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -55,6 +56,9 @@ export default function App() {
     }
     if (currentView === 'settings') {
       return <Settings />;
+    }
+    if (currentView === 'diagnostics') {
+      return <Diagnostics />;
     }
     return <PlaceholderView title={getHeaderInfo().title} />;
   };
