@@ -71,10 +71,111 @@
       .dark ::-webkit-scrollbar-thumb {
         background: #374151;
       }
+
+      /* Mobile Warning Styles */
+      #mobile-warning {
+        display: none;
+        height: 100vh;
+        width: 100vw;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background: linear-gradient(135deg, #160527 0%, #0F0F12 100%);
+        color: #F3F5F7;
+        padding: 2rem;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+      }
+
+      @media (max-width: 768px) {
+        #root {
+          display: none !important;
+        }
+        #mobile-warning {
+          display: flex;
+        }
+      }
+
+      .mobile-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        max-width: 340px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      .mobile-icon {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(45deg, #54E097, #14F5D6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        justify-content: center;
+      }
+
+      .mobile-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #FFFFFF;
+      }
+
+      .mobile-text {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #A0A0A0;
+        margin-bottom: 2rem;
+      }
+
+      .desktop-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(84, 224, 151, 0.1);
+        color: #54E097;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border: 1px solid rgba(84, 224, 151, 0.2);
+      }
     </style>
 </head>
   <body class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark antialiased">
     <div id="root"></div>
+
+    <div id="mobile-warning">
+      <div class="mobile-card">
+        <div class="mobile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#54E097" />
+                <stop offset="100%" stop-color="#14F5D6" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <h2 class="mobile-title">Desktop Experience<br>Recommended</h2>
+        <p class="mobile-text">
+          The AuraHealth Clinical Dashboard is optimized for larger screens to ensure the best data visualization and patient management experience.
+        </p>
+        <div class="desktop-badge">
+          <span>Please switch to desktop</span>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
