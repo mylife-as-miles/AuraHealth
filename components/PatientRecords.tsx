@@ -367,7 +367,7 @@ export default function PatientRecords() {
                 </div>
 
                 {/* Chart Area */}
-                <div className="h-32 w-full">
+                <div className="h-32 w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={vitalsData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />

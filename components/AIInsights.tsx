@@ -78,7 +78,7 @@ export default function AIInsights() {
               <span className="flex items-center text-[10px] text-gray-400 font-medium ml-2 border-l pl-2 border-gray-300"><span className="w-3 h-0.5 border-t border-dashed border-gray-400 mr-1.5"></span>Projection</span>
             </div>
           </div>
-          <div className="w-full relative h-[300px]">
+          <div className="w-full relative h-[300px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={diseaseData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                 <defs>

@@ -43,7 +43,7 @@ export default function ResourceAllocation() {
         </div>
       </div>
 
-      <div className="h-24 relative -mx-2">
+      <div className="h-24 relative -mx-2 w-full min-w-0">
          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
               <Tooltip 

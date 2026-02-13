@@ -98,7 +98,8 @@ export default function DiagnosticOverview() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-[220px] relative">
+      {/* Fixed height container with min-w-0 to prevent flexbox sizing issues */}
+      <div className="h-[250px] w-full relative min-w-0">
          {/* Y Axis Labels (Static for aesthetic match) */}
         <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[10px] font-bold text-gray-300 pointer-events-none z-0">
           <span>600K</span>

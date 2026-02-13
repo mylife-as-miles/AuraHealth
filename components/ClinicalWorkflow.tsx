@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   MoreHorizontal, 
-  Filter, 
   Plus, 
   MoreVertical, 
   Clock, 
@@ -14,7 +13,6 @@ import {
   FileText, 
   ArrowRight, 
   Edit3,
-  Calendar,
   Stethoscope,
   ClipboardList,
   ChevronRight
@@ -23,27 +21,6 @@ import {
 export default function ClinicalWorkflow() {
   return (
     <div className="flex h-full overflow-hidden flex-col">
-       {/* Toolbar */}
-       <div className="flex flex-col md:flex-row md:items-center justify-end mb-8 gap-4 flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center -space-x-2 hidden sm:flex">
-              <img alt="Doctor" className="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark object-cover" src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=100&h=100"/>
-              <img alt="Doctor" className="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark object-cover" src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=100&h=100"/>
-              <div className="w-8 h-8 rounded-full border-2 border-white dark:border-background-dark bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300">
-                +5
-              </div>
-            </div>
-            <button className="flex items-center gap-2 bg-white dark:bg-card-dark border border-gray-200 dark:border-border-dark px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm">
-              <Filter size={16} />
-              <span className="hidden sm:inline">Filter</span>
-            </button>
-            <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors">
-              <Plus size={18} />
-              <span className="hidden sm:inline">New Patient</span>
-            </button>
-          </div>
-        </div>
-
       {/* Main Board Area */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col h-full overflow-hidden pr-0 md:pr-4">
