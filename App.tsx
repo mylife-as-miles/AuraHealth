@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import PatientRecords from './components/PatientRecords';
+import AIInsights from './components/AIInsights';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -37,6 +38,9 @@ export default function App() {
     if (currentView === 'patients') {
       return <PatientRecords />;
     }
+    if (currentView === 'ai-insights') {
+      return <AIInsights />;
+    }
     return <PlaceholderView title={getTitle()} />;
   };
 
@@ -46,7 +50,7 @@ export default function App() {
         <Sidebar currentView={currentView} onNavigate={setCurrentView} />
         <main className="flex-1 bg-background-light dark:bg-background-dark p-6 md:p-8 flex flex-col overflow-hidden relative">
           {/* Conditionally render default header only for non-custom views */}
-          {currentView !== 'patients' && <Header title={getTitle()} />}
+          {currentView !== 'patients' && currentView !== 'ai-insights' && <Header title={getTitle()} />}
           
           <div className="flex-1 overflow-hidden h-full">
             {renderView()}

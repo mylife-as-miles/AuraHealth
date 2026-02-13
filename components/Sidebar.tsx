@@ -8,7 +8,8 @@ import {
   Settings, 
   Search, 
   Command,
-  Hospital
+  Hospital,
+  Cpu
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -90,15 +91,15 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Upgrade Card */}
-      <div className="mt-auto relative rounded-2xl overflow-hidden p-5 shadow-lg group cursor-pointer">
-        <div className="absolute inset-0 bg-primary transition-colors group-hover:bg-[#1f0836]"></div>
+      <div className="mt-auto relative rounded-2xl overflow-hidden p-4">
+        <div className="absolute inset-0 bg-primary"></div>
         {/* Abstract Pattern overlay */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
         <div className="relative z-10 text-white">
-          <h3 className="font-bold text-sm mb-1">MedGemma v2.0</h3>
-          <p className="text-[11px] text-gray-300 mb-4 leading-relaxed">Upgrade to access HAI-DEF advanced models.</p>
-          <button className="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-xs font-semibold transition-all border border-white/10 hover:border-white/20">
-            Upgrade Plan
+          <h3 className="font-bold text-sm mb-1">MedGemma v2.4</h3>
+          <p className="text-[11px] text-gray-300 mb-3">Running HAI-DEF models.</p>
+          <button className="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-white/10">
+             <Cpu size={14} /> System Status
           </button>
         </div>
       </div>
