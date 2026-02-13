@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import PatientRecords from './components/PatientRecords';
 import AIInsights from './components/AIInsights';
 import ClinicalWorkflow from './components/ClinicalWorkflow';
+import Settings from './components/Settings';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -33,7 +34,7 @@ export default function App() {
       case 'workflow': 
         return { title: "Clinical Workflow", subtitle: "Triage Board • Cardiology Unit A" };
       case 'settings': 
-        return { title: "Settings", subtitle: "System preferences and configurations" };
+        return { title: "Settings & Configuration", subtitle: "Manage your profile, HAI-DEF models, and system privacy." };
       default: 
         return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
     }
@@ -51,6 +52,9 @@ export default function App() {
     }
     if (currentView === 'workflow') {
       return <ClinicalWorkflow />;
+    }
+    if (currentView === 'settings') {
+      return <Settings />;
     }
     return <PlaceholderView title={getHeaderInfo().title} />;
   };

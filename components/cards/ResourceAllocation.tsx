@@ -1,9 +1,15 @@
 import React from 'react';
 import { Package, Users } from 'lucide-react';
-import { LineChart, Line, ResponsiveContainer, Defs, LinearGradient, Stop } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 
 const data = [
-  { val: 10 }, { val: 20 }, { val: 15 }, { val: 35 }, { val: 25 }, { val: 45 }, { val: 30 }
+  { time: '08:00', val: 10 }, 
+  { time: '10:00', val: 25 }, 
+  { time: '12:00', val: 18 }, 
+  { time: '14:00', val: 42 }, 
+  { time: '16:00', val: 28 }, 
+  { time: '18:00', val: 45 }, 
+  { time: '20:00', val: 35 }
 ];
 
 export default function ResourceAllocation() {
@@ -37,26 +43,30 @@ export default function ResourceAllocation() {
         </div>
       </div>
 
-      <div className="h-20 relative -mx-2">
+      <div className="h-24 relative -mx-2">
          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <defs>
-                <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#160527" stopOpacity={0.1}/>
-                  <stop offset="100%" stopColor="#160527" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
+            <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+              <Tooltip 
+                contentStyle={{ 
+                  borderRadius: '12px', 
+                  border: 'none', 
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  padding: '8px 12px'
+                }}
+                itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
+                labelStyle={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}
+                cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '3 3' }}
+              />
               <Line 
-                type="natural" 
+                type="monotone" 
                 dataKey="val" 
-                stroke="#160527" 
-                strokeWidth={2} 
+                stroke="#54E097" 
+                strokeWidth={3} 
                 dot={false}
-                className="dark:stroke-gray-400"
+                activeDot={{ r: 6, fill: '#54E097', stroke: '#fff', strokeWidth: 2 }}
               />
             </LineChart>
          </ResponsiveContainer>
-         <div className="absolute top-[40%] right-[20%] w-2.5 h-2.5 bg-secondary rounded-full border-[3px] border-white dark:border-gray-800 shadow-md"></div>
       </div>
     </div>
   );

@@ -14,7 +14,10 @@ import {
   FileText, 
   ArrowRight, 
   Edit3,
-  Calendar
+  Calendar,
+  Stethoscope,
+  ClipboardList,
+  ChevronRight
 } from 'lucide-react';
 
 export default function ClinicalWorkflow() {
@@ -63,11 +66,11 @@ export default function ClinicalWorkflow() {
                 </div>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   
-                  {/* Card 1 */}
-                  <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group border border-transparent hover:border-border-light dark:hover:border-border-dark relative overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent"></div>
+                  {/* Card 1 - URGENT HIGHLIGHT */}
+                  <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-[0_0_15px_rgba(254,87,150,0.2)] dark:shadow-[0_0_15px_rgba(254,87,150,0.1)] ring-1 ring-accent/40 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-accent"></div>
                     <div className="flex justify-between items-start mb-3 pl-2">
-                      <span className="bg-accent/10 text-accent text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider flex items-center gap-1">
+                      <span className="bg-accent/10 text-accent text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider flex items-center gap-1 animate-pulse">
                         <AlertCircle size={10} /> Urgent
                       </span>
                       <button className="text-gray-400 hover:text-primary dark:hover:text-white">
@@ -148,8 +151,8 @@ export default function ClinicalWorkflow() {
                 </div>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   
-                  {/* Active Analysis Card */}
-                  <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-glow ring-1 ring-cyan/30 cursor-pointer group border-l-4 border-l-cyan relative overflow-hidden">
+                  {/* Active Analysis Card - AI HIGHLIGHT */}
+                  <div className="bg-white dark:bg-card-dark p-4 rounded-2xl shadow-[0_0_15px_rgba(20,245,214,0.15)] ring-1 ring-cyan/40 cursor-pointer group border-l-4 border-l-cyan relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-1.5">
                           <span className="flex h-2.5 w-2.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan opacity-75"></span>
@@ -331,6 +334,38 @@ export default function ClinicalWorkflow() {
                       </button>
                   </div>
               </div>
+
+               {/* AI Recommended Next Steps */}
+                <div className="mb-8">
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-3">Suggested Next Steps</p>
+                    <div className="space-y-2">
+                        <button className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 hover:border-secondary hover:shadow-sm transition-all group text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center">
+                                    <Stethoscope size={16} />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-primary dark:text-white group-hover:text-secondary transition-colors">Schedule Echo</div>
+                                    <div className="text-[10px] text-gray-500">Neuro Consult Pending</div>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                        </button>
+                        
+                        <button className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 hover:border-cyan hover:shadow-sm transition-all group text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-cyan/10 text-cyan-600 dark:text-cyan flex items-center justify-center">
+                                    <ClipboardList size={16} />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-primary dark:text-white group-hover:text-cyan transition-colors">Review Vitals History</div>
+                                    <div className="text-[10px] text-gray-500">Anomaly detected in last 4h</div>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-gray-400 group-hover:text-cyan transition-colors" />
+                        </button>
+                    </div>
+                </div>
 
               {/* Quick Actions */}
               <div className="pt-6 border-t border-gray-100 dark:border-white/5">
