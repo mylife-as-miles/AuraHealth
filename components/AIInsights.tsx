@@ -13,7 +13,8 @@ import {
   AlertCircle, 
   FileText,
   Info,
-  X
+  X,
+  Share2
 } from 'lucide-react';
 import { 
   ComposedChart, 
@@ -28,21 +29,48 @@ import {
   ReferenceLine
 } from 'recharts';
 
-// Mock Data for the main chart including projections
+// Enhanced Data Structure for Projections
 const diseaseData = [
-  { month: 'Jan', cardio: 30, resp: 45, viral: 20, neuro: 65, isProjection: false },
-  { month: 'Feb', cardio: 40, resp: 35, viral: 25, neuro: 62, isProjection: false },
-  { month: 'Mar', cardio: 35, resp: 55, viral: 35, neuro: 60, isProjection: false },
-  { month: 'Apr', cardio: 80, resp: 50, viral: 45, neuro: 58, isProjection: false },
-  { month: 'May', cardio: 60, resp: 30, viral: 20, neuro: 63, isProjection: false },
-  { month: 'Jun', cardio: 70, resp: 25, viral: 60, neuro: 68, isProjection: false },
-  // Projected Data
-  { month: 'Jul (Proj)', cardio: 85, resp: 20, viral: 15, neuro: 70, isProjection: true },
-  { month: 'Aug (Proj)', cardio: 90, resp: 15, viral: 10, neuro: 72, isProjection: true },
+  { month: 'Jan', cardio: 30, resp: 45, viral: 20, neuro: 65 },
+  { month: 'Feb', cardio: 40, resp: 35, viral: 25, neuro: 62 },
+  { month: 'Mar', cardio: 35, resp: 55, viral: 35, neuro: 60 },
+  { month: 'Apr', cardio: 80, resp: 50, viral: 45, neuro: 58 },
+  { month: 'May', cardio: 60, resp: 30, viral: 20, neuro: 63 },
+  { month: 'Jun', cardio: 70, resp: 25, viral: 60, neuro: 68, cardioProj: 70, respProj: 25, viralProj: 60, neuroProj: 68 }, // Bridge point
+  { month: 'Jul', cardioProj: 85, respProj: 20, viralProj: 15, neuroProj: 70 },
+  { month: 'Aug', cardioProj: 90, respProj: 15, viralProj: 10, neuroProj: 72 },
 ];
 
 export default function AIInsights() {
   const [showExplainabilityModal, setShowExplainabilityModal] = useState(false);
+
+  const downloadChartCSV = () => {
+    const headers = ['Month', 'Cardio', 'Respiratory', 'Viral', 'Neuro', 'Cardio (Proj)', 'Respiratory (Proj)', 'Viral (Proj)', 'Neuro (Proj)'];
+    const rows = diseaseData.map(row => [
+        row.month,
+        row.cardio || '',
+        row.resp || '',
+        row.viral || '',
+        row.neuro || '',
+        row.cardioProj || '',
+        row.respProj || '',
+        row.viralProj || '',
+        row.neuroProj || ''
+    ].join(','));
+    
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "disease_prevalence_trends.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShare = () => {
+      alert("Chart view link copied to clipboard!");
+  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2 relative">
@@ -70,12 +98,29 @@ export default function AIInsights() {
               <h3 className="font-bold text-primary dark:text-white text-lg">Disease Prevalence Trends</h3>
               <p className="text-xs text-gray-500 mt-1">Comparative analysis including AI projections</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-2 h-2 rounded-full bg-accent mr-1.5"></span>Cardio</span>
-              <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-2 h-2 rounded-full bg-secondary mr-1.5"></span>Respiratory</span>
-              <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-2 h-2 rounded-full bg-cyan mr-1.5"></span>Viral</span>
-              <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-2 h-2 rounded-full bg-primary mr-1.5"></span>Neuro</span>
-              <span className="flex items-center text-[10px] text-gray-400 font-medium ml-2 border-l pl-2 border-gray-300"><span className="w-3 h-0.5 border-t border-dashed border-gray-400 mr-1.5"></span>Projection</span>
+            <div className="flex flex-wrap gap-2 items-center">
+              <button 
+                onClick={handleShare}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-primary dark:hover:text-white transition-colors"
+                title="Share Chart"
+              >
+                <Share2 size={16} />
+              </button>
+              <button 
+                onClick={downloadChartCSV}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-primary dark:hover:text-white transition-colors"
+                title="Export Data"
+              >
+                <Download size={16} />
+              </button>
+              
+              <div className="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+
+              <div className="flex items-center gap-2">
+                 <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-2 h-2 rounded-full bg-accent mr-1"></span>Cardio</span>
+                 <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-2 h-2 rounded-full bg-secondary mr-1"></span>Resp</span>
+                 <span className="flex items-center text-[10px] text-gray-500 font-medium"><span className="w-3 h-0.5 border-t border-dashed border-gray-400 mr-1"></span>Proj</span>
+              </div>
             </div>
           </div>
           <div className="w-full relative h-[300px] min-w-0">
@@ -110,35 +155,83 @@ export default function AIInsights() {
                 <Line 
                   type="monotone" 
                   dataKey="neuro" 
+                  name="Neurology"
                   stroke="#160527" 
                   strokeOpacity={0.2} 
                   strokeWidth={2} 
-                  dot={false} 
-                  strokeDasharray="0"
+                  dot={{r: 0}}
+                  activeDot={{r: 5, strokeWidth: 0}}
                 />
                  <Line 
                   type="monotone" 
                   dataKey="resp" 
+                  name="Respiratory"
                   stroke="#54E097" 
                   strokeWidth={3} 
-                  dot={false}
-                   strokeDasharray="0"
+                  dot={{r: 0}}
+                  activeDot={{r: 6, strokeWidth: 0, fill: '#54E097'}}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="viral" 
+                  name="Viral"
                   stroke="#14F5D6" 
                   strokeDasharray="5 5" 
                   strokeWidth={3} 
-                  dot={false}
+                  dot={{r: 0}}
+                  activeDot={{r: 6, strokeWidth: 0, fill: '#14F5D6'}}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="cardio" 
+                  name="Cardiology"
                   stroke="#FE5796" 
                   strokeWidth={4} 
                   fillOpacity={1} 
-                  fill="url(#colorCardio)" 
+                  fill="url(#colorCardio)"
+                  activeDot={{r: 6, strokeWidth: 0, fill: '#FE5796'}}
+                />
+
+                {/* Projected Data Lines (Dashed, Lighter) */}
+                <Line 
+                    type="monotone" 
+                    dataKey="cardioProj" 
+                    name="Cardio (Proj)"
+                    stroke="#FE5796" 
+                    strokeOpacity={0.6} 
+                    strokeWidth={3} 
+                    strokeDasharray="4 4" 
+                    dot={{r: 3, strokeWidth: 0, fill: '#FE5796'}}
+                />
+                <Line 
+                    type="monotone" 
+                    dataKey="respProj" 
+                    name="Resp (Proj)"
+                    stroke="#54E097" 
+                    strokeOpacity={0.6} 
+                    strokeWidth={2} 
+                    strokeDasharray="4 4" 
+                    dot={{r: 3, strokeWidth: 0, fill: '#54E097'}}
+                />
+                 <Line 
+                    type="monotone" 
+                    dataKey="viralProj" 
+                    name="Viral (Proj)"
+                    stroke="#14F5D6" 
+                    strokeOpacity={0.6} 
+                    strokeWidth={2} 
+                    strokeDasharray="4 4" 
+                    dot={{r: 3, strokeWidth: 0, fill: '#14F5D6'}}
+                />
+                 <Line 
+                    type="monotone" 
+                    dataKey="neuroProj" 
+                    name="Neuro (Proj)"
+                    stroke="#160527" 
+                    strokeOpacity={0.15} 
+                    strokeWidth={2} 
+                    strokeDasharray="4 4" 
+                    dot={{r: 3, strokeWidth: 0, fill: '#160527'}}
                 />
 
                 {/* Vertical Line separating historical from projection */}
