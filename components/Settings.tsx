@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     Shield,
     BrainCircuit,
-    Server,
+    AlertTriangle,
     BellRing,
     Save,
     Sparkles,
@@ -64,7 +64,7 @@ export default function Settings() {
         'medgemma-27b': true,
         'med-palm-2': true
     });
-    const [infra, setInfra] = useState('local');
+
     const [alerts, setAlerts] = useState({ critical: true, confidence: true, system: false });
 
     const toggleModel = (id: string) => {
@@ -240,53 +240,69 @@ export default function Settings() {
 
                 {/* Right Column: Infrastructure & Alerts */}
                 <div className="lg:col-span-12 xl:col-span-5 space-y-6">
-                    {/* Infrastructure */}
-                    <div className="bg-white dark:bg-card-dark rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-border-dark relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan/5 rounded-bl-full pointer-events-none"></div>
+                    {/* Medical Disclaimer */}
+                    <div className="bg-red-50 dark:bg-red-900/10 rounded-3xl p-6 shadow-sm border border-red-100 dark:border-red-900/30 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-bl-full pointer-events-none"></div>
                         <div className="flex items-center gap-3 mb-6 relative z-10">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary dark:text-white">
-                                <Server size={20} />
+                            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
+                                <AlertTriangle size={20} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-primary dark:text-white">Infrastructure</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Data processing environment.</p>
+                                <h3 className="font-bold text-red-700 dark:text-red-400">Medical Disclaimer</h3>
+                                <p className="text-xs text-red-600/80 dark:text-red-400/70">Important usage guidelines.</p>
                             </div>
                         </div>
 
                         <div className="space-y-4 relative z-10">
-                            <div
-                                onClick={() => setInfra('local')}
-                                className={`p-3 border-2 rounded-xl flex items-start gap-3 cursor-pointer transition-all ${infra === 'local' ? 'border-secondary bg-secondary/5' : 'border-transparent bg-background-light dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                            >
-                                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${infra === 'local' ? 'border-secondary' : 'border-gray-400'}`}>
-                                    {infra === 'local' && <div className="w-2 h-2 rounded-full bg-secondary"></div>}
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold text-primary dark:text-white">Local Processing</span>
-                                        <span className="text-[9px] bg-secondary text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Recommended</span>
+                            <div className="p-4 bg-white dark:bg-black/20 rounded-2xl border border-red-100 dark:border-red-900/30">
+                                <h4 className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                    <Shield size={12} /> Not Medical Advice
+                                </h4>
+                                <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                    The information provided on this website about MedGemma is for educational and informational purposes only. It is not intended as medical advice, diagnosis, or treatment.
+                                </p>
+                            </div>
+
+                            <div className="p-4 bg-white dark:bg-black/20 rounded-2xl border border-red-100 dark:border-red-900/30">
+                                <h4 className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                    <Microscope size={12} /> Research Purpose Only
+                                </h4>
+                                <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                    MedGemma models are designed for research and development purposes. They are not clinical-grade tools and should not be used for actual patient care without proper validation and regulatory approval.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <div className="flex gap-3 items-start">
+                                    <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
+                                    <div>
+                                        <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">Consult Healthcare Professionals</strong>
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                            Always consult with qualified healthcare professionals for medical decisions. Do not rely solely on AI models for health-related conclusions.
+                                        </p>
                                     </div>
-                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">Data remains on-premise. HIPAA Compliant.</p>
+                                </div>
+
+                                <div className="flex gap-3 items-start">
+                                    <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
+                                    <div>
+                                        <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">Use at Your Own Risk</strong>
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                            Users assume full responsibility for any application of MedGemma models. The developers and this website disclaim any liability for medical decisions made based on AI model outputs.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 items-start">
+                                    <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
+                                    <div>
+                                        <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">Validation Required</strong>
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                            Any clinical application requires thorough validation, regulatory compliance, and expert medical oversight before deployment in healthcare settings.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div
-                                onClick={() => setInfra('cloud')}
-                                className={`p-3 border-2 rounded-xl flex items-start gap-3 cursor-pointer transition-all ${infra === 'cloud' ? 'border-secondary bg-secondary/5' : 'border-transparent bg-background-light dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-                            >
-                                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${infra === 'cloud' ? 'border-secondary' : 'border-gray-400'}`}>
-                                    {infra === 'cloud' && <div className="w-2 h-2 rounded-full bg-secondary"></div>}
-                                </div>
-                                <div>
-                                    <span className="text-sm font-bold text-primary dark:text-white">Aura Cloud Secure</span>
-                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">Encrypted cloud processing for heavy loads.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-xs">
-                            <span className="text-gray-500 font-medium">Encryption Level</span>
-                            <span className="font-mono font-bold text-primary dark:text-white bg-gray-100 dark:bg-white/10 px-2 py-1 rounded">AES-256-GCM</span>
                         </div>
                     </div>
 
