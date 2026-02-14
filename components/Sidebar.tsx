@@ -1,13 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FolderOpen, 
-  Activity, 
-  BrainCircuit, 
-  GitBranch, 
-  Settings, 
-  Search, 
+import {
+  LayoutDashboard,
+  FolderOpen,
+  Activity,
+  BrainCircuit,
+  GitBranch,
+  Settings,
+  Search,
   Command,
   Hospital,
   Cpu
@@ -23,11 +23,10 @@ interface NavItemProps {
 const NavItem = ({ icon: Icon, label, to, isNew = false }: NavItemProps) => (
   <NavLink
     to={to}
-    className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl transition-all group ${
-      isActive
+    className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl transition-all group ${isActive
         ? 'bg-primary text-white shadow-lg shadow-primary/20'
         : 'text-gray-500 dark:text-gray-400 hover:bg-background-light dark:hover:bg-gray-800'
-    }`}
+      }`}
   >
     {({ isActive }) => (
       <>
@@ -45,7 +44,7 @@ const NavItem = ({ icon: Icon, label, to, isNew = false }: NavItemProps) => (
   </NavLink>
 );
 
-export default function Sidebar() {
+export default function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }) {
   return (
     <aside className="w-full md:w-64 flex-shrink-0 p-6 flex flex-col border-r border-border-light dark:border-border-dark bg-white dark:bg-card-dark">
       {/* Brand */}
@@ -57,7 +56,7 @@ export default function Sidebar() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-8 group">
+      <div className="relative mb-8 group" onClick={onOpenSearch}>
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-secondary transition-colors" />
         <input
           type="text"
@@ -93,7 +92,7 @@ export default function Sidebar() {
           <h3 className="font-bold text-sm mb-1">MedGemma v2.4</h3>
           <p className="text-[11px] text-gray-300 mb-3">Running HAI-DEF models.</p>
           <button className="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-white/10">
-             <Cpu size={14} /> System Status
+            <Cpu size={14} /> System Status
           </button>
         </div>
       </div>

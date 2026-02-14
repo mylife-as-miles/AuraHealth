@@ -21,8 +21,27 @@ const PlaceholderView = ({ title }: { title: string }) => (
   </div>
 );
 
+import { useState, useEffect } from 'react';
+import CommandPalette from './components/CommandPalette';
+
+// ... (previous imports)
+
 const Layout = () => {
   const location = useLocation();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Keyboard shortcut for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const getHeaderInfo = (pathname: string) => {
     switch (pathname) {
@@ -50,10 +69,10 @@ const Layout = () => {
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8 flex items-center justify-center bg-background-light dark:bg-black transition-colors duration-300">
       <div className="w-full max-w-[1440px] bg-white dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[850px] border border-border-light dark:border-border-dark transition-colors duration-300 h-[calc(100vh-4rem)]">
-        <Sidebar />
+        <Sidebar onOpenSearch={() => setIsSearchOpen(true)} />
         <main className="flex-1 bg-background-light dark:bg-background-dark p-6 md:p-8 flex flex-col overflow-hidden relative">
           <Header title={title} subtitle={subtitle} />
-          
+
           <div className="flex-1 overflow-hidden h-full">
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -68,6 +87,7 @@ const Layout = () => {
           </div>
         </main>
       </div>
+      <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 };
