@@ -1,8 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Plus,
+  FileText,
+  Trash2,
+  UserCircle,
+  Stethoscope,
   Filter,
   ArrowUpDown,
   MoreVertical,
@@ -188,7 +192,7 @@ const MOCK_PATIENTS: Patient[] = [
       { name: 'Antibiotics', dosage: '500mg', freq: '3x Daily', time: '08:00 AM', type: 'pill' }
     ],
     history: [
-      { date: 'Oct 08, 2024', title: 'Surgery', type: 'Visist', description: 'Appendectomy performed successfully.' }
+      { date: 'Oct 08, 2024', title: 'Surgery', type: 'Visit', description: 'Appendectomy performed successfully.' }
     ],
     insurance: { provider: 'BlueCross BlueShield', policy: '#992-555-01' },
     aiSummary: "Monitoring for signs of infection post-surgery. White blood cell count slightly elevated but trending down."
@@ -269,6 +273,9 @@ export default function PatientRecords() {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>("#AH-8832");
   const [searchQuery, setSearchQuery] = useState('');
   const [activeVital, setActiveVital] = useState<'hr' | 'bp' | 'temp' | 'weight'>('hr');
+  const [contextMenuPatientId, setContextMenuPatientId] = useState<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Sort Status
@@ -276,7 +283,7 @@ export default function PatientRecords() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 5;
 
   // Derived Data
   const filteredPatients = useMemo(() => {
@@ -452,8 +459,62 @@ export default function PatientRecords() {
                         <span className={`w-1.5 h-1.5 rounded-full ${getRiskDot(patient.riskColor || 'secondary')}`}></span> {patient.risk}
                       </span>
                     </td>
-                    <td className="px-4 py-3 rounded-r-xl text-right">
-                      <button className="text-gray-400 hover:text-primary dark:hover:text-white"><MoreVertical size={16} /></button>
+                    <td className="px-4 py-3 rounded-r-xl text-right relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setContextMenuPatientId(contextMenuPatientId === patient.id ? null : patient.id);
+                        }}
+                        className="text-gray-400 hover:text-primary dark:hover:text-white p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      {contextMenuPatientId === patient.id && (
+                        <div
+                          ref={contextMenuRef}
+                          className="absolute right-4 top-12 z-50 w-48 bg-white dark:bg-card-dark rounded-xl shadow-2xl border border-gray-100 dark:border-white/10 py-2 animate-in fade-in zoom-in-95 duration-150"
+                        >
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedPatientId(patient.id); setContextMenuPatientId(null); }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <UserCircle size={16} className="text-gray-400" /> View Profile
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedPatientId(patient.id); setContextMenuPatientId(null); navigate('/diagnostics'); }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <Stethoscope size={16} className="text-gray-400" /> Start Diagnosis
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setContextMenuPatientId(null);
+                              const p = MOCK_PATIENTS.find(mp => mp.id === patient.id);
+                              if (!p) return;
+                              const headers = 'Time,Heart Rate,Systolic BP,Diastolic BP,Temperature,Weight\n';
+                              const rows = p.vitals.map(d => `${d.time},${d.hr},${d.sys},${d.dia},${d.temp},${d.weight}`).join('\n');
+                              const csvContent = 'data:text/csv;charset=utf-8,' + headers + rows;
+                              const link = document.createElement('a');
+                              link.setAttribute('href', encodeURI(csvContent));
+                              link.setAttribute('download', `record_${p.name.replace(' ', '_')}.csv`);
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                          >
+                            <FileText size={16} className="text-gray-400" /> Export Record
+                          </button>
+                          <div className="my-1 border-t border-gray-100 dark:border-white/5"></div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setContextMenuPatientId(null); }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                          >
+                            <Trash2 size={16} /> Delete Patient
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -482,8 +543,8 @@ export default function PatientRecords() {
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${currentPage === i + 1
-                        ? 'bg-primary text-white font-bold'
-                        : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500'
+                      ? 'bg-primary text-white font-bold'
+                      : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500'
                       }`}
                   >
                     {i + 1}
@@ -568,7 +629,10 @@ export default function PatientRecords() {
                 >
                   <Play size={14} fill="currentColor" /> Start Diagnosis
                 </button>
-                <button className="flex-1 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 text-primary dark:text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="flex-1 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 text-primary dark:text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                >
                   <History size={14} /> View History
                 </button>
               </div>
@@ -617,8 +681,8 @@ export default function PatientRecords() {
                       key={v.id}
                       onClick={() => setActiveVital(v.id as any)}
                       className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${activeVital === v.id
-                          ? 'bg-white dark:bg-card-dark border-secondary shadow-sm ring-1 ring-secondary/20'
-                          : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5 text-gray-400'
+                        ? 'bg-white dark:bg-card-dark border-secondary shadow-sm ring-1 ring-secondary/20'
+                        : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5 text-gray-400'
                         }`}
                     >
                       <v.icon size={16} className={`mb-1 ${activeVital === v.id ? 'text-secondary' : 'text-current'}`} />
