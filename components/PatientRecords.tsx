@@ -278,6 +278,17 @@ export default function PatientRecords() {
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // Close context menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenuPatientId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   // Sort Status
   const [sortConfig, setSortConfig] = useState<{ key: keyof Patient; direction: 'asc' | 'desc' } | null>(null);
 
@@ -747,7 +758,7 @@ export default function PatientRecords() {
               </div>
 
               {/* Medical History Timeline */}
-              <div>
+              <div ref={timelineRef}>
                 <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Medical Timeline</h4>
                 <div className="relative pl-4 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100 dark:before:bg-gray-800">
                   {selectedPatient.history.map((event, idx) => (
