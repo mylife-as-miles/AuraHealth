@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
+  Search,
   MoreHorizontal,
   Plus,
   MoreVertical,
@@ -224,11 +225,7 @@ export default function ClinicalWorkflow() {
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [showAddModal, setShowAddModal] = useState<ColumnId | null>(null);
-  const [newName, setNewName] = useState('');
-  const [newAge, setNewAge] = useState('');
-  const [newGender, setNewGender] = useState('M');
-  const [newPriority, setNewPriority] = useState<Priority>('stable');
-  const [newScanType, setNewScanType] = useState('');
+  const [pickerSearch, setPickerSearch] = useState('');
 
   const selectedCard = useMemo(() => cards.find(c => c.id === selectedCardId) || null, [cards, selectedCardId]);
   const cardsByColumn = useMemo(() => {
@@ -288,28 +285,45 @@ export default function ClinicalWorkflow() {
     triggerAction('note', 'Note saved');
   };
 
-  // Add patient
-  const addPatient = () => {
-    if (!showAddModal || !newName.trim()) return;
-    const initials = newName.trim().split(/\s+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
-    const colors = ['bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-amber-100 text-amber-600', 'bg-teal-100 text-teal-600', 'bg-purple-100 text-purple-600', 'bg-green-100 text-green-600', 'bg-red-100 text-red-600'];
+  // Patient pool from Patient Records
+  const PATIENT_POOL = useMemo(() => [
+    { id: '#AH-8832', name: 'Eleanor Pena', age: 45, gender: 'F', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100', condition: 'Arrhythmia', risk: 'High Risk' as const },
+    { id: '#AH-9211', name: 'Cody Fisher', age: 32, gender: 'M', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100', condition: 'Hypertension', risk: 'High Risk' as const },
+    { id: '#AH-7742', name: 'Jerome Webb', age: 58, gender: 'M', image: undefined, initials: 'JW', condition: 'Type 2 Diabetes', risk: 'Moderate' as const },
+    { id: '#AH-1029', name: 'Kristin Watson', age: 29, gender: 'F', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100', condition: 'Migraine', risk: 'Low Risk' as const },
+    { id: '#AH-5621', name: 'Darrell Steward', age: 41, gender: 'M', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100', condition: 'Post-Op Recovery', risk: 'High Risk' as const },
+    { id: '#AH-2291', name: 'Arlene McCoy', age: 63, gender: 'F', image: undefined, initials: 'AM', condition: 'Arthritis', risk: 'Moderate' as const }
+  ], []);
+
+  const existingPatientNames = useMemo(() => new Set(cards.map(c => c.patient)), [cards]);
+
+  const filteredPool = useMemo(() => {
+    const q = pickerSearch.toLowerCase();
+    return PATIENT_POOL.filter(p => p.name.toLowerCase().includes(q) || p.condition.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  }, [pickerSearch, PATIENT_POOL]);
+
+  const addPatientFromPool = (poolPatient: typeof PATIENT_POOL[0]) => {
+    if (!showAddModal) return;
+    const riskToPriority: Record<string, Priority> = { 'High Risk': 'urgent', 'Moderate': 'stable', 'Low Risk': 'stable' };
+    const colors = ['bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-amber-100 text-amber-600', 'bg-teal-100 text-teal-600', 'bg-purple-100 text-purple-600', 'bg-green-100 text-green-600'];
+    const initials = poolPatient.initials || poolPatient.name.split(/\s+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
     const newCard: WorkflowCard = {
-      id: `wf-new-${Date.now()}`,
-      patient: newName.trim(),
-      age: parseInt(newAge) || 0,
-      gender: newGender,
-      avatar: initials,
-      avatarType: 'initials',
-      avatarBg: colors[Math.floor(Math.random() * colors.length)],
-      priority: newPriority,
-      scanType: newScanType.trim() || undefined,
+      id: `wf-pool-${Date.now()}`,
+      patient: poolPatient.name,
+      age: poolPatient.age,
+      gender: poolPatient.gender,
+      avatar: poolPatient.image || initials,
+      avatarType: poolPatient.image ? 'image' : 'initials',
+      avatarBg: poolPatient.image ? undefined : colors[Math.floor(Math.random() * colors.length)],
+      priority: riskToPriority[poolPatient.risk] || 'stable',
+      scanType: poolPatient.condition,
       column: showAddModal,
       time: 'Just now'
     };
     setCards(prev => [...prev, newCard]);
     setSelectedCardId(newCard.id);
     setShowAddModal(null);
-    setNewName(''); setNewAge(''); setNewGender('M'); setNewPriority('stable'); setNewScanType('');
+    setPickerSearch('');
   };
 
   const recIcon = (type: string) => {
@@ -663,96 +677,80 @@ export default function ClinicalWorkflow() {
         </div>
       )}
 
-      {/* Add Patient Modal */}
+      {/* Add Patient Picker Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-5">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-primary dark:text-white flex items-center gap-2">
                 <Plus size={20} className="text-cyan" />
-                Add Patient to {COLUMNS.find(c => c.id === showAddModal)?.label}
+                Add to {COLUMNS.find(c => c.id === showAddModal)?.label}
               </h3>
-              <button onClick={() => setShowAddModal(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
+              <button onClick={() => { setShowAddModal(null); setPickerSearch(''); }} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
                 <X size={20} className="text-gray-400" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient Name *</label>
-                <input
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  placeholder="e.g. Jane Doe"
-                  className="w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
-                />
-              </div>
+            <p className="text-xs text-gray-500 mb-3">Select a patient from existing records</p>
 
-              {/* Age + Gender row */}
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Age</label>
-                  <input
-                    value={newAge}
-                    onChange={e => setNewAge(e.target.value.replace(/\D/g, ''))}
-                    placeholder="e.g. 45"
-                    className="w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gender</label>
-                  <div className="flex gap-2 mt-1.5">
-                    {['M', 'F'].map(g => (
-                      <button
-                        key={g}
-                        onClick={() => setNewGender(g)}
-                        className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${newGender === g ? 'bg-cyan/10 text-cyan border border-cyan/30' : 'bg-gray-50 dark:bg-white/5 text-gray-500 border border-transparent hover:border-gray-200 dark:hover:border-gray-600'}`}
-                      >
-                        {g === 'M' ? 'Male' : 'Female'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Priority */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority</label>
-                <div className="flex gap-2 mt-1.5">
-                  {([['urgent', 'Urgent', 'bg-accent/10 text-accent border-accent/30'], ['stable', 'Stable', 'bg-secondary/10 text-secondary border-secondary/30'], ['follow-up', 'Follow Up', 'bg-amber-100 text-amber-600 border-amber-300']] as [Priority, string, string][]).map(([val, label, activeClasses]) => (
-                    <button
-                      key={val}
-                      onClick={() => setNewPriority(val)}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${newPriority === val ? `${activeClasses} border` : 'bg-gray-50 dark:bg-white/5 text-gray-500 border border-transparent hover:border-gray-200 dark:hover:border-gray-600'}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Scan Type */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scan Type <span className="normal-case font-medium">(optional)</span></label>
-                <input
-                  value={newScanType}
-                  onChange={e => setNewScanType(e.target.value)}
-                  placeholder="e.g. CT Thorax, MRI Brain"
-                  className="w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
-                />
-              </div>
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={pickerSearch}
+                onChange={e => setPickerSearch(e.target.value)}
+                placeholder="Search by name, condition, or ID..."
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
+                autoFocus
+              />
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowAddModal(null)} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
-              <button
-                onClick={addPatient}
-                disabled={!newName.trim()}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Plus size={16} /> Add Patient
-              </button>
+            {/* Patient List */}
+            <div className="space-y-2 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+              {filteredPool.map(p => {
+                const alreadyOnBoard = existingPatientNames.has(p.name);
+                const riskColor = p.risk === 'High Risk' ? 'text-accent' : p.risk === 'Moderate' ? 'text-amber-500' : 'text-secondary';
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => !alreadyOnBoard && addPatientFromPool(p)}
+                    disabled={alreadyOnBoard}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${alreadyOnBoard
+                      ? 'opacity-40 cursor-not-allowed bg-gray-50 dark:bg-white/5'
+                      : 'bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 hover:border-cyan hover:shadow-sm cursor-pointer'
+                      }`}
+                  >
+                    {p.image ? (
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                        <img alt="" className="w-full h-full object-cover" src={p.image} />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-bold text-xs flex-shrink-0">{p.initials}</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-primary dark:text-white truncate">{p.name}</h4>
+                        <span className="text-[10px] text-gray-400 font-mono flex-shrink-0 ml-2">{p.id}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-gray-500">{p.age}{p.gender === 'F' ? 'F' : 'M'} • {p.condition}</span>
+                        <span className={`text-[10px] font-bold ${riskColor}`}>{p.risk}</span>
+                      </div>
+                    </div>
+                    {alreadyOnBoard ? (
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md flex-shrink-0">On Board</span>
+                    ) : (
+                      <ArrowRight size={16} className="text-gray-300 group-hover:text-cyan flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+              {filteredPool.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <User size={24} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No matching patients</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
