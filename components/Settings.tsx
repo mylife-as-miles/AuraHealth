@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     Shield,
     BrainCircuit,
@@ -16,9 +16,16 @@ import {
     Image,
     Brain,
     Stethoscope,
-    Microscope
+    Microscope,
+    X,
+    Check,
+    Eye,
+    EyeOff,
+    Lock,
+    CheckCircle
 } from 'lucide-react';
 
+// --- Toggle ---
 const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean, onChange: () => void, disabled?: boolean }) => (
     <div
         onClick={!disabled ? onChange : undefined}
@@ -30,6 +37,7 @@ const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean, onC
     </div>
 );
 
+// --- Types ---
 interface ModelConfig {
     id: string;
     name: string;
@@ -40,6 +48,7 @@ interface ModelConfig {
     iconBg: string;
 }
 
+// --- Data ---
 const AVAILABLE_MODELS: ModelConfig[] = [
     { id: 'medgemma-27b', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
     { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'available', icon: Brain, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
@@ -57,35 +66,120 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'available', icon: Microscope, iconColor: 'text-blue-500', iconBg: 'bg-blue-500/10' },
 ];
 
+const REASONING_MODULES = ['Oncology Cross-Ref', 'Drug Interaction API', 'Genetic Marker DB', 'Pediatric Dosage'];
+
+// --- Initial state snapshots ---
+const INITIAL_PROFILE = { name: 'Alex Williamson', title: 'Chief Resident', email: 'alex.w@aurahealth.med' };
+const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-27b': true, 'med-palm-2': true };
+const INITIAL_MODULES: Record<string, boolean> = { 'Oncology Cross-Ref': true, 'Drug Interaction API': true, 'Genetic Marker DB': false, 'Pediatric Dosage': false };
+const INITIAL_MFA = false;
+
 export default function Settings() {
-    const [mfa, setMfa] = useState(false);
-    const [activeModels, setActiveModels] = useState<Record<string, boolean>>({
-        'medgemma-27b': true,
-        'med-palm-2': true
-    });
+    // --- Profile state ---
+    const [profileName, setProfileName] = useState(INITIAL_PROFILE.name);
+    const [profileTitle, setProfileTitle] = useState(INITIAL_PROFILE.title);
+    const [profileEmail, setProfileEmail] = useState(INITIAL_PROFILE.email);
+    const [mfa, setMfa] = useState(INITIAL_MFA);
 
+    // --- Model state ---
+    const [activeModels, setActiveModels] = useState<Record<string, boolean>>(INITIAL_MODELS);
+    const [reasoningModules, setReasoningModules] = useState<Record<string, boolean>>(INITIAL_MODULES);
 
-    const toggleModel = (id: string) => {
-        setActiveModels(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
-    };
+    // --- UI state ---
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
+    const [photoFeedback, setPhotoFeedback] = useState(false);
+    const [saveFeedback, setSaveFeedback] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // --- Saved snapshots for dirty tracking ---
+    const [savedProfile, setSavedProfile] = useState({ ...INITIAL_PROFILE });
+    const [savedMfa, setSavedMfa] = useState(INITIAL_MFA);
+    const [savedModels, setSavedModels] = useState<Record<string, boolean>>({ ...INITIAL_MODELS });
+    const [savedModules, setSavedModules] = useState<Record<string, boolean>>({ ...INITIAL_MODULES });
+
+    // --- Dirty detection ---
+    const isDirty = useMemo(() => {
+        if (profileName !== savedProfile.name || profileTitle !== savedProfile.title || profileEmail !== savedProfile.email) return true;
+        if (mfa !== savedMfa) return true;
+        const modelKeys = new Set([...Object.keys(activeModels), ...Object.keys(savedModels)]);
+        for (const k of modelKeys) { if (!!activeModels[k] !== !!savedModels[k]) return true; }
+        for (const m of REASONING_MODULES) { if (!!reasoningModules[m] !== !!savedModules[m]) return true; }
+        return false;
+    }, [profileName, profileTitle, profileEmail, mfa, activeModels, reasoningModules, savedProfile, savedMfa, savedModels, savedModules]);
+
+    const activeModelCount = useMemo(() => Object.values(activeModels).filter(Boolean).length, [activeModels]);
+
+    // --- Handlers ---
+    const toggleModel = useCallback((id: string) => {
+        setActiveModels(prev => ({ ...prev, [id]: !prev[id] }));
+    }, []);
+
+    const toggleModule = useCallback((label: string) => {
+        setReasoningModules(prev => ({ ...prev, [label]: !prev[label] }));
+    }, []);
+
+    const handleSave = useCallback(() => {
+        if (!isDirty) return;
+        setSaving(true);
+        setTimeout(() => {
+            setSavedProfile({ name: profileName, title: profileTitle, email: profileEmail });
+            setSavedMfa(mfa);
+            setSavedModels({ ...activeModels });
+            setSavedModules({ ...reasoningModules });
+            setSaving(false);
+            setSaveFeedback(true);
+            setTimeout(() => setSaveFeedback(false), 3000);
+        }, 800);
+    }, [isDirty, profileName, profileTitle, profileEmail, mfa, activeModels, reasoningModules]);
+
+    const handleChangePassword = useCallback(() => {
+        if (!currentPassword || !newPassword || newPassword !== confirmPassword) return;
+        if (newPassword.length < 8) return;
+        setPasswordFeedback('Password updated successfully');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+            setPasswordFeedback(null);
+            setShowPasswordModal(false);
+        }, 2000);
+    }, [currentPassword, newPassword, confirmPassword]);
+
+    const handleChangePhoto = useCallback(() => {
+        setPhotoFeedback(true);
+        setTimeout(() => setPhotoFeedback(false), 2500);
+    }, []);
+
+    const passwordValid = newPassword.length >= 8;
+    const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar pb-24 relative">
-            {/* Floating Documentation Link (Visual adjustment to match design) */}
+            {/* Floating Documentation Link */}
             <div className="absolute top-0 right-0 -mt-16 hidden lg:flex items-center gap-2 text-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer mr-56 z-20">
                 <HelpCircle size={16} />
                 <span>Documentation</span>
             </div>
+
+            {/* Save Toast */}
+            {saveFeedback && (
+                <div className="fixed top-6 right-6 z-50 bg-secondary text-white px-5 py-3 rounded-2xl shadow-xl shadow-secondary/30 flex items-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <CheckCircle size={18} />
+                    <span className="text-sm font-bold">Settings saved successfully</span>
+                </div>
+            )}
 
             {/* Settings Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 {/* Profile & Security Section */}
                 <div className="lg:col-span-12 bg-white dark:bg-card-dark rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-border-dark">
-                    {/* Header */}
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary dark:text-white">
                             <IdCard size={20} />
@@ -97,9 +191,9 @@ export default function Settings() {
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-8">
-                        {/* Profile Picture Section */}
+                        {/* Profile Picture */}
                         <div className="flex flex-col items-center space-y-3">
-                            <div className="relative group cursor-pointer">
+                            <div className="relative group cursor-pointer" onClick={handleChangePhoto}>
                                 <img
                                     src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=200&h=200"
                                     alt="Profile"
@@ -112,12 +206,14 @@ export default function Settings() {
                                     <div className="w-2 h-2 bg-white rounded-full"></div>
                                 </div>
                             </div>
-                            <button className="text-xs font-bold text-secondary hover:text-secondary/80 transition-colors">
-                                Change Photo
+                            <button onClick={handleChangePhoto} className="text-xs font-bold text-secondary hover:text-secondary/80 transition-colors">
+                                {photoFeedback ? (
+                                    <span className="flex items-center gap-1 text-secondary"><Check size={12} /> Photo Upload Ready</span>
+                                ) : 'Change Photo'}
                             </button>
                         </div>
 
-                        {/* Inputs Section */}
+                        {/* Inputs */}
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <div>
@@ -126,8 +222,9 @@ export default function Settings() {
                                         <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                         <input
                                             type="text"
-                                            defaultValue="Alex Williamson"
-                                            className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl pl-10 pr-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+                                            value={profileName}
+                                            onChange={e => setProfileName(e.target.value)}
+                                            className="w-full bg-background-light dark:bg-black/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
                                         />
                                     </div>
                                 </div>
@@ -135,8 +232,9 @@ export default function Settings() {
                                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Profession / Title</label>
                                     <input
                                         type="text"
-                                        defaultValue="Chief Resident"
-                                        className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+                                        value={profileTitle}
+                                        onChange={e => setProfileTitle(e.target.value)}
+                                        className="w-full bg-background-light dark:bg-black/20 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
                                         placeholder="e.g. Cardiologist"
                                     />
                                 </div>
@@ -147,8 +245,9 @@ export default function Settings() {
                                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Email Address</label>
                                     <input
                                         type="email"
-                                        defaultValue="alex.w@aurahealth.med"
-                                        className="w-full bg-background-light dark:bg-black/20 border-transparent focus:border-secondary focus:ring-0 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
+                                        value={profileEmail}
+                                        onChange={e => setProfileEmail(e.target.value)}
+                                        className="w-full bg-background-light dark:bg-black/20 rounded-xl px-4 py-2.5 text-sm text-primary dark:text-white font-bold outline-none border-2 border-transparent focus:border-secondary transition-all"
                                     />
                                 </div>
 
@@ -157,20 +256,23 @@ export default function Settings() {
                                         <span className="text-sm font-bold text-primary dark:text-white">Two-Factor Auth</span>
                                         <Toggle checked={mfa} onChange={() => setMfa(!mfa)} />
                                     </div>
-                                    <p className="text-[10px] text-gray-500">Secure your account with 2FA.</p>
+                                    <p className="text-[10px] text-gray-500">
+                                        {mfa ? '✓ Your account is secured with 2FA.' : 'Secure your account with 2FA.'}
+                                    </p>
                                 </div>
 
                                 <div className="flex justify-end pt-1">
-                                    <button className="text-xs text-accent font-bold hover:underline">Change Password</button>
+                                    <button onClick={() => setShowPasswordModal(true)} className="text-xs text-accent font-bold hover:underline flex items-center gap-1">
+                                        <Lock size={12} /> Change Password
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Left Column: Model Config */}
+                {/* Model Configuration */}
                 <div className="lg:col-span-12 xl:col-span-7 bg-white dark:bg-card-dark rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-border-dark">
-                    {/* Header */}
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
@@ -178,7 +280,7 @@ export default function Settings() {
                             </div>
                             <div>
                                 <h3 className="font-bold text-primary dark:text-white">HAI-DEF Model Configuration</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Configure AI diagnostic parameters.</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Configure AI diagnostic parameters. <span className="font-bold text-secondary">{activeModelCount} active</span></p>
                             </div>
                         </div>
                         <span className="px-2 py-1 bg-cyan/10 text-cyan text-[10px] font-bold rounded-lg border border-cyan/20">v2.4.1 Stable</span>
@@ -188,7 +290,12 @@ export default function Settings() {
                         {AVAILABLE_MODELS.map((model) => (
                             <div
                                 key={model.id}
-                                className={`flex items-center justify-between p-4 border rounded-2xl transition-all duration-200 ${model.status === 'coming_soon' ? 'border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20' : 'border-gray-100 dark:border-gray-700/50 hover:border-secondary/30 bg-white dark:bg-transparent'}`}
+                                className={`flex items-center justify-between p-4 border rounded-2xl transition-all duration-200 ${model.status === 'coming_soon'
+                                        ? 'border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20'
+                                        : activeModels[model.id]
+                                            ? 'border-secondary/30 bg-secondary/5 dark:bg-secondary/5'
+                                            : 'border-gray-100 dark:border-gray-700/50 hover:border-secondary/30 bg-white dark:bg-transparent'
+                                    }`}
                             >
                                 <div className="flex gap-4 items-center">
                                     <div className={`p-2 rounded-lg h-fit ${model.iconBg} ${model.iconColor} ${model.status === 'coming_soon' ? 'opacity-50 grayscale' : ''}`}>
@@ -202,6 +309,11 @@ export default function Settings() {
                                             {model.status === 'coming_soon' && (
                                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700">
                                                     COMING SOON
+                                                </span>
+                                            )}
+                                            {activeModels[model.id] && model.status !== 'coming_soon' && (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20">
+                                                    ACTIVE
                                                 </span>
                                             )}
                                         </div>
@@ -218,14 +330,19 @@ export default function Settings() {
                             </div>
                         ))}
 
-                        {/* Checkboxes */}
+                        {/* Reasoning Modules */}
                         <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Reasoning Modules</h4>
                             <div className="grid grid-cols-2 gap-3">
-                                {['Oncology Cross-Ref', 'Drug Interaction API', 'Genetic Marker DB', 'Pediatric Dosage'].map((label, i) => (
-                                    <label key={i} className="flex items-center gap-3 p-3 bg-background-light dark:bg-black/20 rounded-xl cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
+                                {REASONING_MODULES.map((label) => (
+                                    <label key={label} className="flex items-center gap-3 p-3 bg-background-light dark:bg-black/20 rounded-xl cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
                                         <div className="relative flex items-center">
-                                            <input type="checkbox" defaultChecked={i < 2} className="peer appearance-none w-5 h-5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 checked:bg-secondary checked:border-secondary transition-colors" />
+                                            <input
+                                                type="checkbox"
+                                                checked={!!reasoningModules[label]}
+                                                onChange={() => toggleModule(label)}
+                                                className="peer appearance-none w-5 h-5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 checked:bg-secondary checked:border-secondary transition-colors"
+                                            />
                                             <svg className="absolute w-3.5 h-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100 left-0.5 top-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                         </div>
                                         <span className="text-xs font-bold text-primary dark:text-white select-none">{label}</span>
@@ -236,9 +353,8 @@ export default function Settings() {
                     </div>
                 </div>
 
-                {/* Right Column: Infrastructure & Alerts */}
+                {/* Right Column: Medical Disclaimer */}
                 <div className="lg:col-span-12 xl:col-span-5 space-y-6">
-                    {/* Medical Disclaimer */}
                     <div className="bg-red-50 dark:bg-red-900/10 rounded-3xl p-6 shadow-sm border border-red-100 dark:border-red-900/30 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-bl-full pointer-events-none"></div>
                         <div className="flex items-center gap-3 mb-6 relative z-10">
@@ -271,49 +387,144 @@ export default function Settings() {
                             </div>
 
                             <div className="space-y-3 pt-2">
-                                <div className="flex gap-3 items-start">
-                                    <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
-                                    <div>
-                                        <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">Consult Healthcare Professionals</strong>
-                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                                            Always consult with qualified healthcare professionals for medical decisions. Do not rely solely on AI models for health-related conclusions.
-                                        </p>
+                                {[
+                                    { title: 'Consult Healthcare Professionals', text: 'Always consult with qualified healthcare professionals for medical decisions. Do not rely solely on AI models for health-related conclusions.' },
+                                    { title: 'Use at Your Own Risk', text: 'Users assume full responsibility for any application of MedGemma models. The developers and this website disclaim any liability for medical decisions made based on AI model outputs.' },
+                                    { title: 'Validation Required', text: 'Any clinical application requires thorough validation, regulatory compliance, and expert medical oversight before deployment in healthcare settings.' }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex gap-3 items-start">
+                                        <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
+                                        <div>
+                                            <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">{item.title}</strong>
+                                            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">{item.text}</p>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div className="flex gap-3 items-start">
-                                    <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
-                                    <div>
-                                        <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">Use at Your Own Risk</strong>
-                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                                            Users assume full responsibility for any application of MedGemma models. The developers and this website disclaim any liability for medical decisions made based on AI model outputs.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 items-start">
-                                    <div className="mt-0.5 min-w-[4px] h-4 rounded-full bg-red-400"></div>
-                                    <div>
-                                        <strong className="text-xs text-gray-700 dark:text-gray-200 block mb-0.5">Validation Required</strong>
-                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                                            Any clinical application requires thorough validation, regulatory compliance, and expert medical oversight before deployment in healthcare settings.
-                                        </p>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
             {/* Floating Save Button */}
             <div className="fixed bottom-6 right-8 md:bottom-12 md:right-16 z-30">
-                <button className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/30 px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-transform transform hover:-translate-y-1">
-                    <Save size={20} />
-                    Save Changes
+                <button
+                    onClick={handleSave}
+                    disabled={!isDirty || saving}
+                    className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all transform hover:-translate-y-1 ${saveFeedback
+                            ? 'bg-secondary text-white shadow-xl shadow-secondary/30'
+                            : isDirty
+                                ? 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/30'
+                                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none hover:translate-y-0'
+                        }`}
+                >
+                    {saving ? (
+                        <><div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving...</>
+                    ) : saveFeedback ? (
+                        <><CheckCircle size={20} /> Saved!</>
+                    ) : (
+                        <><Save size={20} /> Save Changes</>
+                    )}
                 </button>
+                {isDirty && !saving && !saveFeedback && (
+                    <div className="absolute -top-2 -right-2 w-4 h-4 bg-accent rounded-full animate-pulse border-2 border-white dark:border-card-dark" />
+                )}
             </div>
+
+            {/* Change Password Modal */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 className="text-lg font-bold text-primary dark:text-white flex items-center gap-2">
+                                <Lock size={20} className="text-accent" />
+                                Change Password
+                            </h3>
+                            <button onClick={() => { setShowPasswordModal(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordFeedback(null); }} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
+                                <X size={20} className="text-gray-400" />
+                            </button>
+                        </div>
+
+                        {passwordFeedback ? (
+                            <div className="text-center py-6">
+                                <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-3">
+                                    <CheckCircle size={28} className="text-secondary" />
+                                </div>
+                                <p className="text-sm font-bold text-primary dark:text-white">{passwordFeedback}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Password</label>
+                                    <div className="relative mt-1.5">
+                                        <input
+                                            type={showCurrent ? 'text' : 'password'}
+                                            value={currentPassword}
+                                            onChange={e => setCurrentPassword(e.target.value)}
+                                            placeholder="Enter current password"
+                                            className="w-full p-3 pr-10 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-accent outline-none text-sm dark:text-white"
+                                        />
+                                        <button onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                            {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">New Password</label>
+                                    <div className="relative mt-1.5">
+                                        <input
+                                            type={showNew ? 'text' : 'password'}
+                                            value={newPassword}
+                                            onChange={e => setNewPassword(e.target.value)}
+                                            placeholder="Min. 8 characters"
+                                            className="w-full p-3 pr-10 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-accent outline-none text-sm dark:text-white"
+                                        />
+                                        <button onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                            {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    {newPassword.length > 0 && (
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <div className={`h-1 flex-1 rounded-full ${newPassword.length >= 12 ? 'bg-secondary' : newPassword.length >= 8 ? 'bg-yellow-400' : 'bg-accent'}`} />
+                                            <span className={`text-[10px] font-bold ${newPassword.length >= 12 ? 'text-secondary' : newPassword.length >= 8 ? 'text-yellow-500' : 'text-accent'}`}>
+                                                {newPassword.length >= 12 ? 'Strong' : newPassword.length >= 8 ? 'Good' : 'Too short'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Confirm Password</label>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={e => setConfirmPassword(e.target.value)}
+                                        placeholder="Repeat new password"
+                                        className={`w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border outline-none text-sm dark:text-white ${confirmPassword.length > 0 ? (passwordsMatch ? 'border-secondary' : 'border-accent') : 'border-transparent focus:border-accent'}`}
+                                    />
+                                    {confirmPassword.length > 0 && !passwordsMatch && (
+                                        <p className="text-[10px] text-accent font-bold mt-1">Passwords do not match</p>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button onClick={() => { setShowPasswordModal(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleChangePassword}
+                                        disabled={!currentPassword || !passwordValid || !passwordsMatch}
+                                        className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        <Lock size={16} /> Update
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
