@@ -1,14 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MoreHorizontal, TrendingUp } from 'lucide-react';
+
+type Period = 'Today' | 'This Week' | 'This Month';
+
+interface PeriodData {
+  activeCases: number;
+  activeTrend: string;
+  recoveryRate: number;
+  recoveryTrend: string;
+  cardiology: number;
+  neurology: number;
+}
+
+const DATA_BY_PERIOD: Record<Period, PeriodData> = {
+  'Today': { activeCases: 127, activeTrend: '5%', recoveryRate: 91, recoveryTrend: '+1.2%', cardiology: 76, neurology: 34 },
+  'This Week': { activeCases: 462, activeTrend: '12%', recoveryRate: 94, recoveryTrend: '+2.4%', cardiology: 83, neurology: 42 },
+  'This Month': { activeCases: 1843, activeTrend: '18%', recoveryRate: 96, recoveryTrend: '+3.1%', cardiology: 89, neurology: 58 },
+};
+
+const useAnimatedNumber = (target: number, duration = 600) => {
+  const [value, setValue] = useState(target);
+  useEffect(() => {
+    let start: number | null = null;
+    const from = value;
+    const diff = target - from;
+    if (diff === 0) return;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      setValue(Math.round(from + diff * progress));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target]);
+  return value;
+};
 
 const StatBox = ({ label, value, trend, trendColor }: { label: string, value: string, trend: string, trendColor: 'secondary' | 'cyan' }) => (
   <div className="flex-1 p-4 rounded-2xl bg-background-light dark:bg-gray-800/50 border border-transparent dark:border-border-dark">
     <p className="text-xs font-semibold text-gray-500 mb-2">{label}</p>
     <div className="flex items-baseline gap-2">
       <h4 className="text-2xl font-bold text-primary dark:text-white tracking-tight">{value}</h4>
-      <span className={`text-xs font-bold flex items-center px-1.5 py-0.5 rounded ${
-        trendColor === 'secondary' ? 'text-secondary bg-secondary/10' : 'text-cyan bg-cyan/10'
-      }`}>
+      <span className={`text-xs font-bold flex items-center px-1.5 py-0.5 rounded ${trendColor === 'secondary' ? 'text-secondary bg-secondary/10' : 'text-cyan bg-cyan/10'
+        }`}>
         {trendColor === 'secondary' && <TrendingUp className="w-3 h-3 mr-0.5" />}
         {trend}
       </span>
@@ -23,7 +57,7 @@ const ProgressBar = ({ label, percentage, color }: { label: string, percentage: 
       <span className="text-primary dark:text-white">{percentage}% Capacity</span>
     </div>
     <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-      <div 
+      <div
         className="h-full rounded-full transition-all duration-1000 ease-out"
         style={{ width: `${percentage}%`, backgroundColor: color }}
       ></div>
@@ -32,6 +66,15 @@ const ProgressBar = ({ label, percentage, color }: { label: string, percentage: 
 );
 
 export default function ClinicalInsights() {
+  const [period, setPeriod] = useState<Period>('This Week');
+  const [showMenu, setShowMenu] = useState(false);
+  const d = DATA_BY_PERIOD[period];
+
+  const animatedCases = useAnimatedNumber(d.activeCases);
+  const animatedRecovery = useAnimatedNumber(d.recoveryRate);
+  const animatedCardio = useAnimatedNumber(d.cardiology);
+  const animatedNeuro = useAnimatedNumber(d.neurology);
+
   return (
     <div className="flex-1 flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4">
@@ -39,19 +82,54 @@ export default function ClinicalInsights() {
           <h3 className="font-bold text-primary dark:text-white text-lg">Clinical Insights</h3>
           <p className="text-xs text-gray-500 font-medium mt-1">MedGemma Model Analysis</p>
         </div>
-        <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-          <MoreHorizontal className="text-gray-400 w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Period Selector */}
+          <div className="flex bg-background-light dark:bg-gray-800 rounded-lg p-0.5">
+            {(['Today', 'This Week', 'This Month'] as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${period === p
+                    ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <MoreHorizontal className="text-gray-400 w-5 h-5" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 w-40">
+                <button onClick={() => setShowMenu(false)} className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  View Full Report
+                </button>
+                <button onClick={() => setShowMenu(false)} className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Export Data
+                </button>
+                <button onClick={() => setShowMenu(false)} className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Configure Alerts
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <StatBox label="Active Cases" value="462" trend="12%" trendColor="secondary" />
-        <StatBox label="Recovery Rate" value="94%" trend="+2.4%" trendColor="cyan" />
+        <StatBox label="Active Cases" value={String(animatedCases)} trend={d.activeTrend} trendColor="secondary" />
+        <StatBox label="Recovery Rate" value={`${animatedRecovery}%`} trend={d.recoveryTrend} trendColor="cyan" />
       </div>
 
       <div className="space-y-5">
-        <ProgressBar label="Cardiology Ward" percentage={83} color="#FE5796" />
-        <ProgressBar label="Neurology Ward" percentage={42} color="#54E097" />
+        <ProgressBar label="Cardiology Ward" percentage={animatedCardio} color="#FE5796" />
+        <ProgressBar label="Neurology Ward" percentage={animatedNeuro} color="#54E097" />
       </div>
     </div>
   );
