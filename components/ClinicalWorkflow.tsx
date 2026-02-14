@@ -223,6 +223,12 @@ export default function ClinicalWorkflow() {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
+  const [showAddModal, setShowAddModal] = useState<ColumnId | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newAge, setNewAge] = useState('');
+  const [newGender, setNewGender] = useState('M');
+  const [newPriority, setNewPriority] = useState<Priority>('stable');
+  const [newScanType, setNewScanType] = useState('');
 
   const selectedCard = useMemo(() => cards.find(c => c.id === selectedCardId) || null, [cards, selectedCardId]);
   const cardsByColumn = useMemo(() => {
@@ -282,6 +288,30 @@ export default function ClinicalWorkflow() {
     triggerAction('note', 'Note saved');
   };
 
+  // Add patient
+  const addPatient = () => {
+    if (!showAddModal || !newName.trim()) return;
+    const initials = newName.trim().split(/\s+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
+    const colors = ['bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-amber-100 text-amber-600', 'bg-teal-100 text-teal-600', 'bg-purple-100 text-purple-600', 'bg-green-100 text-green-600', 'bg-red-100 text-red-600'];
+    const newCard: WorkflowCard = {
+      id: `wf-new-${Date.now()}`,
+      patient: newName.trim(),
+      age: parseInt(newAge) || 0,
+      gender: newGender,
+      avatar: initials,
+      avatarType: 'initials',
+      avatarBg: colors[Math.floor(Math.random() * colors.length)],
+      priority: newPriority,
+      scanType: newScanType.trim() || undefined,
+      column: showAddModal,
+      time: 'Just now'
+    };
+    setCards(prev => [...prev, newCard]);
+    setSelectedCardId(newCard.id);
+    setShowAddModal(null);
+    setNewName(''); setNewAge(''); setNewGender('M'); setNewPriority('stable'); setNewScanType('');
+  };
+
   const recIcon = (type: string) => {
     switch (type) {
       case 'alert': return <AlertCircle size={16} />;
@@ -322,8 +352,8 @@ export default function ClinicalWorkflow() {
                       {col.label}
                       <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-bold">{cardsByColumn[col.id].length}</span>
                     </h3>
-                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                      {col.id === 'pending' ? <MoreHorizontal size={16} /> : <Plus size={16} />}
+                    <button onClick={() => setShowAddModal(col.id)} className="text-gray-400 hover:text-cyan dark:hover:text-cyan transition-colors" title={`Add patient to ${col.label}`}>
+                      <Plus size={16} />
                     </button>
                   </div>
 
@@ -632,6 +662,102 @@ export default function ClinicalWorkflow() {
           </div>
         </div>
       )}
+
+      {/* Add Patient Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-lg font-bold text-primary dark:text-white flex items-center gap-2">
+                <Plus size={20} className="text-cyan" />
+                Add Patient to {COLUMNS.find(c => c.id === showAddModal)?.label}
+              </h3>
+              <button onClick={() => setShowAddModal(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient Name *</label>
+                <input
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  placeholder="e.g. Jane Doe"
+                  className="w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
+                />
+              </div>
+
+              {/* Age + Gender row */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Age</label>
+                  <input
+                    value={newAge}
+                    onChange={e => setNewAge(e.target.value.replace(/\D/g, ''))}
+                    placeholder="e.g. 45"
+                    className="w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gender</label>
+                  <div className="flex gap-2 mt-1.5">
+                    {['M', 'F'].map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setNewGender(g)}
+                        className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${newGender === g ? 'bg-cyan/10 text-cyan border border-cyan/30' : 'bg-gray-50 dark:bg-white/5 text-gray-500 border border-transparent hover:border-gray-200 dark:hover:border-gray-600'}`}
+                      >
+                        {g === 'M' ? 'Male' : 'Female'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Priority</label>
+                <div className="flex gap-2 mt-1.5">
+                  {([['urgent', 'Urgent', 'bg-accent/10 text-accent border-accent/30'], ['stable', 'Stable', 'bg-secondary/10 text-secondary border-secondary/30'], ['follow-up', 'Follow Up', 'bg-amber-100 text-amber-600 border-amber-300']] as [Priority, string, string][]).map(([val, label, activeClasses]) => (
+                    <button
+                      key={val}
+                      onClick={() => setNewPriority(val)}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${newPriority === val ? `${activeClasses} border` : 'bg-gray-50 dark:bg-white/5 text-gray-500 border border-transparent hover:border-gray-200 dark:hover:border-gray-600'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Scan Type */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scan Type <span className="normal-case font-medium">(optional)</span></label>
+                <input
+                  value={newScanType}
+                  onChange={e => setNewScanType(e.target.value)}
+                  placeholder="e.g. CT Thorax, MRI Brain"
+                  className="w-full mt-1.5 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-cyan outline-none text-sm dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowAddModal(null)} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+              <button
+                onClick={addPatient}
+                disabled={!newName.trim()}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Plus size={16} /> Add Patient
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
