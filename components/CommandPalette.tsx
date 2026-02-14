@@ -243,7 +243,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
                         <span className="flex items-center gap-1"><span>ESC</span> <span>to close</span></span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span>Powered by MedGemma</span>
+                        <span>Powered by Gemini AI</span>
                         <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
                     </div>
                 </div>
