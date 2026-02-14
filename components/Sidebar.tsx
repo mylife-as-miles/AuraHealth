@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   FolderOpen, 
@@ -15,43 +16,36 @@ import {
 interface NavItemProps {
   icon: any;
   label: string;
-  id: string;
-  active?: boolean;
+  to: string;
   isNew?: boolean;
-  onClick: (id: string) => void;
 }
 
-const NavItem = ({ icon: Icon, label, id, active = false, isNew = false, onClick }: NavItemProps) => (
-  <a
-    href="#"
-    onClick={(e) => {
-      e.preventDefault();
-      onClick(id);
-    }}
-    className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all group ${
-      active
+const NavItem = ({ icon: Icon, label, to, isNew = false }: NavItemProps) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl transition-all group ${
+      isActive
         ? 'bg-primary text-white shadow-lg shadow-primary/20'
         : 'text-gray-500 dark:text-gray-400 hover:bg-background-light dark:hover:bg-gray-800'
     }`}
   >
-    <Icon className={`w-5 h-5 ${active ? '' : 'group-hover:text-primary dark:group-hover:text-white transition-colors'}`} />
-    <span className={`text-sm font-medium ${active ? '' : 'group-hover:text-primary dark:group-hover:text-white transition-colors'}`}>
-      {label}
-    </span>
-    {isNew && (
-      <span className="ml-auto bg-accent/10 text-accent text-[10px] font-bold px-2 py-0.5 rounded-full">
-        New
-      </span>
+    {({ isActive }) => (
+      <>
+        <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary dark:group-hover:text-white transition-colors'}`} />
+        <span className={`text-sm font-medium ${isActive ? '' : 'group-hover:text-primary dark:group-hover:text-white transition-colors'}`}>
+          {label}
+        </span>
+        {isNew && (
+          <span className="ml-auto bg-accent/10 text-accent text-[10px] font-bold px-2 py-0.5 rounded-full">
+            New
+          </span>
+        )}
+      </>
     )}
-  </a>
+  </NavLink>
 );
 
-interface SidebarProps {
-  currentView: string;
-  onNavigate: (view: string) => void;
-}
-
-export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
+export default function Sidebar() {
   return (
     <aside className="w-full md:w-64 flex-shrink-0 p-6 flex flex-col border-r border-border-light dark:border-border-dark bg-white dark:bg-card-dark">
       {/* Brand */}
@@ -78,15 +72,15 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 space-y-1">
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Overview</div>
-        <NavItem icon={LayoutDashboard} label="Dashboard" id="dashboard" active={currentView === 'dashboard'} onClick={onNavigate} />
-        <NavItem icon={FolderOpen} label="Patient Records" id="patients" active={currentView === 'patients'} onClick={onNavigate} />
-        <NavItem icon={Activity} label="Diagnostics" id="diagnostics" active={currentView === 'diagnostics'} onClick={onNavigate} />
-        <NavItem icon={BrainCircuit} label="AI Insights" id="ai-insights" isNew active={currentView === 'ai-insights'} onClick={onNavigate} />
-        <NavItem icon={GitBranch} label="Clinical Workflow" id="workflow" active={currentView === 'workflow'} onClick={onNavigate} />
+        <NavItem icon={LayoutDashboard} label="Dashboard" to="/" />
+        <NavItem icon={FolderOpen} label="Patient Records" to="/patients" />
+        <NavItem icon={Activity} label="Diagnostics" to="/diagnostics" />
+        <NavItem icon={BrainCircuit} label="AI Insights" to="/ai-insights" isNew />
+        <NavItem icon={GitBranch} label="Clinical Workflow" to="/workflow" />
 
         <div className="pt-8 pb-2">
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Support</div>
-          <NavItem icon={Settings} label="Settings" id="settings" active={currentView === 'settings'} onClick={onNavigate} />
+          <NavItem icon={Settings} label="Settings" to="/settings" />
         </div>
       </nav>
 

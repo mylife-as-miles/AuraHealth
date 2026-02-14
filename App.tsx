@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -20,69 +21,61 @@ const PlaceholderView = ({ title }: { title: string }) => (
   </div>
 );
 
-export default function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
+const Layout = () => {
+  const location = useLocation();
 
-  const getHeaderInfo = () => {
-    switch(currentView) {
-      case 'dashboard': 
+  const getHeaderInfo = (pathname: string) => {
+    switch (pathname) {
+      case '/':
         return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
-      case 'patients': 
+      case '/patients':
         return { title: "Patient Directory", subtitle: "Manage patient records and diagnostic history" };
-      case 'diagnostics': 
+      case '/diagnostics':
         return { title: "Diagnostics Center", subtitle: "Real-time diagnostic analysis" };
-      case 'ai-insights': 
+      case '/ai-insights':
         return { title: "Population Analytics", subtitle: "AI-driven insights powered by MedGemma & HAI-DEF" };
-      case 'workflow': 
+      case '/workflow':
         return { title: "Clinical Workflow", subtitle: "Triage Board • Cardiology Unit A" };
-      case 'settings': 
+      case '/settings':
         return { title: "Settings & Configuration", subtitle: "Manage your profile, HAI-DEF models, and system privacy." };
-      case 'notifications': 
+      case '/notifications':
         return { title: "Notifications", subtitle: "Stay updated with critical alerts and system changes." };
-      default: 
+      default:
         return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
     }
   };
 
-  const renderView = () => {
-    if (currentView === 'dashboard') {
-      return <Dashboard />;
-    }
-    if (currentView === 'patients') {
-      return <PatientRecords />;
-    }
-    if (currentView === 'ai-insights') {
-      return <AIInsights />;
-    }
-    if (currentView === 'workflow') {
-      return <ClinicalWorkflow />;
-    }
-    if (currentView === 'settings') {
-      return <Settings />;
-    }
-    if (currentView === 'diagnostics') {
-      return <Diagnostics />;
-    }
-    if (currentView === 'notifications') {
-      return <Notifications />;
-    }
-    return <PlaceholderView title={getHeaderInfo().title} />;
-  };
-
-  const { title, subtitle } = getHeaderInfo();
+  const { title, subtitle } = getHeaderInfo(location.pathname);
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8 flex items-center justify-center bg-background-light dark:bg-black transition-colors duration-300">
       <div className="w-full max-w-[1440px] bg-white dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[850px] border border-border-light dark:border-border-dark transition-colors duration-300 h-[calc(100vh-4rem)]">
-        <Sidebar currentView={currentView} onNavigate={setCurrentView} />
+        <Sidebar />
         <main className="flex-1 bg-background-light dark:bg-background-dark p-6 md:p-8 flex flex-col overflow-hidden relative">
-          <Header title={title} subtitle={subtitle} onNavigate={setCurrentView} />
+          <Header title={title} subtitle={subtitle} />
           
           <div className="flex-1 overflow-hidden h-full">
-            {renderView()}
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/patients" element={<PatientRecords />} />
+              <Route path="/diagnostics" element={<Diagnostics />} />
+              <Route path="/ai-insights" element={<AIInsights />} />
+              <Route path="/workflow" element={<ClinicalWorkflow />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="*" element={<PlaceholderView title="Not Found" />} />
+            </Routes>
           </div>
         </main>
       </div>
     </div>
+  );
+};
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
   );
 }

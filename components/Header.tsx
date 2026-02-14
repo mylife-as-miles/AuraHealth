@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   title?: string;
   subtitle?: string;
-  onNavigate?: (view: string) => void;
 }
 
-export default function Header({ title = "Clinical Dashboard", subtitle = "Welcome back, Dr. Williamson", onNavigate }: HeaderProps) {
+export default function Header({ title = "Clinical Dashboard", subtitle = "Welcome back, Dr. Williamson" }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -63,7 +64,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
 
         <div className="flex items-center gap-4">
             <button 
-              onClick={() => onNavigate && onNavigate('notifications')}
+              onClick={() => navigate('/notifications')}
               className="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors relative rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
             >
                 <Bell className="w-5 h-5" />
