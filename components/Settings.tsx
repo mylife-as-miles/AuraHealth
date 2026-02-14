@@ -3,7 +3,6 @@ import {
     Shield,
     BrainCircuit,
     AlertTriangle,
-    BellRing,
     Save,
     Sparkles,
     ScanEye,
@@ -65,7 +64,6 @@ export default function Settings() {
         'med-palm-2': true
     });
 
-    const [alerts, setAlerts] = useState({ critical: true, confidence: true, system: false });
 
     const toggleModel = (id: string) => {
         setActiveModels(prev => ({
@@ -306,33 +304,6 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {/* Alert Preferences */}
-                    <div className="bg-white dark:bg-card-dark rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-border-dark">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
-                                <BellRing size={20} />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-primary dark:text-white">Alert Preferences</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Critical findings & AI updates.</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Critical Patient Alerts</span>
-                                <Toggle checked={alerts.critical} onChange={() => setAlerts({ ...alerts, critical: !alerts.critical })} />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">AI Confidence Drops &lt;80%</span>
-                                <Toggle checked={alerts.confidence} onChange={() => setAlerts({ ...alerts, confidence: !alerts.confidence })} />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">System Updates</span>
-                                <Toggle checked={alerts.system} onChange={() => setAlerts({ ...alerts, system: !alerts.system })} />
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
