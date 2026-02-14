@@ -42,29 +42,27 @@ interface ModelConfig {
 }
 
 const AVAILABLE_MODELS: ModelConfig[] = [
-    { id: 'medgemma-27b', name: 'MedGemma 27B', description: 'Larger Google medical reasoning', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
-    { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Medical Q&A & core clinical reasoning', status: 'available', icon: Brain, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
-    { id: 'biogpt', name: 'BioGPT', description: 'Biomedical text & research analysis', status: 'available', icon: FileText, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
-    { id: 'chexagent', name: 'CheXagent', description: 'Chest X-ray specialist', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'llava-med', name: 'LLaVA-Med', description: 'Multimodal medical image+text', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'meditron', name: 'Meditron', description: 'Medical language model', status: 'available', icon: MessageSquare, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
-    { id: 'pmc-llama', name: 'PMC-LLaMA', description: 'Medical literature/USMLE focused', status: 'available', icon: Stethoscope, iconColor: 'text-purple-500', iconBg: 'bg-purple-500/10' },
-    { id: 'med-flamingo', name: 'Med-Flamingo', description: 'Med visual Q&A', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'biomedlm', name: 'BioMedLM', description: 'Biomedical LLM from Stanford CRFM', status: 'available', icon: BrainCircuit, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
-    { id: 'biomedclip', name: 'BiomedCLIP', description: 'Medical image–text embeddings', status: 'available', icon: ScanEye, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
-    { id: 'clinical-camel', name: 'Clinical Camel', description: 'Clinical dialogue model', status: 'available', icon: MessageSquare, iconColor: 'text-orange-500', iconBg: 'bg-orange-500/10' },
-    { id: 'medgemma-4b', name: 'MedGemma 4B', description: 'Google medical reasoning (4B)', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
-    { id: 'medsiglip', name: 'MedSigLIP', description: 'Medical image encoder', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'alphagenome', name: 'AlphaGenome', description: 'DNA/genomics analysis', status: 'coming_soon', icon: Dna, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'General health-bench LLM', status: 'available', icon: Microscope, iconColor: 'text-blue-500', iconBg: 'bg-blue-500/10' },
+    { id: 'medgemma-27b', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
+    { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'available', icon: Brain, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
+    { id: 'biogpt', name: 'BioGPT', description: 'Specialized transformer for biomedical literature mining and research analysis.', status: 'available', icon: FileText, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
+    { id: 'chexagent', name: 'CheXagent', description: 'Specialized vision model for interpretation and reporting of Chest X-rays.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'llava-med', name: 'LLaVA-Med', description: 'Multimodal assistant capable of discussing and analyzing medical imagery.', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'meditron', name: 'Meditron', description: 'Open-source medical LLM adapted for clinical guidelines and decision support.', status: 'available', icon: MessageSquare, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
+    { id: 'pmc-llama', name: 'PMC-LLaMA', description: 'Fine-tuned on biomedical academic papers for evidence-based responses.', status: 'available', icon: Stethoscope, iconColor: 'text-purple-500', iconBg: 'bg-purple-500/10' },
+    { id: 'med-flamingo', name: 'Med-Flamingo', description: 'Few-shot learner for medical visual question answering.', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'biomedlm', name: 'BioMedLM', description: 'Compact biomedical language model optimized for scientific text processing.', status: 'available', icon: BrainCircuit, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
+    { id: 'biomedclip', name: 'BiomedCLIP', description: 'Contrastive vision-language model for retrieving medical images.', status: 'available', icon: ScanEye, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
+    { id: 'clinical-camel', name: 'Clinical Camel', description: 'Fine-tuned model for simulating patient-doctor clinical dialogues.', status: 'available', icon: MessageSquare, iconColor: 'text-orange-500', iconBg: 'bg-orange-500/10' },
+    { id: 'medsiglip', name: 'MedSigLIP', description: 'High-fidelity medical image encoder for various diagnostic modalities.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'alphagenome', name: 'AlphaGenome', description: 'Deep learning system for genomic sequence analysis and variant interpretation.', status: 'coming_soon', icon: Dna, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'available', icon: Microscope, iconColor: 'text-blue-500', iconBg: 'bg-blue-500/10' },
 ];
 
 export default function Settings() {
     const [mfa, setMfa] = useState(false);
     const [activeModels, setActiveModels] = useState<Record<string, boolean>>({
         'medgemma-27b': true,
-        'med-palm-2': true,
-        'medgemma-4b': true
+        'med-palm-2': true
     });
     const [infra, setInfra] = useState('local');
     const [alerts, setAlerts] = useState({ critical: true, confidence: true, system: false });
