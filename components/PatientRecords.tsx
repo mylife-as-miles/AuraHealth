@@ -7,6 +7,7 @@ import {
   Trash2,
   UserCircle,
   Stethoscope,
+  Camera,
   Filter,
   ArrowUpDown,
   MoreVertical,
@@ -234,6 +235,20 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           </button>
         </div>
         <div className="space-y-4">
+          {/* Photo Upload */}
+          <div className="flex flex-col items-center gap-2">
+            <label className="relative cursor-pointer group">
+              <input type="file" accept="image/*" className="hidden" />
+              <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all">
+                <Camera size={24} className="text-gray-400 group-hover:text-secondary transition-colors" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
+                <Plus size={14} className="text-white" />
+              </div>
+            </label>
+            <span className="text-[10px] text-gray-400 font-medium">Upload Photo</span>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">Full Name</label>
             <input type="text" className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white" placeholder="e.g. John Doe" />
