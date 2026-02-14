@@ -62,7 +62,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
     const results = useMemo(() => {
         const q = query.toLowerCase();
 
-        if (!q) return { pages: PAGES, patients: [], actions: [] };
+        if (!q) return { patients: [], pages: PAGES, actions: [] };
 
         const pages = PAGES.filter(p => p.title.toLowerCase().includes(q));
         const patients = PATIENTS.filter(p =>
@@ -72,13 +72,13 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
         );
         const actions = ACTIONS.filter(a => a.title.toLowerCase().includes(q));
 
-        return { pages, patients, actions };
+        return { patients, pages, actions };
     }, [query]);
 
     const flatResults = useMemo(() => {
         return [
-            ...results.pages.map(i => ({ ...i, type: 'page' })),
             ...results.patients.map(i => ({ ...i, type: 'patient' })),
+            ...results.pages.map(i => ({ ...i, type: 'page' })),
             ...results.actions.map(i => ({ ...i, type: 'action' }))
         ];
     }, [results]);
@@ -138,7 +138,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
                     <input
                         autoFocus
                         className="flex-1 bg-transparent border-none outline-none text-lg text-gray-800 dark:text-gray-100 placeholder-gray-400"
-                        placeholder="Type a command or search..."
+                        placeholder="Search patients, pages, or commands..."
                         value={query}
                         onChange={e => { setQuery(e.target.value); setSelectedIndex(0); }}
                     />
@@ -155,6 +155,38 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
                         </div>
                     ) : (
                         <div className="space-y-1">
+
+                            {/* Patients Group */}
+                            {results.patients.length > 0 && (
+                                <div className="mb-2">
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Patients</h4>
+                                    {results.patients.map((patient, i) => {
+                                        const isSelected = flatResults.findIndex(r => r === patient && r.type === 'patient') === selectedIndex;
+                                        return (
+                                            <div
+                                                key={patient.id}
+                                                onClick={() => handleSelect({ ...patient, type: 'patient' })}
+                                                className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 text-primary dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-500">
+                                                    {patient.name.charAt(0)}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium">{patient.name}</span>
+                                                        <span className="text-[10px] font-mono text-gray-400">{patient.id}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-gray-400">{patient.age} yrs • {patient.condition}</span>
+                                                    </div>
+                                                </div>
+                                                {isSelected && <ArrowRight size={14} className="opacity-50" />}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
                             {/* Pages Group */}
                             {results.pages.length > 0 && (
@@ -178,59 +210,20 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
                                 </div>
                             )}
 
-                            {/* Patients Group */}
-                            {results.patients.length > 0 && (
-                                <div className="mb-2">
-                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Patients</h4>
-                                    {results.patients.map((patient, i) => {
-                                        const isSelected = flatResults.findIndex(r => r === patient && r.type === 'patient') === selectedIndex; // Rough check, works because objects are ref equal in this simple component or distinct enough
-                                        // safer check:
-                                        const globalIdx = [...results.pages, ...results.patients.slice(0, results.patients.indexOf(patient))].length + results.pages.length;
-                                        // Actually, let's use the ID match if possible or just rely on the flat list logic from above.
-                                        // Let's use the `isSelected` based on strict equality from the flattened list if possible, or just re-calculate index.
-                                        // The simplest is just checking if this item is the one at selectedIndex in flatResults
-                                        const isReallySelected = flatResults[selectedIndex] && flatResults[selectedIndex].id === patient.id && flatResults[selectedIndex].type === 'patient';
-
-                                        return (
-                                            <div
-                                                key={patient.id}
-                                                onClick={() => handleSelect({ ...patient, type: 'patient' })}
-                                                className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${isReallySelected ? 'bg-primary/10 text-primary dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                                    }`}
-                                            >
-                                                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-500">
-                                                    {patient.name.charAt(0)}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-medium">{patient.name}</span>
-                                                        <span className="text-[10px] font-mono text-gray-400">{patient.id}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs text-gray-400">{patient.age} yrs • {patient.condition}</span>
-                                                    </div>
-                                                </div>
-                                                {isReallySelected && <ArrowRight size={14} className="opacity-50" />}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
                             {/* Actions Group */}
                             {results.actions.length > 0 && (
                                 <div>
                                     <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Actions</h4>
                                     {results.actions.map(action => {
-                                        const isReallySelected = flatResults[selectedIndex] && flatResults[selectedIndex].id === action.id && flatResults[selectedIndex].type === 'action';
+                                        const isSelected = flatResults.findIndex(r => r === action && r.type === 'action') === selectedIndex;
                                         return (
                                             <div
                                                 key={action.id}
                                                 onClick={() => handleSelect({ ...action, type: 'action' })}
-                                                className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${isReallySelected ? 'bg-primary/10 text-primary dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 text-primary dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                                                     }`}
                                             >
-                                                <action.icon size={18} className={isReallySelected ? 'text-primary' : 'text-gray-400'} />
+                                                <action.icon size={18} className={isSelected ? 'text-primary' : 'text-gray-400'} />
                                                 <span className="flex-1 text-sm font-medium">{action.title}</span>
                                             </div>
                                         );
