@@ -85,16 +85,17 @@ export default function Diagnostics() {
 
   // Reset state when case changes
   useEffect(() => {
+    if (!selectedCase) return;
     setCurrentSlice(Math.floor(selectedCase.totalSlices * 0.33));
     setZoom(1);
     setPanOffset({ x: 0, y: 0 });
     setConfirmed(false);
     setConsultSent(false);
-  }, [selectedCaseId]);
+  }, [selectedCaseId, selectedCase]);
 
   // Playback auto-advance
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !selectedCase) return;
     const interval = setInterval(() => {
       setCurrentSlice(prev => {
         if (prev >= selectedCase.totalSlices) { setIsPlaying(false); return 1; }
@@ -102,7 +103,7 @@ export default function Diagnostics() {
       });
     }, 150);
     return () => clearInterval(interval);
-  }, [isPlaying, selectedCase.totalSlices]);
+  }, [isPlaying, selectedCase]);
 
   // Pan handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -131,7 +132,7 @@ export default function Diagnostics() {
 
   // Confidence ring offset calculation
   const circumference = 2 * Math.PI * 44; // r=44% but we use a fixed circumference of ~276
-  const strokeDashoffset = 276 - (276 * (selectedCase?.confidence || 0)) / 100;
+  const strokeDashoffset = selectedCase ? 276 - (276 * (selectedCase.confidence || 0)) / 100 : 276;
 
   if (cases.length === 0) {
     return (
