@@ -567,23 +567,25 @@ export default function PatientRecords() {
               </div>
 
               {/* AI Summary Card */}
-              <div className="bg-gradient-to-br from-background-light to-white dark:from-white/5 dark:to-white/0 rounded-2xl p-4 border border-gray-100 dark:border-white/5 relative overflow-hidden group hover:shadow-md transition-all">
-                <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                  <Sparkles className="text-cyan w-8 h-8" />
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">MedGemma Summary</span>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan/20 text-cyan-700 dark:text-cyan border border-cyan/20">AI Generated</span>
+              {selectedPatient.aiSummary && (
+                <div className="bg-gradient-to-br from-background-light to-white dark:from-white/5 dark:to-white/0 rounded-2xl p-4 border border-gray-100 dark:border-white/5 relative overflow-hidden group hover:shadow-md transition-all">
+                  <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                    <Sparkles className="text-cyan w-8 h-8" />
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-                    {selectedPatient.aiSummary}
-                  </p>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                    <Clock size={12} /> Updated 2 mins ago
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">MedGemma Summary</span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan/20 text-cyan-700 dark:text-cyan border border-cyan/20">AI Generated</span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+                      {selectedPatient.aiSummary}
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                      <Clock size={12} /> Updated 2 mins ago
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Interactive Vitals Trends */}
               <div className="bg-white/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">

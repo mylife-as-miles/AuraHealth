@@ -14,12 +14,7 @@ export default function SmartInsights() {
 
   const insights = useMemo(() => {
     // defaults
-    const defaultInsights = [
-      { text: 'Patient recovery rates are projected to increase by', highlight: '12%', suffix: 'based on current HAI-DEF diagnostic trends.' },
-      { text: 'Cardiology ward efficiency has improved by', highlight: '8.3%', suffix: 'after MedGemma model optimizations.' },
-    ];
-
-    if (!patients.length && !cases.length) return defaultInsights;
+    if (!patients.length && !cases.length) return [];
 
     // 1. Recovery Rate (Low Risk / Total)
     const active = patients.filter(p => p.active).length;
@@ -69,6 +64,20 @@ export default function SmartInsights() {
     }, 5000);
     return () => clearInterval(interval);
   }, [insights.length]);
+
+  if (!patients.length && !cases.length) {
+    return (
+      <div className="rounded-3xl h-full w-full bg-white dark:bg-card-dark border border-gray-100 dark:border-border-dark flex flex-col items-center justify-center p-6 text-center shadow-soft">
+        <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center mb-4">
+          <Zap className="text-gray-300 dark:text-gray-600" size={32} />
+        </div>
+        <h3 className="text-sm font-bold text-gray-400 dark:text-gray-500 mb-1">No AI Insights</h3>
+        <p className="text-xs text-gray-300 dark:text-gray-600 max-w-[200px]">
+          Add patient data or run diagnostics to generate AI analysis.
+        </p>
+      </div>
+    );
+  }
 
   const insight = insights[currentIndex] || insights[0];
 
