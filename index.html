@@ -97,12 +97,24 @@
     }
 
     @media (max-width: 768px) {
+
+      /* Hide root by default on mobile */
       #root {
         display: none !important;
       }
 
+      /* Show warning by default */
       #mobile-warning {
         display: flex;
+      }
+
+      /* Allow mobile override */
+      body.allow-mobile #root {
+        display: block !important;
+      }
+
+      body.allow-mobile #mobile-warning {
+        display: none !important;
       }
     }
 

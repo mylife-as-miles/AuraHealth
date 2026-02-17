@@ -50,6 +50,14 @@ export default function AuthPage() {
         setForgotError('');
     }, [view]);
 
+    // Allow mobile view for auth page
+    useEffect(() => {
+        document.body.classList.add('allow-mobile');
+        return () => {
+            document.body.classList.remove('allow-mobile');
+        };
+    }, []);
+
     // ─── Validation ──────────────────────────────────────
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -147,11 +155,11 @@ export default function AuthPage() {
 
     // ─── Render ──────────────────────────────────────────
     return (
-        <div className="h-screen w-full overflow-hidden flex items-center justify-center bg-[#F3F5F7]">
-            <div className="w-full h-full flex flex-col md:flex-row overflow-hidden bg-white shadow-2xl relative">
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#F3F5F7] p-0 md:p-4">
+            <div className="w-full min-h-screen md:min-h-0 md:h-full flex flex-col md:flex-row bg-white shadow-2xl relative rounded-none md:rounded-3xl overflow-hidden md:overflow-visible lg:overflow-hidden">
 
                 {/* ═══════════════ LEFT PANEL ═══════════════ */}
-                <div className="w-full md:w-1/2 lg:w-5/12 relative flex flex-col justify-between p-8 md:p-12 lg:p-16 overflow-hidden"
+                <div className="w-full md:w-1/2 lg:w-5/12 relative flex flex-col justify-between p-8 md:p-12 lg:p-16 overflow-hidden min-h-[300px]"
                     style={{ background: 'radial-gradient(circle at top left, #2a0b45 0%, #160527 100%)' }}>
 
                     {/* Background effects */}
