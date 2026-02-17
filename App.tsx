@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Diagnostics from './components/Diagnostics';
 import Notifications from './components/Notifications';
 import AuthPage from './components/AuthPage';
+import CommandPalette from './components/CommandPalette';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -22,10 +23,16 @@ const PlaceholderView = ({ title }: { title: string }) => (
   </div>
 );
 
-import { useState, useEffect } from 'react';
-import CommandPalette from './components/CommandPalette';
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = localStorage.getItem('aura_auth') === 'true';
 
-// ... (previous imports)
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
+};
 
 const Layout = () => {
   const location = useLocation();
@@ -98,7 +105,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/*" element={<Layout />} />
+        <Route path="/*" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );

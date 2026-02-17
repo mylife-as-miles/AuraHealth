@@ -74,12 +74,20 @@ export default function AuthPage() {
         return Object.keys(errs).length === 0;
     };
 
+    // Check for existing session
+    useEffect(() => {
+        if (localStorage.getItem('aura_auth') === 'true') {
+            window.location.href = '/';
+        }
+    }, []);
+
     // ─── Handlers ────────────────────────────────────────
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateLogin()) return;
         setIsLoading(true);
         setTimeout(() => {
+            localStorage.setItem('aura_auth', 'true');
             setIsLoading(false);
             window.location.href = '/';
         }, 1800);
@@ -90,12 +98,9 @@ export default function AuthPage() {
         if (!validateRegister()) return;
         setIsLoading(true);
         setTimeout(() => {
+            localStorage.setItem('aura_auth', 'true');
             setIsLoading(false);
-            // After registration, switch to login
-            setView('login');
-            setPassword('');
-            setConfirmPassword('');
-            setName('');
+            window.location.href = '/';
         }, 2000);
     };
 
@@ -119,6 +124,7 @@ export default function AuthPage() {
     const handleBiometric = (type: 'touch' | 'face') => {
         setBiometricModal(type);
         setTimeout(() => {
+            localStorage.setItem('aura_auth', 'true');
             setBiometricModal(null);
             window.location.href = '/';
         }, 2500);
