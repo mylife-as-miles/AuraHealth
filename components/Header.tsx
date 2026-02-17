@@ -28,8 +28,8 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
   const confirmSignOut = () => {
     localStorage.removeItem('aura_auth');
     console.log("Signing out user...");
-    window.location.href = "/auth";
     setIsSignOutModalOpen(false);
+    navigate('/auth');
   };
 
   return (
