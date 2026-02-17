@@ -385,6 +385,7 @@ export default function ClinicalWorkflow() {
                 ))}
               </div>
             </div>
+          )}
         </div>
 
         {/* Assistant Side Panel */}
