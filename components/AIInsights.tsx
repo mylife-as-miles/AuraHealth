@@ -37,6 +37,9 @@ import {
   ReferenceDot,
   ReferenceLine
 } from 'recharts';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
+import { NotificationItem } from '../lib/types';
 
 // --- Data per period ---
 const DATA_BY_PERIOD: Record<string, Array<Record<string, number | string | undefined>>> = {
@@ -72,22 +75,7 @@ const DATA_BY_PERIOD: Record<string, Array<Record<string, number | string | unde
   ]
 };
 
-// --- Notification data ---
-interface Notification {
-  id: string;
-  icon: 'sparkles' | 'alert' | 'file';
-  title: string;
-  description: string;
-  time: string;
-  read: boolean;
-}
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  { id: '1', icon: 'sparkles', title: 'Model Retraining Complete', description: 'HAI-DEF v2.1 updated with latest patient dataset.', time: '2 mins ago', read: false },
-  { id: '2', icon: 'alert', title: 'Data Anomaly Detected', description: 'Unexpected variance in blood pressure readings from Ward 3.', time: '1 hour ago', read: false },
-  { id: '3', icon: 'file', title: 'Report Generated', description: 'Weekly population health summary is ready.', time: '3 hours ago', read: true },
-  { id: '4', icon: 'sparkles', title: 'New Dataset Available', description: 'Community transmission data Q2 2024 uploaded.', time: '5 hours ago', read: true },
-];
+// --- Notification data removed (using DB) ---
 
 // --- Prediction alerts ---
 interface PredictionAlert {
@@ -126,7 +114,7 @@ export default function AIInsights() {
   const [geoView, setGeoView] = useState<'city' | 'regional'>('city');
 
   // Notifications
-  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const notifications = useLiveQuery(() => db.notifications.toArray()) || [];
 
   // Model settings state
   const [modelConfidence, setModelConfidence] = useState(95);
@@ -155,12 +143,15 @@ export default function AIInsights() {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    await db.transaction('rw', db.notifications, async () => {
+      const unread = await db.notifications.filter(n => !n.read).toArray();
+      await Promise.all(unread.map(n => db.notifications.update(n.id, { read: true })));
+    });
   };
 
   const dismissNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    db.notifications.delete(id);
   };
 
   const downloadChartCSV = () => {
@@ -193,17 +184,17 @@ export default function AIInsights() {
 
   const notifIcon = (type: string) => {
     switch (type) {
-      case 'sparkles': return <Sparkles size={14} />;
+      case 'success': return <Sparkles size={14} />;
       case 'alert': return <AlertCircle size={14} />;
-      case 'file': return <FileText size={14} />;
+      case 'info': return <FileText size={14} />;
       default: return <Info size={14} />;
     }
   };
   const notifColor = (type: string) => {
     switch (type) {
-      case 'sparkles': return 'bg-cyan/20 text-cyan';
+      case 'success': return 'bg-cyan/20 text-cyan';
       case 'alert': return 'bg-accent/20 text-accent';
-      case 'file': return 'bg-gray-100 dark:bg-gray-700 text-gray-500';
+      case 'info': return 'bg-gray-100 dark:bg-gray-700 text-gray-500';
       default: return 'bg-gray-100 text-gray-500';
     }
   };
@@ -528,12 +519,12 @@ export default function AIInsights() {
             {notifications.length > 0 ? notifications.map(n => (
               <div key={n.id} className={`flex gap-3 items-start p-3 hover:bg-background-light dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer group relative ${!n.read ? 'bg-background-light/50 dark:bg-white/[0.02]' : ''}`}>
                 {!n.read && <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent"></div>}
-                <div className={`w-8 h-8 rounded-full ${notifColor(n.icon)} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                  {notifIcon(n.icon)}
+                <div className={`w-8 h-8 rounded-full ${notifColor(n.type)} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                  {notifIcon(n.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-primary dark:text-white font-bold">{n.title}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{n.description}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{n.message}</p>
                   <span className="text-[9px] text-gray-400 mt-1 block font-medium">{n.time}</span>
                 </div>
                 <button

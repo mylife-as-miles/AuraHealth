@@ -28,203 +28,65 @@ import {
   Pill,
   Syringe,
   CheckCircle2,
-  ChevronLeft
+  ChevronLeft,
+  Users
 } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
+import { Patient } from '../lib/types';
+import EmptyState from './EmptyState';
 
 // --- Types & Interfaces ---
 
-interface VitalsData {
-  time: string;
-  hr: number;
-  sys: number;
-  dia: number;
-  temp: number;
-  weight: number;
-}
-
-interface Medication {
-  name: string;
-  dosage: string;
-  freq: string;
-  time: string;
-  type: 'pill' | 'injection';
-}
-
-interface TimelineEvent {
-  date: string;
-  title: string;
-  type: 'Diagnosis' | 'Visit' | 'Routine';
-  description: string;
-}
-
-interface Patient {
-  id: string;
-  name: string;
-  age: number;
-  gender: string;
-  image?: string;
-  initials?: string;
-  lastVisit: string;
-  condition: string;
-  risk: 'High Risk' | 'Moderate' | 'Low Risk';
-  riskColor: 'accent' | 'yellow' | 'secondary';
-  active: boolean;
-  vitals: VitalsData[];
-  medications: Medication[];
-  history: TimelineEvent[];
-  insurance: { provider: string; policy: string };
-  aiSummary: string;
-}
-
-// --- Mock Data Generation ---
-
-const generateVitals = (baseHr: number, baseSys: number) => [
-  { time: '08:00', hr: baseHr, sys: baseSys, dia: 75, temp: 98.4, weight: 142 },
-  { time: '10:00', hr: baseHr + 6, sys: baseSys + 3, dia: 78, temp: 98.5, weight: 142 },
-  { time: '12:00', hr: baseHr + 16, sys: baseSys + 20, dia: 85, temp: 98.9, weight: 142.2 },
-  { time: '14:00', hr: baseHr + 10, sys: baseSys + 10, dia: 82, temp: 98.6, weight: 142 },
-  { time: '16:00', hr: baseHr + 23, sys: baseSys + 23, dia: 88, temp: 98.7, weight: 142 },
-  { time: '18:00', hr: baseHr + 13, sys: baseSys + 5, dia: 80, temp: 98.5, weight: 142 },
-];
-
-const MOCK_PATIENTS: Patient[] = [
-  {
-    id: "#AH-8832",
-    name: "Eleanor Pena",
-    age: 45,
-    gender: "Female",
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100",
-    lastVisit: "2024-10-24",
-    condition: "Arrhythmia",
-    risk: "High Risk",
-    riskColor: "accent",
-    active: true,
-    vitals: generateVitals(72, 115),
-    medications: [
-      { name: 'Metoprolol', dosage: '50mg', freq: 'Twice daily', time: '08:00 AM', type: 'pill' },
-      { name: 'Warfarin', dosage: '5mg', freq: 'Once daily', time: '06:00 PM', type: 'pill' }
-    ],
-    history: [
-      { date: 'Oct 24, 2024', title: 'Arrhythmia Diagnosis', type: 'Diagnosis', description: 'Detected irregular heartbeat during routine scan.' },
-      { date: 'Sep 12, 2024', title: 'Emergency Visit', type: 'Visit', description: 'Patient complained of chest palpitations.' }
-    ],
-    insurance: { provider: 'BlueCross BlueShield', policy: '#992-221-00' },
-    aiSummary: "Patient shows signs of persistent arrhythmia. Recommended immediate detailed cardiac screening. HAI-DEF model predicts 15% increase in risk without intervention."
-  },
-  {
-    id: "#AH-9211",
-    name: "Cody Fisher",
-    age: 32,
-    gender: "Male",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100",
-    lastVisit: "2024-12-01",
-    condition: "Hypertension",
-    risk: "High Risk",
-    riskColor: "accent",
-    active: false,
-    vitals: generateVitals(85, 140),
-    medications: [
-      { name: 'Lisinopril', dosage: '10mg', freq: 'Once daily', time: '09:00 AM', type: 'pill' }
-    ],
-    history: [
-      { date: 'Dec 01, 2024', title: 'High BP Alert', type: 'Visit', description: 'Recorded 150/95 during triage.' }
-    ],
-    insurance: { provider: 'Aetna', policy: '#AE-445-99' },
-    aiSummary: "Hypertension uncontrolled despite medication. Suggest reviewing dosage or adding diuretic. Risk of stroke elevated by 8%."
-  },
-  {
-    id: "#AH-7742",
-    name: "Jerome Webb",
-    age: 58,
-    gender: "Male",
-    initials: "JW",
-    lastVisit: "2024-11-12",
-    condition: "Type 2 Diabetes",
-    risk: "Moderate",
-    riskColor: "yellow",
-    active: false,
-    vitals: generateVitals(70, 125),
-    medications: [
-      { name: 'Metformin', dosage: '500mg', freq: 'Twice daily', time: '08:00 AM', type: 'pill' },
-      { name: 'Insulin Glargine', dosage: '10 units', freq: 'Bedtime', time: '10:00 PM', type: 'injection' },
-    ],
-    history: [
-      { date: 'Nov 12, 2024', title: 'Routine Checkup', type: 'Routine', description: 'A1C levels slightly elevated.' }
-    ],
-    insurance: { provider: 'UnitedHealthcare', policy: '#UH-882-11' },
-    aiSummary: "Diabetes management is stable but requires dietary adjustments. A1C trend indicates potential for improvement with lifestyle changes."
-  },
-  {
-    id: "#AH-1029",
-    name: "Kristin Watson",
-    age: 29,
-    gender: "Female",
-    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100",
-    lastVisit: "2024-12-08",
-    condition: "Migraine",
-    risk: "Low Risk",
-    riskColor: "secondary",
-    active: false,
-    vitals: generateVitals(65, 110),
-    medications: [
-      { name: 'Sumatriptan', dosage: '50mg', freq: 'As needed', time: '-', type: 'pill' }
-    ],
-    history: [
-      { date: 'Dec 08, 2024', title: 'Consultation', type: 'Visit', description: 'Discussed trigger avoidance strategies.' }
-    ],
-    insurance: { provider: 'Cigna', policy: '#CG-112-44' },
-    aiSummary: "Migraine frequency has decreased by 20% over the last quarter. Current PRN medication plan appears effective."
-  },
-  {
-    id: "#AH-5621",
-    name: "Darrell Steward",
-    age: 41,
-    gender: "Male",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100",
-    lastVisit: "2024-10-10",
-    condition: "Post-Op Recovery",
-    risk: "High Risk",
-    riskColor: "accent",
-    active: false,
-    vitals: generateVitals(80, 130),
-    medications: [
-      { name: 'Oxycodone', dosage: '5mg', freq: 'Every 4-6h', time: 'As needed', type: 'pill' },
-      { name: 'Antibiotics', dosage: '500mg', freq: '3x Daily', time: '08:00 AM', type: 'pill' }
-    ],
-    history: [
-      { date: 'Oct 08, 2024', title: 'Surgery', type: 'Visit', description: 'Appendectomy performed successfully.' }
-    ],
-    insurance: { provider: 'BlueCross BlueShield', policy: '#992-555-01' },
-    aiSummary: "Monitoring for signs of infection post-surgery. White blood cell count slightly elevated but trending down."
-  },
-  {
-    id: "#AH-2291",
-    name: "Arlene McCoy",
-    age: 63,
-    gender: "Female",
-    initials: "AM",
-    lastVisit: "2024-11-30",
-    condition: "Arthritis",
-    risk: "Moderate",
-    riskColor: "yellow",
-    active: false,
-    vitals: generateVitals(68, 128),
-    medications: [
-      { name: 'Ibuprofen', dosage: '400mg', freq: 'Twice daily', time: '09:00 AM', type: 'pill' }
-    ],
-    history: [
-      { date: 'Nov 30, 2024', title: 'Physical Therapy', type: 'Routine', description: 'Joint mobility assessment.' }
-    ],
-    insurance: { provider: 'Medicare', policy: '#MC-991-22' },
-    aiSummary: "Arthritis symptoms managed. Physical therapy showing positive impact on range of motion."
-  }
-];
+// --- Types imported from ../lib/types ---
 
 // --- Sub-components ---
 
 const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    dob: '',
+    gender: 'Male',
+    insurance: ''
+  });
+
   if (!isOpen) return null;
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.dob) return;
+
+    const age = new Date().getFullYear() - new Date(formData.dob).getFullYear();
+
+    try {
+      await db.patients.add({
+        id: `#AH-${Math.floor(Math.random() * 9000) + 1000}`,
+        name: formData.name,
+        age: age > 0 ? age : 0,
+        gender: formData.gender,
+        lastVisit: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        condition: 'Undiagnosed',
+        risk: 'Low Risk',
+        riskColor: 'secondary',
+        active: false,
+        vitals: [],
+        medications: [],
+        history: [{
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          title: 'Patient Registered',
+          type: 'Routine',
+          description: 'New patient record created.'
+        }],
+        insurance: { provider: formData.insurance || 'Unknown', policy: 'Pending' },
+        aiSummary: "New patient record. Data insufficient for AI analysis."
+      });
+      onClose();
+      setFormData({ name: '', dob: '', gender: 'Male', insurance: '' });
+    } catch (error) {
+      console.error("Failed to add patient:", error);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200">
@@ -235,7 +97,6 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           </button>
         </div>
         <div className="space-y-4">
-          {/* Photo Upload */}
           <div className="flex flex-col items-center gap-2">
             <label className="relative cursor-pointer group">
               <input type="file" accept="image/*" className="hidden" />
@@ -251,16 +112,31 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">Full Name</label>
-            <input type="text" className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white" placeholder="e.g. John Doe" />
+            <input
+              type="text"
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
+              placeholder="e.g. John Doe"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1">Date of Birth</label>
-              <input type="date" className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-400" />
+              <input
+                type="date"
+                value={formData.dob}
+                onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-400"
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1">Gender</label>
-              <select className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-400">
+              <select
+                value={formData.gender}
+                onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-400"
+              >
                 <option>Male</option>
                 <option>Female</option>
                 <option>Other</option>
@@ -269,12 +145,18 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">Insurance Provider</label>
-            <input type="text" className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white" placeholder="e.g. BlueCross" />
+            <input
+              type="text"
+              value={formData.insurance}
+              onChange={e => setFormData({ ...formData, insurance: e.target.value })}
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
+              placeholder="e.g. BlueCross"
+            />
           </div>
         </div>
         <div className="mt-8 flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
-          <button onClick={onClose} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">Add Patient</button>
+          <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">Add Patient</button>
         </div>
       </div>
     </div>
@@ -285,7 +167,8 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
 export default function PatientRecords() {
   const navigate = useNavigate();
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>("#AH-8832");
+  const patients = useLiveQuery(() => db.patients.toArray()) || [];
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeVital, setActiveVital] = useState<'hr' | 'bp' | 'temp' | 'weight'>('hr');
   const [contextMenuPatientId, setContextMenuPatientId] = useState<string | null>(null);
@@ -313,7 +196,7 @@ export default function PatientRecords() {
 
   // Derived Data
   const filteredPatients = useMemo(() => {
-    let sorted = [...MOCK_PATIENTS];
+    let sorted = [...patients];
 
     // Filter
     if (searchQuery) {
@@ -340,7 +223,7 @@ export default function PatientRecords() {
   const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
   const paginatedPatients = filteredPatients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const selectedPatient = MOCK_PATIENTS.find(p => p.id === selectedPatientId);
+  const selectedPatient = patients.find(p => p.id === selectedPatientId);
 
   const handleSort = (key: keyof Patient) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -516,7 +399,7 @@ export default function PatientRecords() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setContextMenuPatientId(null);
-                              const p = MOCK_PATIENTS.find(mp => mp.id === patient.id);
+                              const p = patients.find(mp => mp.id === patient.id);
                               if (!p) return;
                               const headers = 'Time,Heart Rate,Systolic BP,Diastolic BP,Temperature,Weight\n';
                               const rows = p.vitals.map(d => `${d.time},${d.hr},${d.sys},${d.dia},${d.temp},${d.weight}`).join('\n');
@@ -534,7 +417,14 @@ export default function PatientRecords() {
                           </button>
                           <div className="my-1 border-t border-gray-100 dark:border-white/5"></div>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setContextMenuPatientId(null); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setContextMenuPatientId(null);
+                              if (window.confirm('Are you sure you want to delete this patient?')) {
+                                db.patients.delete(patient.id);
+                                if (selectedPatientId === patient.id) setSelectedPatientId(null);
+                              }
+                            }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                           >
                             <Trash2 size={16} /> Delete Patient
@@ -587,6 +477,19 @@ export default function PatientRecords() {
             </div>
           )}
         </div>
+
+        {patients.length === 0 && searchQuery === '' && (
+          <div className="absolute inset-0 bg-background-light dark:bg-background-dark z-10 flex items-center justify-center">
+            <EmptyState
+              icon={UserCircle}
+              title="No Patient Records"
+              description="Your patient directory is empty. Add a new patient or import sample data to get started."
+              actionLabel="Add New Patient"
+              onAction={() => setIsAddModalOpen(true)}
+              color="primary"
+            />
+          </div>
+        )}
 
         {/* Right Detail Panel */}
         {selectedPatient ? (

@@ -25,132 +25,15 @@ import {
   Maximize2,
   AlertTriangle,
   X,
-  Send
+  Send,
+  Activity
 } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
+import { DiagCase } from '../lib/types';
+import EmptyState from './EmptyState';
 
-// --- Types ---
-interface Finding {
-  severity: 'critical' | 'info';
-  title: string;
-  description: string;
-}
-interface Diagnosis {
-  label: string;
-  val: number;
-  color: string;
-}
-interface Annotation {
-  type: 'box' | 'point';
-  top: string;
-  left: string;
-  width?: string;
-  height?: string;
-  label: string;
-  confidence: number;
-  severity: 'critical' | 'info';
-  lineX2?: string;
-  lineY2?: string;
-}
-interface DiagCase {
-  id: string;
-  patient: string;
-  scanType: string;
-  status: 'Critical' | 'Ready' | 'In Progress' | 'Pending';
-  time: string;
-  image: string;
-  totalSlices: number;
-  confidence: number;
-  modelName: string;
-  findings: Finding[];
-  diagnosis: Diagnosis[];
-  annotations: Annotation[];
-  aiSummary: string;
-  progress?: number;
-}
-
-// --- Mock Data ---
-const CASES: DiagCase[] = [
-  {
-    id: '#8392-AX',
-    patient: 'Eleanor Pena',
-    scanType: 'Chest CT - Angio',
-    status: 'Critical',
-    time: '10:42 AM',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCRAwtPxFGdhQTwbfn24ASqWaHFM3S4Htma-suaq_gEiJojmGE25sayK2TQoek5ua90nYeBxqckI5cvXolA6p7gdikcIASIZJlfSHw2vAkNby0CBc52dsm1i9_qwjamdYrwOCodPXElxDYrbBfNBRIcUCXVE7Tg0WEkv23IbH-4KilvcYOyVSlqU7ToJrt2jVoBS5xxTKmeMrP3fJQYuvYStaKppvVG_ZzfAcQtZqP9-9avbykkR7FHuTxEnkIDEmlR49rhindmzX4',
-    totalSlices: 128,
-    confidence: 94,
-    modelName: 'HAI-DEF v4.2',
-    findings: [
-      { severity: 'critical', title: 'Localized consolidation', description: 'Lower left lobe, approx 2.4cm diameter. Suggestive of acute infection.' },
-      { severity: 'info', title: 'Mild pleural effusion', description: 'Trace fluid noted in the costophrenic angle.' }
-    ],
-    diagnosis: [
-      { label: 'Bacterial Pneumonia', val: 85, color: 'bg-primary' },
-      { label: 'Viral Pneumonia', val: 12, color: 'bg-gray-400' },
-      { label: 'Aspiration', val: 3, color: 'bg-gray-400' }
-    ],
-    annotations: [
-      { type: 'box', top: '35%', left: '55%', width: '15%', height: '12%', label: 'Nodule', confidence: 88, severity: 'info' },
-      { type: 'point', top: '62%', left: '30%', label: 'Consolidation', confidence: 94, severity: 'critical', lineX2: '40%', lineY2: '68%' }
-    ],
-    aiSummary: 'High-confidence detection of bacterial pneumonia with localized consolidation in the lower left lobe.'
-  },
-  {
-    id: '#9921-BR',
-    patient: 'Jenny Wilson',
-    scanType: 'MRI - Brain',
-    status: 'Ready',
-    time: '09:15 AM',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFZ5Ds1hg-ciMPSpXqdP99WBk3tJjWXKSsBox7AklkXUzFxV-typKAM9FHkb-sfn72mMin63BtJBwl0fDtDBc9QXFkkeKlJ7MsBThzztFfgYbd0tFNinVZcO1y-RE4QtnHIu5IS42GrbS_z73xPOSFMM025N68yLCh0YsKZqueczd_bqRsghvSBafrkq5F3CbRbYq8QS_wNUhnTq6BZnvxUimJFKe0QAOJ99V07S-TxKUwSMyt9i4tJm3bB4g_EwctI8DnBlX4ItE',
-    totalSlices: 96,
-    confidence: 78,
-    modelName: 'NeuroScan v2.1',
-    findings: [
-      { severity: 'info', title: 'Small periventricular lesion', description: 'Right lateral ventricle, 6mm. Non-enhancing. Likely benign.' },
-      { severity: 'info', title: 'Mild cortical atrophy', description: 'Age-appropriate changes, no focal abnormality.' }
-    ],
-    diagnosis: [
-      { label: 'Demyelinating Lesion', val: 45, color: 'bg-primary' },
-      { label: 'Benign Cyst', val: 35, color: 'bg-gray-400' },
-      { label: 'Low-Grade Glioma', val: 20, color: 'bg-gray-400' }
-    ],
-    annotations: [
-      { type: 'box', top: '28%', left: '42%', width: '12%', height: '10%', label: 'Lesion', confidence: 78, severity: 'info' }
-    ],
-    aiSummary: 'Periventricular lesion detected. Recommend follow-up MRI in 3 months to assess stability.'
-  },
-  {
-    id: '#1102-TX',
-    patient: 'Robert Fox',
-    scanType: 'X-Ray - Thorax',
-    status: 'In Progress',
-    time: 'Running...',
-    image: '',
-    totalSlices: 1,
-    confidence: 0,
-    modelName: 'ChestAI v3.0',
-    progress: 65,
-    findings: [],
-    diagnosis: [],
-    annotations: [],
-    aiSummary: 'Analysis in progress...'
-  },
-  {
-    id: '#4401-AB',
-    patient: 'Cody Fisher',
-    scanType: 'CT - Abdomen',
-    status: 'Pending',
-    time: 'Yesterday',
-    image: '',
-    totalSlices: 200,
-    confidence: 0,
-    modelName: 'AbdoAI v1.8',
-    findings: [],
-    diagnosis: [],
-    annotations: [],
-    aiSummary: 'Scan queued for analysis.'
-  }
-];
+// --- Types imported from ../lib/types ---
 
 // --- Helpers ---
 const statusStyle = (s: DiagCase['status']) => {
@@ -164,8 +47,10 @@ const statusStyle = (s: DiagCase['status']) => {
 
 // --- Component ---
 export default function Diagnostics() {
+  const cases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
+
   // Selection & search
-  const [selectedCaseId, setSelectedCaseId] = useState(CASES[0].id);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [queueSearch, setQueueSearch] = useState('');
 
   // Viewer tools
@@ -191,12 +76,12 @@ export default function Diagnostics() {
   const [consultSent, setConsultSent] = useState(false);
 
   // Derived
-  const selectedCase = useMemo(() => CASES.find(c => c.id === selectedCaseId) || CASES[0], [selectedCaseId]);
+  const selectedCase = useMemo(() => cases.find(c => c.id === selectedCaseId) || cases[0], [cases, selectedCaseId]);
   const filteredCases = useMemo(() => {
-    if (!queueSearch.trim()) return CASES;
+    if (!queueSearch.trim()) return cases;
     const q = queueSearch.toLowerCase();
-    return CASES.filter(c => c.patient.toLowerCase().includes(q) || c.scanType.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
-  }, [queueSearch]);
+    return cases.filter(c => c.patientName.toLowerCase().includes(q) || c.scanType.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+  }, [cases, queueSearch]);
 
   // Reset state when case changes
   useEffect(() => {
@@ -246,7 +131,22 @@ export default function Diagnostics() {
 
   // Confidence ring offset calculation
   const circumference = 2 * Math.PI * 44; // r=44% but we use a fixed circumference of ~276
-  const strokeDashoffset = 276 - (276 * selectedCase.confidence) / 100;
+  const strokeDashoffset = 276 - (276 * (selectedCase?.confidence || 0)) / 100;
+
+  if (cases.length === 0) {
+    return (
+      <div className="h-full w-full bg-white dark:bg-card-dark rounded-3xl border border-border-light dark:border-border-dark shadow-soft overflow-hidden">
+        <EmptyState
+          icon={Activity}
+          title="No Diagnostic Cases"
+          description="There are no active diagnostic cases or scans queued. Import patient data to generate sample cases."
+          color="accent"
+        />
+      </div>
+    );
+  }
+
+  if (!selectedCase) return null;
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full bg-white dark:bg-card-dark rounded-3xl overflow-y-auto lg:overflow-hidden border border-border-light dark:border-border-dark shadow-soft">
@@ -279,8 +179,8 @@ export default function Diagnostics() {
                 key={c.id}
                 onClick={() => setSelectedCaseId(c.id)}
                 className={`p-2.5 lg:p-3 border rounded-xl cursor-pointer transition-all ${isSelected
-                    ? 'bg-primary/5 dark:bg-primary/20 border-primary/10 dark:border-primary/30 shadow-sm'
-                    : 'bg-white dark:bg-card-dark border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                  ? 'bg-primary/5 dark:bg-primary/20 border-primary/10 dark:border-primary/30 shadow-sm'
+                  : 'bg-white dark:bg-card-dark border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   } ${c.status === 'Pending' ? 'opacity-60' : ''}`}
               >
                 <div className="flex justify-between items-start mb-2">
@@ -301,7 +201,7 @@ export default function Diagnostics() {
                     ) : null}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xs lg:text-sm font-bold text-primary dark:text-white leading-tight">{c.patient}</h3>
+                    <h3 className="text-xs lg:text-sm font-bold text-primary dark:text-white leading-tight">{c.patientName}</h3>
                     <p className="text-[10px] lg:text-[11px] text-gray-500 dark:text-gray-400">{c.scanType}</p>
                     <p className="text-[9px] lg:text-[10px] text-gray-400 mt-0.5">ID: {c.id}</p>
                   </div>
@@ -605,7 +505,7 @@ export default function Diagnostics() {
                 <X size={20} className="text-gray-400" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-4">Select a specialist for <span className="font-bold text-primary dark:text-white">{selectedCase.patient}</span></p>
+            <p className="text-xs text-gray-500 mb-4">Select a specialist for <span className="font-bold text-primary dark:text-white">{selectedCase.patientName}</span></p>
             <div className="space-y-2">
               {[
                 { name: 'Dr. Sarah Chen', specialty: 'Pulmonologist', avatar: 'SC' },

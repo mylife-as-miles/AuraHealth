@@ -1,22 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MoreHorizontal, TrendingUp } from 'lucide-react';
 
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../lib/db';
+import { Patient } from '../../lib/types';
+
 type Period = 'Today' | 'This Week' | 'This Month';
-
-interface PeriodData {
-  activeCases: number;
-  activeTrend: string;
-  recoveryRate: number;
-  recoveryTrend: string;
-  cardiology: number;
-  neurology: number;
-}
-
-const DATA_BY_PERIOD: Record<Period, PeriodData> = {
-  'Today': { activeCases: 127, activeTrend: '5%', recoveryRate: 91, recoveryTrend: '+1.2%', cardiology: 76, neurology: 34 },
-  'This Week': { activeCases: 462, activeTrend: '12%', recoveryRate: 94, recoveryTrend: '+2.4%', cardiology: 83, neurology: 42 },
-  'This Month': { activeCases: 1843, activeTrend: '18%', recoveryRate: 96, recoveryTrend: '+3.1%', cardiology: 89, neurology: 58 },
-};
 
 const useAnimatedNumber = (target: number, duration = 600) => {
   const [value, setValue] = useState(target);
@@ -68,12 +57,36 @@ const ProgressBar = ({ label, percentage, color }: { label: string, percentage: 
 export default function ClinicalInsights() {
   const [period, setPeriod] = useState<Period>('This Week');
   const [showMenu, setShowMenu] = useState(false);
-  const d = DATA_BY_PERIOD[period];
 
-  const animatedCases = useAnimatedNumber(d.activeCases);
-  const animatedRecovery = useAnimatedNumber(d.recoveryRate);
-  const animatedCardio = useAnimatedNumber(d.cardiology);
-  const animatedNeuro = useAnimatedNumber(d.neurology);
+  const patients = useLiveQuery(() => db.patients.toArray()) || [];
+
+  // Calculate stats
+  const stats = React.useMemo(() => {
+    const total = patients.length || 1;
+    const active = patients.filter(p => p.active).length;
+    const stable = patients.filter(p => p.risk === 'Low Risk').length;
+
+    // Simple keyword matching for demo purposes
+    const cardio = patients.filter(p => /heart|arythmia|cardio|hyper/i.test(p.condition)).length;
+    const neuro = patients.filter(p => /neuro|brain|migraine|seizure|epilepsy/i.test(p.condition)).length;
+
+    // Mock trends based on period for visual variety
+    const trendMult = period === 'Today' ? 0.2 : period === 'This Week' ? 1 : 4;
+
+    return {
+      activeCases: active,
+      activeTrend: active > 0 ? `+${Math.round(active * 0.1 * trendMult)}%` : '0%',
+      recoveryRate: Math.round((stable / total) * 100),
+      recoveryTrend: `+${(1.2 * trendMult).toFixed(1)}%`,
+      cardiology: Math.round((cardio / total) * 100),
+      neurology: Math.round((neuro / total) * 100)
+    };
+  }, [patients, period]);
+
+  const animatedCases = useAnimatedNumber(stats.activeCases);
+  const animatedRecovery = useAnimatedNumber(stats.recoveryRate);
+  const animatedCardio = useAnimatedNumber(stats.cardiology);
+  const animatedNeuro = useAnimatedNumber(stats.neurology);
 
   return (
     <div className="flex-1 flex flex-col justify-between">
@@ -90,8 +103,8 @@ export default function ClinicalInsights() {
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${period === p
-                    ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
               >
                 {p}
@@ -123,8 +136,8 @@ export default function ClinicalInsights() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <StatBox label="Active Cases" value={String(animatedCases)} trend={d.activeTrend} trendColor="secondary" />
-        <StatBox label="Recovery Rate" value={`${animatedRecovery}%`} trend={d.recoveryTrend} trendColor="cyan" />
+        <StatBox label="Active Cases" value={String(animatedCases)} trend={stats.activeTrend} trendColor="secondary" />
+        <StatBox label="Recovery Rate" value={`${animatedRecovery}%`} trend={stats.recoveryTrend} trendColor="cyan" />
       </div>
 
       <div className="space-y-5">

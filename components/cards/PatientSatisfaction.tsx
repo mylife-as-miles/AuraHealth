@@ -10,18 +10,11 @@ interface BarData {
   score: number;
 }
 
-const MONTHLY_DATA: BarData[] = [
-  { label: 'Jan', green: 40, pink: 30, totalResponses: 312, score: 4.2 },
-  { label: 'Dec', green: 55, pink: 25, totalResponses: 487, score: 4.5 },
-  { label: 'Nov', green: 30, pink: 20, totalResponses: 256, score: 3.8 },
-];
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../lib/db';
+import { useMemo } from 'react';
 
-const WEEKLY_DATA: BarData[] = [
-  { label: 'W1', green: 48, pink: 22, totalResponses: 89, score: 4.4 },
-  { label: 'W2', green: 52, pink: 18, totalResponses: 104, score: 4.6 },
-  { label: 'W3', green: 35, pink: 28, totalResponses: 76, score: 3.9 },
-  { label: 'W4', green: 60, pink: 15, totalResponses: 118, score: 4.7 },
-];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const StackedBar = ({ data, isActive, onClick }: { data: BarData, isActive: boolean, onClick: () => void }) => (
   <div className="space-y-1">
@@ -54,10 +47,94 @@ const StackedBar = ({ data, isActive, onClick }: { data: BarData, isActive: bool
 export default function PatientSatisfaction() {
   const [viewMode, setViewMode] = useState<ViewMode>('Monthly');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(1);
-  const data = viewMode === 'Monthly' ? MONTHLY_DATA : WEEKLY_DATA;
+
+  const patients = useLiveQuery(() => db.patients.toArray()) || [];
+
+  const data = useMemo(() => {
+    if (!patients.length) return [];
+
+    const now = new Date();
+    // Flatten all history events
+    const events = patients.flatMap(p =>
+      p.history.map(h => ({
+        date: new Date(h.date),
+        // Mock score based on event type to create variety
+        score: h.type === 'Routine' ? 5 : h.type === 'Visit' ? 4 : 3
+      }))
+    );
+
+    const aggregated: Record<string, { total: number; sum: number; high: number; low: number }> = {};
+    const labels: string[] = [];
+
+    if (viewMode === 'Monthly') {
+      // Last 3 months
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = MONTHS[d.getMonth()];
+        labels.unshift(label);
+        aggregated[label] = { total: 0, sum: 0, high: 0, low: 0 };
+      }
+
+      events.forEach(e => {
+        const diffMonths = (now.getFullYear() - e.date.getFullYear()) * 12 + (now.getMonth() - e.date.getMonth());
+        if (diffMonths >= 0 && diffMonths < 3) {
+          const label = MONTHS[e.date.getMonth()];
+          if (aggregated[label]) {
+            aggregated[label].total++;
+            aggregated[label].sum += e.score;
+            if (e.score >= 4) aggregated[label].high++;
+            else aggregated[label].low++;
+          }
+        }
+      });
+    } else {
+      // Weekly (last 4 weeks) - simplistic for demo
+      for (let i = 3; i >= 0; i--) {
+        labels.push(`W${4 - i}`);
+        aggregated[`W${4 - i}`] = { total: 0, sum: 0, high: 0, low: 0 };
+      }
+      // Randomly distribute for demo if no real weekly data logic (history dates are mostly random)
+      // Or hash the date to bucket
+      events.forEach(e => {
+        const weekBuck = (e.date.getDate() % 4) + 1;
+        const label = `W${weekBuck}`;
+        if (aggregated[label]) {
+          aggregated[label].total++;
+          aggregated[label].sum += e.score;
+          if (e.score >= 4) aggregated[label].high++;
+          else aggregated[label].low++;
+        }
+      });
+    }
+
+    return labels.map(label => {
+      const agg = aggregated[label];
+      const count = agg.total || 1; // avoid div 0
+      return {
+        label,
+        green: Math.round((agg.high / count) * 100) || 50,
+        pink: Math.round((agg.low / count) * 100) || 20, // Should use rest? The stacked bar logic in component implies parallel bars? 
+        // Looking at original component: 
+        // <div style={{ width: `${data.green}%` }} ...>
+        // <div style={{ width: `${data.pink}%` }} ...>
+        // These are sibling divs in a row? No, they are flex?
+        // "flex relative group" -> Yes.
+        // So green + pink should <= 100?
+        // "green" is "High score", "pink" is "Low/Medium"? 
+        // Let's assume green = % >= 4, pink = % < 4.
+        // If green is 60%, pink could be 40%.
+        // Original data: green: 40, pink: 30. Sum = 70. Remaining 30 is empty? 
+        // "bg-gray-100" is container. so yes.
+
+        totalResponses: agg.total,
+        score: Number((agg.sum / count).toFixed(1)) || 0
+      };
+    });
+
+  }, [patients, viewMode]);
 
   // Calculate overall trend
-  const avgScore = data.reduce((sum, d) => sum + d.score, 0) / data.length;
+  const avgScore = data.reduce((sum, d) => sum + d.score, 0) / (data.length || 1);
   const prevAvg = viewMode === 'Monthly' ? 4.0 : 4.2;
   const trendPercent = (((avgScore - prevAvg) / prevAvg) * 100).toFixed(1);
   const isPositive = avgScore >= prevAvg;

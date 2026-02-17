@@ -13,70 +13,19 @@ import {
   ChevronDown,
   X,
   Check,
-  Inbox
+  Inbox,
+  ClipboardList
 } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
+import { NotificationItem } from '../lib/types';
+import EmptyState from './EmptyState';
 
-interface NotificationItem {
-  id: string;
-  type: 'critical' | 'task' | 'system' | 'consult';
-  title: string;
-  content: string;
-  time: string;
-  timestamp: Date; // for sorting
-  read: boolean;
-  action?: { label: string; secondary?: boolean };
-  dismissible?: boolean;
-}
-
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'n1',
-    type: 'critical',
-    title: 'Critical finding in Patient #402 chest X-ray',
-    content: 'MedGemma AI has detected a potential pneumothorax with 94% confidence. Immediate review required.',
-    time: '10:42 AM',
-    timestamp: new Date(Date.now() - 1000 * 60 * 45), // 45 mins ago
-    read: false,
-    action: { label: 'Review Case' },
-    dismissible: true
-  },
-  {
-    id: 'n2',
-    type: 'task',
-    title: 'New diagnostic report ready for review',
-    content: 'Lab results for Patient #883 (Sarah Jenkins) have been processed. HAI-DEF analysis suggests adjusting medication dosage.',
-    time: '09:15 AM',
-    timestamp: new Date(Date.now() - 1000 * 60 * 180), // 3 hours ago
-    read: false,
-    action: { label: 'Open Report', secondary: true },
-    dismissible: true
-  },
-  {
-    id: 'n3',
-    type: 'system',
-    title: 'System Maintenance Complete',
-    content: 'MedGemma models updated to v2.1. Improved accuracy for radiology scans and faster processing times now active.',
-    time: 'Yesterday, 11:30 PM',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 20), // 20 hours ago
-    read: true,
-    action: { label: 'View Changelog', secondary: true },
-    dismissible: true
-  },
-  {
-    id: 'n4',
-    type: 'consult',
-    title: 'Consultation Request: Dr. Ray',
-    content: 'Request for second opinion on neuro-oncology case #119. Attached MRI scans and patient history.',
-    time: 'Yesterday, 02:15 PM',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 28), // 28 hours ago
-    read: true,
-    dismissible: true
-  }
-];
+// --- Mock Data Removed ---
 
 export default function Notifications() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'critical' | 'tasks'>('all');
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const notifications = useLiveQuery(() => db.notifications.orderBy('timestamp').reverse().toArray()) || [];
   const [loadingMore, setLoadingMore] = useState(false);
 
   // --- Derived State ---
@@ -87,7 +36,7 @@ export default function Notifications() {
       if (filter === 'critical') return n.type === 'critical';
       if (filter === 'tasks') return n.type === 'task';
       return true;
-    }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    }).sort((a, b) => b.timestamp - a.timestamp);
   }, [notifications, filter]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -95,15 +44,15 @@ export default function Notifications() {
   // --- Handlers ---
   const handleDismiss = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    db.notifications.delete(id);
   };
 
   const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    db.notifications.update(id, { read: true });
   };
 
   const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    db.notifications.toCollection().modify({ read: true });
   };
 
   const handleLoadMore = () => {
@@ -116,7 +65,7 @@ export default function Notifications() {
           title: 'Weekly Analytics Report Available',
           content: 'Your department performance metrics for last week are now ready for review.',
           time: '3 days ago',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
+          timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
           read: true,
           dismissible: true
         },
@@ -126,13 +75,13 @@ export default function Notifications() {
           title: 'Patient Transfer Request',
           content: 'Pending approval for transfer of Patient #229 to Oncology Ward.',
           time: '4 days ago',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4),
+          timestamp: Date.now() - 1000 * 60 * 60 * 24 * 4,
           read: true,
           action: { label: 'Review Request', secondary: true },
           dismissible: true
         }
       ];
-      setNotifications(prev => [...prev, ...more]);
+      db.notifications.bulkAdd(more);
       setLoadingMore(false);
     }, 1200);
   };
