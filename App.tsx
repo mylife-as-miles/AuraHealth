@@ -9,6 +9,7 @@ import ClinicalWorkflow from './components/ClinicalWorkflow';
 import Settings from './components/Settings';
 import Diagnostics from './components/Diagnostics';
 import Notifications from './components/Notifications';
+import AuthPage from './components/AuthPage';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -95,7 +96,10 @@ const Layout = () => {
 export default function App() {
   return (
     <BrowserRouter>
-      <Layout />
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/*" element={<Layout />} />
+      </Routes>
     </BrowserRouter>
   );
 }
