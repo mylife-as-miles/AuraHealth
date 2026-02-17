@@ -31,7 +31,7 @@ export interface Patient {
     initials?: string;
     lastVisit: string;
     condition: string; // Primary condition for display
-    risk: 'High Risk' | 'Moderate' | 'Low Risk';
+    risk: 'High Risk' | 'Moderate' | 'Low Risk' | 'Unknown';
     riskColor: 'accent' | 'yellow' | 'secondary';
     active: boolean; // Currently admitted/active case?
     vitals: VitalsData[];

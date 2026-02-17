@@ -524,7 +524,7 @@ export default function AIInsights() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-primary dark:text-white font-bold">{n.title}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{n.message}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{n.content}</p>
                   <span className="text-[9px] text-gray-400 mt-1 block font-medium">{n.time}</span>
                 </div>
                 <button

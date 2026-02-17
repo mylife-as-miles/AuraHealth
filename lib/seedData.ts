@@ -452,7 +452,7 @@ export async function seedDatabase() {
         ]);
 
         // Add mock data (Patients ONLY, no pre-calculated AI insights)
-        const cleanPatients = MOCK_PATIENTS.map(p => ({
+        const cleanPatients: Patient[] = MOCK_PATIENTS.map(p => ({
             ...p,
             aiSummary: "", // Clear AI summary
             risk: "Unknown", // Reset risk to be determined

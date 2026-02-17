@@ -197,6 +197,9 @@ export default function ClinicalWorkflow() {
       await db.workflowCards.add({
         id,
         patientId: poolPatient.id,
+        patientName: poolPatient.name,
+        age: poolPatient.age,
+        gender: poolPatient.gender,
         column: showAddModal,
         priority: riskToPriority[poolPatient.risk] || 'stable',
         scanType: poolPatient.condition,
