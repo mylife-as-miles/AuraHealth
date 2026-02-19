@@ -153,3 +153,12 @@ export interface UserSettings {
     reasoningModules: Record<string, boolean>;
     updatedAt: number;
 }
+
+export interface AuthUser {
+    id?: number;
+    name: string;
+    email: string;
+    password: string;
+    createdAt: number;
+    updatedAt: number;
+}
