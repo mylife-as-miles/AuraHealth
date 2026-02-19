@@ -215,7 +215,7 @@ function DiagnosticOverviewContent() {
                   tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
                   dy={10}
                 />
-                <Bar dataKey="val" radius={[12, 12, 0, 0]} fill="#54E097">
+                <Bar dataKey="val" radius={[12, 12, 0, 0]} fill="#54E097" isAnimationActive={false}>
                 </Bar>
               </BarChart>
             ) : (

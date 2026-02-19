@@ -156,7 +156,7 @@ export default function ResourceAllocation() {
                 strokeWidth={3}
                 dot={false}
                 activeDot={{ r: 6, fill: '#54E097', stroke: '#fff', strokeWidth: 2 }}
-                animationDuration={800}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
