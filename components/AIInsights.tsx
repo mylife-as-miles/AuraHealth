@@ -23,7 +23,8 @@ import {
   Bell,
   BellOff,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Brain
 } from 'lucide-react';
 import {
   ComposedChart,
