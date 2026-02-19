@@ -40,26 +40,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
       </div>
 
       <div className="flex items-center gap-6">
-        {/* Active Doctors Stack - Only show on large screens */}
-        <div className="hidden lg:flex items-center gap-3">
-          <div className="flex -space-x-3">
-            <img
-              src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=100&h=100"
-              alt="Doctor 1"
-              className="w-10 h-10 rounded-full border-2 border-white dark:border-background-dark object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=100&h=100"
-              alt="Doctor 2"
-              className="w-10 h-10 rounded-full border-2 border-white dark:border-background-dark object-cover"
-            />
-            <div className="w-10 h-10 rounded-full border-2 border-white dark:border-background-dark bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
-              +3
-            </div>
-          </div>
-        </div>
 
-        <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 hidden md:block"></div>
 
         <div className="flex items-center gap-4">
           <button
