@@ -73,11 +73,12 @@ const getNextSteps = (card: EnrichedCard) => {
 };
 
 // --- Helpers ---
-const priorityStyle = (p: Priority) => {
+const priorityStyle = (p?: string) => {
   switch (p) {
     case 'urgent': return { bg: 'bg-accent/10', text: 'text-accent', label: 'Urgent', bar: 'bg-accent' };
     case 'stable': return { bg: 'bg-secondary/10', text: 'text-secondary', label: 'Stable', bar: 'bg-secondary' };
     case 'follow-up': return { bg: 'bg-accent/10', text: 'text-accent', label: 'Follow Up', bar: 'bg-accent' };
+    default: return { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-300', label: 'Stable', bar: 'bg-gray-300 dark:bg-gray-600' };
   }
 };
 
@@ -274,7 +275,7 @@ export default function ClinicalWorkflow() {
 
                     <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                       {cardsByColumn[col.id].map(card => {
-                        const ps = priorityStyle(card.priority as Priority);
+                        const ps = priorityStyle(card.priority);
                         const isSelected = card.id === selectedCardId;
                         const isDragged = card.id === draggedCardId;
                         return (
