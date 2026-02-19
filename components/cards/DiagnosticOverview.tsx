@@ -15,8 +15,16 @@ interface BarDataItem {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export default function DiagnosticOverview() {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+// Wrapped export to catch errors in the component tree
+export default function DiagnosticOverviewWrapper() {
+  return (
+    <ErrorBoundary>
+      <DiagnosticOverviewContent />
+    </ErrorBoundary>
+  );
+}
+
+function DiagnosticOverviewContent() {
   const [dateRange, setDateRange] = useState<DateRange>('6 Months');
   const [error, setError] = useState<boolean>(false);
 
@@ -150,7 +158,7 @@ export default function DiagnosticOverview() {
             {(['6 Months', '1 Year'] as DateRange[]).map((r) => (
               <button
                 key={r}
-                onClick={() => { setDateRange(r); setActiveIndex(null); }}
+                onClick={() => { setDateRange(r); }}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${dateRange === r
                   ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
@@ -188,11 +196,7 @@ export default function DiagnosticOverview() {
         <ErrorBoundary>
           <ResponsiveContainer width="100%" height="100%">
             {data && data.length > 0 ? (
-              <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }} onMouseMove={(state: any) => {
-                if (state.activeTooltipIndex !== undefined) {
-                  setActiveIndex(state.activeTooltipIndex);
-                }
-              }} onMouseLeave={() => setActiveIndex(peakIndex >= 0 ? peakIndex : null)}>
+              <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }}>
                 <defs>
                   {/* Stripe Pattern for the Peak bar */}
                   <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
@@ -211,7 +215,7 @@ export default function DiagnosticOverview() {
                   tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
                   dy={10}
                 />
-                <Bar dataKey="val" radius={[12, 12, 0, 0]} animationDuration={800} fill="#54E097">
+                <Bar dataKey="val" radius={[12, 12, 0, 0]} fill="#54E097">
                 </Bar>
               </BarChart>
             ) : (
