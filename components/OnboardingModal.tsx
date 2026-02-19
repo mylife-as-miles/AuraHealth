@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, Database, LayoutDashboard, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { Sparkles, Database, LayoutDashboard, CheckCircle2, ArrowRight } from 'lucide-react';
 import { db } from '../lib/db';
-import { seedDatabase } from '../lib/seedData';
+import { importSamplePatients } from '../lib/seedData';
 
 interface OnboardingModalProps {
     onComplete: () => void;
@@ -35,7 +35,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
         try {
             // Artificial delay for "premium" feel and to show the animation
             await new Promise(r => setTimeout(r, 1500));
-            await seedDatabase();
+            await importSamplePatients();
             await db.appSettings.put({ id: 'settings', onboardingComplete: true, theme: 'light' });
             setStep('success');
             setTimeout(onComplete, 1000);
@@ -82,7 +82,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
                                     <div>
                                         <h3 className="text-lg font-bold text-white mb-1 group-hover:text-cyan transition-colors">Import Sample Data</h3>
                                         <p className="text-sm text-gray-500 group-hover:text-gray-400">
-                                            Pre-load 20 comprehensive patient records, diagnostics, and workflow cards to explore the full capabilities.
+                                            Pre-load 20 patient records only. Diagnostics, workflows, and AI modules stay empty until you start using them.
                                         </p>
                                     </div>
                                     <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-4 group-hover:translate-x-0">
@@ -120,7 +120,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Generating Clinical Data...</h3>
                             <p className="text-gray-400 text-sm max-w-xs mx-auto">
-                                Creating patient records, generating AI insights, and analyzing diagnostic scans.
+                                Importing patient records and preparing a fresh workspace.
                             </p>
                         </div>
                     )}
