@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { Package, Users } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
+import { SafeChart } from '../SafeChart';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 
@@ -136,29 +137,31 @@ export default function ResourceAllocation() {
 
       <div className="h-24 relative -mx-2 w-full min-w-0">
         <ErrorBoundary>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-              <Tooltip
-                contentStyle={{
-                  borderRadius: '12px',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  padding: '8px 12px'
-                }}
-                itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
-                labelStyle={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}
-                cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '3 3' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="val"
-                stroke="#54E097"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ r: 6, fill: '#54E097', stroke: '#fff', strokeWidth: 2 }}
-                isAnimationActive={false}
-              />
-            </LineChart>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+            <SafeChart>
+              <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    padding: '8px 12px'
+                  }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
+                  labelStyle={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}
+                  cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '3 3' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="val"
+                  stroke="#54E097"
+                  strokeWidth={3}
+                  dot={false}
+                  activeDot={{ r: 6, fill: '#54E097', stroke: '#fff', strokeWidth: 2 }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </SafeChart>
           </ResponsiveContainer>
         </ErrorBoundary>
       </div>
