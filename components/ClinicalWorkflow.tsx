@@ -32,7 +32,7 @@ import EmptyState from './EmptyState';
 
 // --- Types ---
 type ColumnId = 'pending' | 'analysis' | 'consultation' | 'treatment';
-type Priority = 'urgent' | 'stable' | 'follow-up';
+type Priority = 'critical' | 'urgent' | 'stable' | 'follow-up';
 
 interface EnrichedCard extends DBWorkflowCard {
   avatarType: 'image' | 'initials';
@@ -53,8 +53,9 @@ const COLUMNS: { id: ColumnId; label: string; dot: string }[] = [
 // --- Dynamic Recommendations ---
 const getRecommendations = (card: EnrichedCard) => {
   const recs = [];
-  if (card.priority === 'urgent') {
-    recs.push({ icon: 'alert', title: 'Priority Escalation', description: 'Condition marked as Urgent. Recommend immediate review.', actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent' });
+  if (card.priority === 'urgent' || card.priority === 'critical') {
+    const urgencyLabel = card.priority === 'critical' ? 'Critical' : 'Urgent';
+    recs.push({ icon: 'alert', title: 'Priority Escalation', description: `Condition marked as ${urgencyLabel}. Recommend immediate review.`, actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent' });
   }
   if (card.column === 'analysis') {
     recs.push({ icon: 'file', title: 'Draft Report', description: 'Generate preliminary diagnostic report.', actionLabel: 'Generate Draft', actionColor: 'hover:bg-secondary hover:text-white hover:border-secondary' });
@@ -67,7 +68,7 @@ const getRecommendations = (card: EnrichedCard) => {
 
 const getNextSteps = (card: EnrichedCard) => {
   const steps = [];
-  if (card.priority === 'urgent') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary' });
+  if (card.priority === 'urgent' || card.priority === 'critical') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary' });
   steps.push({ icon: 'clipboard', title: 'Review Vitals', subtitle: 'Check recent trends', color: 'cyan' });
   return steps;
 };
@@ -75,6 +76,7 @@ const getNextSteps = (card: EnrichedCard) => {
 // --- Helpers ---
 const priorityStyle = (p?: string) => {
   switch (p) {
+    case 'critical': return { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'Critical', bar: 'bg-red-500' };
     case 'urgent': return { bg: 'bg-accent/10', text: 'text-accent', label: 'Urgent', bar: 'bg-accent' };
     case 'stable': return { bg: 'bg-secondary/10', text: 'text-secondary', label: 'Stable', bar: 'bg-secondary' };
     case 'follow-up': return { bg: 'bg-accent/10', text: 'text-accent', label: 'Follow Up', bar: 'bg-accent' };
@@ -278,6 +280,7 @@ export default function ClinicalWorkflow() {
                         const ps = priorityStyle(card.priority);
                         const isSelected = card.id === selectedCardId;
                         const isDragged = card.id === draggedCardId;
+                        const isEscalatedPriority = card.priority === 'urgent' || card.priority === 'critical';
                         return (
                           <div
                             key={card.id}
@@ -286,13 +289,13 @@ export default function ClinicalWorkflow() {
                             onDragEnd={handleDragEnd}
                             onClick={() => { setSelectedCardId(card.id); if (!showAssistant) setShowAssistant(true); }}
                             className={`bg-white dark:bg-card-dark p-4 rounded-2xl transition-all cursor-pointer group relative overflow-hidden
-                            ${card.priority === 'urgent' ? 'shadow-[0_0_15px_rgba(254,87,150,0.15)] ring-1 ring-accent/30' : 'shadow-sm hover:shadow-md border border-transparent hover:border-border-light dark:hover:border-border-dark'}
+                            ${isEscalatedPriority ? 'shadow-[0_0_15px_rgba(254,87,150,0.15)] ring-1 ring-accent/30' : 'shadow-sm hover:shadow-md border border-transparent hover:border-border-light dark:hover:border-border-dark'}
                             ${isSelected ? 'ring-2 ring-cyan/50 shadow-[0_0_20px_rgba(20,245,214,0.15)]' : ''}
                             ${isDragged ? 'opacity-40 scale-95' : ''}
                           `}
                           >
                             {/* Left accent bar */}
-                            <div className={`absolute left-0 top-0 bottom-0 ${card.priority === 'urgent' ? 'w-1.5' : 'w-1'} ${ps.bar}`}></div>
+                            <div className={`absolute left-0 top-0 bottom-0 ${isEscalatedPriority ? 'w-1.5' : 'w-1'} ${ps.bar}`}></div>
 
                             {/* Drag handle */}
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-40 transition-opacity">
@@ -300,8 +303,8 @@ export default function ClinicalWorkflow() {
                             </div>
 
                             <div className="flex justify-between items-start mb-3 pl-2">
-                              <span className={`${ps.bg} ${ps.text} text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider flex items-center gap-1 ${card.priority === 'urgent' ? 'animate-pulse' : ''}`}>
-                                {card.priority === 'urgent' && <AlertCircle size={10} />}
+                              <span className={`${ps.bg} ${ps.text} text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider flex items-center gap-1 ${isEscalatedPriority ? 'animate-pulse' : ''}`}>
+                                {isEscalatedPriority && <AlertCircle size={10} />}
                                 {ps.label}
                               </span>
                             </div>
