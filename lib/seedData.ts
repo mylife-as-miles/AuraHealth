@@ -441,7 +441,7 @@ export const MOCK_PATIENTS: Patient[] = [
 
 // Mock data for other tables removed as per user request (patients only)
 
-export async function seedDatabase() {
+export async function importSamplePatients() {
     await db.transaction('rw', db.patients, db.diagnosticCases, db.workflowCards, db.notifications, async () => {
         // Clear existing
         await Promise.all([
@@ -462,3 +462,6 @@ export async function seedDatabase() {
         await db.patients.bulkAdd(cleanPatients);
     });
 }
+
+// Backward-compatible alias
+export const seedDatabase = importSamplePatients;
