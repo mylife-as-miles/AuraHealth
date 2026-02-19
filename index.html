@@ -11,161 +11,114 @@
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            primary: "#160527",
-            secondary: "#54E097",
-            accent: "#FE5796",
-            cyan: "#14F5D6",
-            "background-light": "#F3F5F7",
-            "background-dark": "#0F0F12",
-            "card-light": "#FFFFFF",
-            "card-dark": "#1E1E24",
-            "text-light": "#160527",
-            "text-dark": "#F3F5F7",
-            "border-light": "#E6E6E6",
-            "border-dark": "#2E2E33",
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-          },
-          borderRadius: {
-            DEFAULT: "1rem",
-            xl: "1.25rem",
-            "2xl": "1.5rem",
-            "3xl": "2rem",
-          },
-          boxShadow: {
-            soft: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
-            glow: "0 0 20px rgba(84, 224, 151, 0.4)",
-          },
-        },
-      },
-    };
-  </script>
-  <style>
-    body {
-      font-family: "Plus Jakarta Sans", sans-serif;
-    }
+  <link rel="stylesheet" href="/index.css" />
 
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+  /* Custom scrollbar for sidebar if needed */
+  ::-webkit-scrollbar {
+  width: 6px;
+  }
 
-    /* Custom scrollbar for sidebar if needed */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
+  ::-webkit-scrollbar-track {
+  background: transparent;
+  }
 
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
+  ::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 3px;
+  }
 
-    ::-webkit-scrollbar-thumb {
-      background: #e5e7eb;
-      border-radius: 3px;
-    }
+  .dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+  }
 
-    .dark ::-webkit-scrollbar-thumb {
-      background: #374151;
-    }
+  /* Mobile Warning Styles */
+  #mobile-warning {
+  display: none;
+  height: 100vh;
+  width: 100vw;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, #160527 0%, #0F0F12 100%);
+  color: #F3F5F7;
+  padding: 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  }
 
-    /* Mobile Warning Styles */
-    #mobile-warning {
-      display: none;
-      height: 100vh;
-      width: 100vw;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      background: linear-gradient(135deg, #160527 0%, #0F0F12 100%);
-      color: #F3F5F7;
-      padding: 2rem;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 9999;
-    }
+  @media (max-width: 768px) {
 
-    @media (max-width: 768px) {
+  /* Hide root by default on mobile */
+  #root {
+  display: none !important;
+  }
 
-      /* Hide root by default on mobile */
-      #root {
-        display: none !important;
-      }
+  /* Show warning by default */
+  #mobile-warning {
+  display: flex;
+  }
 
-      /* Show warning by default */
-      #mobile-warning {
-        display: flex;
-      }
+  /* Allow mobile override */
+  body.allow-mobile #root {
+  display: block !important;
+  }
 
-      /* Allow mobile override */
-      body.allow-mobile #root {
-        display: block !important;
-      }
+  body.allow-mobile #mobile-warning {
+  display: none !important;
+  }
+  }
 
-      body.allow-mobile #mobile-warning {
-        display: none !important;
-      }
-    }
+  .mobile-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  max-width: 340px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
 
-    .mobile-card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 2.5rem;
-      border-radius: 1.5rem;
-      max-width: 340px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    }
+  .mobile-icon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(45deg, #54E097, #14F5D6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  justify-content: center;
+  }
 
-    .mobile-icon {
-      font-size: 3rem;
-      margin-bottom: 1.5rem;
-      background: linear-gradient(45deg, #54E097, #14F5D6);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: flex;
-      justify-content: center;
-    }
+  .mobile-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #FFFFFF;
+  }
 
-    .mobile-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      color: #FFFFFF;
-    }
+  .mobile-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #A0A0A0;
+  margin-bottom: 2rem;
+  }
 
-    .mobile-text {
-      font-size: 0.95rem;
-      line-height: 1.6;
-      color: #A0A0A0;
-      margin-bottom: 2rem;
-    }
-
-    .desktop-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: rgba(84, 224, 151, 0.1);
-      color: #54E097;
-      padding: 0.5rem 1rem;
-      border-radius: 9999px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      border: 1px solid rgba(84, 224, 151, 0.2);
-    }
+  .desktop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(84, 224, 151, 0.1);
+  color: #54E097;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(84, 224, 151, 0.2);
+  }
   </style>
 </head>
 

@@ -185,39 +185,45 @@ export default function DiagnosticOverview() {
         </div>
 
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }} onMouseMove={(state: any) => {
-            if (state.activeTooltipIndex !== undefined) {
-              setActiveIndex(state.activeTooltipIndex);
-            }
-          }} onMouseLeave={() => setActiveIndex(peakIndex >= 0 ? peakIndex : null)}>
-            <defs>
-              {/* Stripe Pattern for the Peak bar */}
-              <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
-                <rect width="10" height="10" fill="#54E097" />
-                <path d="M 0,10 L 10,0" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
-              </pattern>
-            </defs>
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ fill: 'transparent' }}
-            />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
-              dy={10}
-            />
-            <Bar dataKey="val" radius={[12, 12, 0, 0]} animationDuration={800}>
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.isPeak ? 'url(#stripePattern)' : (index === activeIndex ? '#54E097' : 'rgba(84, 224, 151, 0.3)')}
-                  className="transition-all duration-300"
-                />
-              ))}
-            </Bar>
-          </BarChart>
+          {data && data.length > 0 ? (
+            <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }} onMouseMove={(state: any) => {
+              if (state.activeTooltipIndex !== undefined) {
+                setActiveIndex(state.activeTooltipIndex);
+              }
+            }} onMouseLeave={() => setActiveIndex(peakIndex >= 0 ? peakIndex : null)}>
+              <defs>
+                {/* Stripe Pattern for the Peak bar */}
+                <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+                  <rect width="10" height="10" fill="#54E097" />
+                  <path d="M 0,10 L 10,0" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
+                </pattern>
+              </defs>
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: 'transparent' }}
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
+                dy={10}
+              />
+              <Bar dataKey="val" radius={[12, 12, 0, 0]} animationDuration={800}>
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.isPeak ? 'url(#stripePattern)' : (index === activeIndex ? '#54E097' : 'rgba(84, 224, 151, 0.3)')}
+                    className="transition-all duration-300"
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          ) : (
+            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+              No data available
+            </div>
+          )}
         </ResponsiveContainer>
 
         {/* Floating Peak Label - dynamically positioned */}
