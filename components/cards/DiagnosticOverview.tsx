@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
+import { ComposedChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
 import { Download, AlertCircle, RefreshCw } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { SafeChart } from '../SafeChart';
 
 type DateRange = '6 Months' | '1 Year';
 
@@ -194,30 +195,32 @@ function DiagnosticOverviewContent() {
         </div>
 
         <ErrorBoundary>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
             {data && data.length > 0 ? (
-              <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }}>
-                <defs>
-                  {/* Stripe Pattern for the Peak bar */}
-                  <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
-                    <rect width="10" height="10" fill="#54E097" />
-                    <path d="M 0,10 L 10,0" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
-                  </pattern>
-                </defs>
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ fill: 'transparent' }}
-                />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
-                  dy={10}
-                />
-                <Bar dataKey="val" radius={[12, 12, 0, 0]} fill="#54E097" isAnimationActive={false}>
-                </Bar>
-              </BarChart>
+              <SafeChart>
+                <ComposedChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }}>
+                  <defs>
+                    {/* Stripe Pattern for the Peak bar */}
+                    <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+                      <rect width="10" height="10" fill="#54E097" />
+                      <path d="M 0,10 L 10,0" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
+                    </pattern>
+                  </defs>
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ fill: 'transparent' }}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
+                    dy={10}
+                  />
+                  <Bar dataKey="val" radius={[12, 12, 0, 0]} fill="#54E097" isAnimationActive={false}>
+                  </Bar>
+                </ComposedChart>
+              </SafeChart>
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-gray-400">
                 No data available

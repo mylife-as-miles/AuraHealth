@@ -37,6 +37,7 @@ import {
   ReferenceDot,
   ReferenceLine
 } from 'recharts';
+import { SafeChart } from './SafeChart';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { NotificationItem } from '../lib/types';
@@ -281,35 +282,37 @@ export default function AIInsights() {
             </div>
           </div>
           <div className="w-full relative h-[300px] min-w-0">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorCardio" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FE5796" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#FE5796" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
-                <YAxis hide domain={[0, 100]} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                />
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+              <SafeChart>
+                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCardio" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FE5796" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#FE5796" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
+                  <YAxis hide domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  />
 
-                {visibleSeries.neuro && <Line type="monotone" dataKey="neuro" name="Neurology" stroke="#160527" strokeOpacity={0.2} strokeWidth={2} dot={{ r: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />}
-                {visibleSeries.resp && <Line type="monotone" dataKey="resp" name="Respiratory" stroke="#54E097" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#54E097' }} />}
-                {visibleSeries.viral && <Line type="monotone" dataKey="viral" name="Viral" stroke="#14F5D6" strokeDasharray="5 5" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#14F5D6' }} />}
-                {visibleSeries.cardio && <Area type="monotone" dataKey="cardio" name="Cardiology" stroke="#FE5796" strokeWidth={4} fillOpacity={1} fill="url(#colorCardio)" activeDot={{ r: 6, strokeWidth: 0, fill: '#FE5796' }} />}
+                  {visibleSeries.neuro && <Line type="monotone" dataKey="neuro" name="Neurology" stroke="#160527" strokeOpacity={0.2} strokeWidth={2} dot={{ r: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />}
+                  {visibleSeries.resp && <Line type="monotone" dataKey="resp" name="Respiratory" stroke="#54E097" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#54E097' }} />}
+                  {visibleSeries.viral && <Line type="monotone" dataKey="viral" name="Viral" stroke="#14F5D6" strokeDasharray="5 5" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#14F5D6' }} />}
+                  {visibleSeries.cardio && <Area type="monotone" dataKey="cardio" name="Cardiology" stroke="#FE5796" strokeWidth={4} fillOpacity={1} fill="url(#colorCardio)" activeDot={{ r: 6, strokeWidth: 0, fill: '#FE5796' }} />}
 
-                {/* Projections */}
-                {visibleSeries.cardio && <Line type="monotone" dataKey="cardioProj" name="Cardio (Proj)" stroke="#FE5796" strokeOpacity={0.6} strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FE5796' }} />}
-                {visibleSeries.resp && <Line type="monotone" dataKey="respProj" name="Resp (Proj)" stroke="#54E097" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#54E097' }} />}
-                {visibleSeries.viral && <Line type="monotone" dataKey="viralProj" name="Viral (Proj)" stroke="#14F5D6" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#14F5D6' }} />}
-                {visibleSeries.neuro && <Line type="monotone" dataKey="neuroProj" name="Neuro (Proj)" stroke="#160527" strokeOpacity={0.15} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#160527' }} />}
+                  {/* Projections */}
+                  {visibleSeries.cardio && <Line type="monotone" dataKey="cardioProj" name="Cardio (Proj)" stroke="#FE5796" strokeOpacity={0.6} strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FE5796' }} />}
+                  {visibleSeries.resp && <Line type="monotone" dataKey="respProj" name="Resp (Proj)" stroke="#54E097" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#54E097' }} />}
+                  {visibleSeries.viral && <Line type="monotone" dataKey="viralProj" name="Viral (Proj)" stroke="#14F5D6" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#14F5D6' }} />}
+                  {visibleSeries.neuro && <Line type="monotone" dataKey="neuroProj" name="Neuro (Proj)" stroke="#160527" strokeOpacity={0.15} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#160527' }} />}
 
-                <ReferenceLine x={bridgeMonth as string} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'top', value: 'Now', fill: '#9ca3af', fontSize: 10 }} />
-              </ComposedChart>
+                  <ReferenceLine x={bridgeMonth as string} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'top', value: 'Now', fill: '#9ca3af', fontSize: 10 }} />
+                </ComposedChart>
+              </SafeChart>
             </ResponsiveContainer>
           </div>
         </div>

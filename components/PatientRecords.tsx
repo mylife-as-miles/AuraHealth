@@ -32,6 +32,7 @@ import {
   Users
 } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { SafeChart } from './SafeChart';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Patient } from '../lib/types';
@@ -624,28 +625,30 @@ export default function PatientRecords() {
 
                 {/* Chart Area */}
                 <div className="h-32 w-full min-w-0">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <LineChart data={selectedPatient.vitals}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                      <XAxis
-                        dataKey="time"
-                        tick={{ fontSize: 10, fill: '#9ca3af' }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
-                      />
-                      {activeVital === 'bp' ? (
-                        <>
-                          <Line type="monotone" dataKey="sys" stroke="#FE5796" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                          <Line type="monotone" dataKey="dia" stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                        </>
-                      ) : (
-                        <Line type="monotone" dataKey={activeVital} stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      )}
-                    </LineChart>
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+                    <SafeChart>
+                      <LineChart data={selectedPatient.vitals}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="time"
+                          tick={{ fontSize: 10, fill: '#9ca3af' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
+                        />
+                        {activeVital === 'bp' ? (
+                          <>
+                            <Line type="monotone" dataKey="sys" stroke="#FE5796" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                            <Line type="monotone" dataKey="dia" stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                          </>
+                        ) : (
+                          <Line type="monotone" dataKey={activeVital} stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                        )}
+                      </LineChart>
+                    </SafeChart>
                   </ResponsiveContainer>
                 </div>
               </div>
