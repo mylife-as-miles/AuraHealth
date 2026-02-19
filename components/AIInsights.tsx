@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   SlidersHorizontal,
+  Brain,
   Download,
   ArrowUp,
   ArrowDown,
