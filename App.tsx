@@ -14,6 +14,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './lib/db';
 import OnboardingModal from './components/OnboardingModal';
 import CommandPalette from './components/CommandPalette';
+import { getUserProfile } from './lib/userProfile';
 
 // Placeholder component for non-dashboard views
 const PlaceholderView = ({ title }: { title: string }) => (
@@ -42,6 +43,7 @@ const Layout = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const settings = useLiveQuery(() => db.appSettings.get('settings'));
   const showOnboarding = !settings?.onboardingComplete;
+  const userProfile = getUserProfile();
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -59,7 +61,7 @@ const Layout = () => {
   const getHeaderInfo = (pathname: string) => {
     switch (pathname) {
       case '/':
-        return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
+        return { title: "Clinical Dashboard", subtitle: `Welcome back, Dr. ${userProfile.name.split(" ")[0]}` };
       case '/patients':
         return { title: "Patient Directory", subtitle: "Manage patient records and diagnostic history" };
       case '/diagnostics':
@@ -73,7 +75,7 @@ const Layout = () => {
       case '/notifications':
         return { title: "Notifications", subtitle: "Stay updated with critical alerts and system changes." };
       default:
-        return { title: "Clinical Dashboard", subtitle: "Welcome back, Dr. Williamson" };
+        return { title: "Clinical Dashboard", subtitle: `Welcome back, Dr. ${userProfile.name.split(" ")[0]}` };
     }
   };
 
