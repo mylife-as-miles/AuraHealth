@@ -142,3 +142,14 @@ export interface AppSettings {
     theme: 'light' | 'dark';
     lastSeedDate?: number;
 }
+
+export interface UserSettings {
+    id: string; // Singleton 'user-settings'
+    profileName: string;
+    profileTitle: string;
+    profileEmail: string;
+    mfa: boolean;
+    activeModels: Record<string, boolean>;
+    reasoningModules: Record<string, boolean>;
+    updatedAt: number;
+}

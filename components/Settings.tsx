@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
 import {
     Shield,
     BrainCircuit,
@@ -74,16 +76,32 @@ const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-27b': true, 'med-pal
 const INITIAL_MODULES: Record<string, boolean> = { 'Oncology Cross-Ref': true, 'Drug Interaction API': true, 'Genetic Marker DB': false, 'Pediatric Dosage': false };
 const INITIAL_MFA = false;
 
+
+const USER_SETTINGS_ID = 'user-settings';
+
+const DEFAULT_USER_SETTINGS = {
+    profileName: INITIAL_PROFILE.name,
+    profileTitle: INITIAL_PROFILE.title,
+    profileEmail: INITIAL_PROFILE.email,
+    mfa: INITIAL_MFA,
+    activeModels: INITIAL_MODELS,
+    reasoningModules: INITIAL_MODULES,
+};
+
 export default function Settings() {
+    const userSettingsRows = useLiveQuery(() => db.userSettings.toArray(), []);
+    const persistedSettings = userSettingsRows?.find((row) => row.id === USER_SETTINGS_ID);
+    const [isHydrated, setIsHydrated] = useState(false);
+
     // --- Profile state ---
-    const [profileName, setProfileName] = useState(INITIAL_PROFILE.name);
-    const [profileTitle, setProfileTitle] = useState(INITIAL_PROFILE.title);
-    const [profileEmail, setProfileEmail] = useState(INITIAL_PROFILE.email);
-    const [mfa, setMfa] = useState(INITIAL_MFA);
+    const [profileName, setProfileName] = useState(DEFAULT_USER_SETTINGS.profileName);
+    const [profileTitle, setProfileTitle] = useState(DEFAULT_USER_SETTINGS.profileTitle);
+    const [profileEmail, setProfileEmail] = useState(DEFAULT_USER_SETTINGS.profileEmail);
+    const [mfa, setMfa] = useState(DEFAULT_USER_SETTINGS.mfa);
 
     // --- Model state ---
-    const [activeModels, setActiveModels] = useState<Record<string, boolean>>(INITIAL_MODELS);
-    const [reasoningModules, setReasoningModules] = useState<Record<string, boolean>>(INITIAL_MODULES);
+    const [activeModels, setActiveModels] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.activeModels });
+    const [reasoningModules, setReasoningModules] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.reasoningModules });
 
     // --- UI state ---
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -98,10 +116,53 @@ export default function Settings() {
     const [saving, setSaving] = useState(false);
 
     // --- Saved snapshots for dirty tracking ---
-    const [savedProfile, setSavedProfile] = useState({ ...INITIAL_PROFILE });
-    const [savedMfa, setSavedMfa] = useState(INITIAL_MFA);
-    const [savedModels, setSavedModels] = useState<Record<string, boolean>>({ ...INITIAL_MODELS });
-    const [savedModules, setSavedModules] = useState<Record<string, boolean>>({ ...INITIAL_MODULES });
+    const [savedProfile, setSavedProfile] = useState({
+        name: DEFAULT_USER_SETTINGS.profileName,
+        title: DEFAULT_USER_SETTINGS.profileTitle,
+        email: DEFAULT_USER_SETTINGS.profileEmail,
+    });
+    const [savedMfa, setSavedMfa] = useState(DEFAULT_USER_SETTINGS.mfa);
+    const [savedModels, setSavedModels] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.activeModels });
+    const [savedModules, setSavedModules] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.reasoningModules });
+
+    useEffect(() => {
+        if (!persistedSettings) return;
+
+        const nextProfile = {
+            name: persistedSettings.profileName,
+            title: persistedSettings.profileTitle,
+            email: persistedSettings.profileEmail,
+        };
+
+        const nextModels = { ...DEFAULT_USER_SETTINGS.activeModels, ...persistedSettings.activeModels };
+        const nextModules = { ...DEFAULT_USER_SETTINGS.reasoningModules, ...persistedSettings.reasoningModules };
+
+        setProfileName(nextProfile.name);
+        setProfileTitle(nextProfile.title);
+        setProfileEmail(nextProfile.email);
+        setMfa(persistedSettings.mfa);
+        setActiveModels(nextModels);
+        setReasoningModules(nextModules);
+
+        setSavedProfile(nextProfile);
+        setSavedMfa(persistedSettings.mfa);
+        setSavedModels(nextModels);
+        setSavedModules(nextModules);
+        setIsHydrated(true);
+    }, [persistedSettings]);
+
+    useEffect(() => {
+        if (userSettingsRows === undefined) return;
+        if (persistedSettings) return;
+
+        db.userSettings.put({
+            id: USER_SETTINGS_ID,
+            ...DEFAULT_USER_SETTINGS,
+            activeModels: { ...DEFAULT_USER_SETTINGS.activeModels },
+            reasoningModules: { ...DEFAULT_USER_SETTINGS.reasoningModules },
+            updatedAt: Date.now(),
+        }).then(() => setIsHydrated(true));
+    }, [userSettingsRows, persistedSettings]);
 
     // --- Dirty detection ---
     const isDirty = useMemo(() => {
@@ -124,19 +185,34 @@ export default function Settings() {
         setReasoningModules(prev => ({ ...prev, [label]: !prev[label] }));
     }, []);
 
-    const handleSave = useCallback(() => {
-        if (!isDirty) return;
+    const handleSave = useCallback(async () => {
+        if (!isDirty || saving || !isHydrated) return;
+
         setSaving(true);
-        setTimeout(() => {
-            setSavedProfile({ name: profileName, title: profileTitle, email: profileEmail });
-            setSavedMfa(mfa);
-            setSavedModels({ ...activeModels });
-            setSavedModules({ ...reasoningModules });
-            setSaving(false);
-            setSaveFeedback(true);
-            setTimeout(() => setSaveFeedback(false), 3000);
-        }, 800);
-    }, [isDirty, profileName, profileTitle, profileEmail, mfa, activeModels, reasoningModules]);
+
+        const nextProfile = { name: profileName, title: profileTitle, email: profileEmail };
+        const nextModels = { ...activeModels };
+        const nextModules = { ...reasoningModules };
+
+        await db.userSettings.put({
+            id: USER_SETTINGS_ID,
+            profileName,
+            profileTitle,
+            profileEmail,
+            mfa,
+            activeModels: nextModels,
+            reasoningModules: nextModules,
+            updatedAt: Date.now(),
+        });
+
+        setSavedProfile(nextProfile);
+        setSavedMfa(mfa);
+        setSavedModels(nextModels);
+        setSavedModules(nextModules);
+        setSaving(false);
+        setSaveFeedback(true);
+        setTimeout(() => setSaveFeedback(false), 3000);
+    }, [isDirty, saving, isHydrated, profileName, profileTitle, profileEmail, mfa, activeModels, reasoningModules]);
 
     const handleChangePassword = useCallback(() => {
         if (!currentPassword || !newPassword || newPassword !== confirmPassword) return;
@@ -158,6 +234,7 @@ export default function Settings() {
 
     const passwordValid = newPassword.length >= 8;
     const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
+    const canSave = isHydrated && isDirty && !saving;
 
     return (
         <div className="h-full overflow-y-auto custom-scrollbar pb-24 relative">
@@ -410,10 +487,10 @@ export default function Settings() {
             <div className="fixed bottom-6 right-8 md:bottom-12 md:right-16 z-30">
                 <button
                     onClick={handleSave}
-                    disabled={!isDirty || saving}
+                    disabled={!canSave}
                     className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all transform hover:-translate-y-1 ${saveFeedback
                             ? 'bg-secondary text-white shadow-xl shadow-secondary/30'
-                            : isDirty
+                            : canSave
                                 ? 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/30'
                                 : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none hover:translate-y-0'
                         }`}
@@ -426,7 +503,7 @@ export default function Settings() {
                         <><Save size={20} /> Save Changes</>
                     )}
                 </button>
-                {isDirty && !saving && !saveFeedback && (
+                {canSave && !saveFeedback && (
                     <div className="absolute -top-2 -right-2 w-4 h-4 bg-accent rounded-full animate-pulse border-2 border-white dark:border-card-dark" />
                 )}
             </div>
