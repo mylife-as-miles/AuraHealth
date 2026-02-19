@@ -41,6 +41,7 @@ import { SafeChart } from './SafeChart';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { NotificationItem } from '../lib/types';
+import EmptyState from './EmptyState';
 
 // --- Data per period ---
 const DATA_BY_PERIOD: Record<string, Array<Record<string, number | string | undefined>>> = {
@@ -114,8 +115,10 @@ export default function AIInsights() {
   // Geographic view
   const [geoView, setGeoView] = useState<'city' | 'regional'>('city');
 
-  // Notifications
+  // Notifications and generated insight data
   const notifications = useLiveQuery(() => db.notifications.toArray()) || [];
+  const diagnosticCases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
+  const workflowCards = useLiveQuery(() => db.workflowCards.toArray()) || [];
 
   // Model settings state
   const [modelConfidence, setModelConfidence] = useState(95);
@@ -199,6 +202,21 @@ export default function AIInsights() {
       default: return 'bg-gray-100 text-gray-500';
     }
   };
+
+  const hasInsightData = diagnosticCases.length > 0 || workflowCards.length > 0 || notifications.length > 0;
+
+  if (!hasInsightData) {
+    return (
+      <div className="h-full w-full bg-white dark:bg-card-dark rounded-3xl border border-border-light dark:border-border-dark shadow-soft overflow-hidden">
+        <EmptyState
+          icon={Brain}
+          title="No AI Insights Yet"
+          description="Import or add patients, then run diagnostics or workflow actions to generate AI insights."
+          color="cyan"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pr-2 relative">
