@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { deriveNameFromEmail, setUserProfile } from '../lib/userProfile';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type AuthView = 'login' | 'register' | 'forgot' | 'forgot-success';
@@ -96,6 +97,7 @@ export default function AuthPage() {
         setIsLoading(true);
         setTimeout(() => {
             localStorage.setItem('aura_auth', 'true');
+            setUserProfile({ name: deriveNameFromEmail(email) });
             setIsLoading(false);
             window.location.href = '/';
         }, 1800);
@@ -107,6 +109,7 @@ export default function AuthPage() {
         setIsLoading(true);
         setTimeout(() => {
             localStorage.setItem('aura_auth', 'true');
+            setUserProfile({ name });
             setIsLoading(false);
             window.location.href = '/';
         }, 2000);
@@ -133,6 +136,7 @@ export default function AuthPage() {
         setBiometricModal(type);
         setTimeout(() => {
             localStorage.setItem('aura_auth', 'true');
+            setUserProfile({});
             setBiometricModal(null);
             window.location.href = '/';
         }, 2500);
