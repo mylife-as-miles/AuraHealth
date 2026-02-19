@@ -194,7 +194,7 @@ function DiagnosticOverviewContent() {
         </div>
 
         <ErrorBoundary>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             {data && data.length > 0 ? (
               <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }}>
                 <defs>

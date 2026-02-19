@@ -624,7 +624,7 @@ export default function PatientRecords() {
 
                 {/* Chart Area */}
                 <div className="h-32 w-full min-w-0">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <LineChart data={selectedPatient.vitals}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                       <XAxis

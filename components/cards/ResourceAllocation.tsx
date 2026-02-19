@@ -136,7 +136,7 @@ export default function ResourceAllocation() {
 
       <div className="h-24 relative -mx-2 w-full min-w-0">
         <ErrorBoundary>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
               <Tooltip
                 contentStyle={{
