@@ -91,6 +91,10 @@ const DEFAULT_USER_SETTINGS = {
 export default function Settings() {
     const userSettingsRows = useLiveQuery(() => db.userSettings.toArray(), []);
     const persistedSettings = userSettingsRows?.find((row) => row.id === USER_SETTINGS_ID);
+
+    const userEmail = localStorage.getItem('aura_auth_email');
+    const authUser = useLiveQuery(() => userEmail ? db.authUsers.where('email').equals(userEmail).first() : undefined, [userEmail]);
+
     const [isHydrated, setIsHydrated] = useState(false);
 
     // --- Profile state ---
@@ -126,12 +130,12 @@ export default function Settings() {
     const [savedModules, setSavedModules] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.reasoningModules });
 
     useEffect(() => {
-        if (!persistedSettings) return;
+        if (!persistedSettings || authUser === undefined) return;
 
         const nextProfile = {
-            name: persistedSettings.profileName,
+            name: authUser?.name || persistedSettings.profileName,
             title: persistedSettings.profileTitle,
-            email: persistedSettings.profileEmail,
+            email: authUser?.email || persistedSettings.profileEmail,
         };
 
         const nextModels = { ...DEFAULT_USER_SETTINGS.activeModels, ...persistedSettings.activeModels };
@@ -149,7 +153,7 @@ export default function Settings() {
         setSavedModels(nextModels);
         setSavedModules(nextModules);
         setIsHydrated(true);
-    }, [persistedSettings]);
+    }, [persistedSettings, authUser]);
 
     useEffect(() => {
         if (userSettingsRows === undefined) return;
@@ -205,6 +209,17 @@ export default function Settings() {
             updatedAt: Date.now(),
         });
 
+        if (authUser?.id) {
+            await db.authUsers.update(authUser.id, {
+                name: profileName,
+                email: profileEmail,
+                updatedAt: Date.now()
+            });
+            if (profileEmail !== userEmail) {
+                localStorage.setItem('aura_auth_email', profileEmail);
+            }
+        }
+
         setSavedProfile(nextProfile);
         setSavedMfa(mfa);
         setSavedModels(nextModels);
@@ -212,7 +227,7 @@ export default function Settings() {
         setSaving(false);
         setSaveFeedback(true);
         setTimeout(() => setSaveFeedback(false), 3000);
-    }, [isDirty, saving, isHydrated, profileName, profileTitle, profileEmail, mfa, activeModels, reasoningModules]);
+    }, [isDirty, saving, isHydrated, profileName, profileTitle, profileEmail, mfa, activeModels, reasoningModules, authUser, userEmail]);
 
     const handleChangePassword = useCallback(() => {
         if (!currentPassword || !newPassword || newPassword !== confirmPassword) return;
@@ -368,10 +383,10 @@ export default function Settings() {
                             <div
                                 key={model.id}
                                 className={`flex items-center justify-between p-4 border rounded-2xl transition-all duration-200 ${model.status === 'coming_soon'
-                                        ? 'border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20'
-                                        : activeModels[model.id]
-                                            ? 'border-secondary/30 bg-secondary/5 dark:bg-secondary/5'
-                                            : 'border-gray-100 dark:border-gray-700/50 hover:border-secondary/30 bg-white dark:bg-transparent'
+                                    ? 'border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20'
+                                    : activeModels[model.id]
+                                        ? 'border-secondary/30 bg-secondary/5 dark:bg-secondary/5'
+                                        : 'border-gray-100 dark:border-gray-700/50 hover:border-secondary/30 bg-white dark:bg-transparent'
                                     }`}
                             >
                                 <div className="flex gap-4 items-center">
@@ -489,10 +504,10 @@ export default function Settings() {
                     onClick={handleSave}
                     disabled={!canSave}
                     className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-all transform hover:-translate-y-1 ${saveFeedback
-                            ? 'bg-secondary text-white shadow-xl shadow-secondary/30'
-                            : canSave
-                                ? 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/30'
-                                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none hover:translate-y-0'
+                        ? 'bg-secondary text-white shadow-xl shadow-secondary/30'
+                        : canSave
+                            ? 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/30'
+                            : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none hover:translate-y-0'
                         }`}
                 >
                     {saving ? (

@@ -59,7 +59,7 @@ const Layout = () => {
   const getHeaderInfo = (pathname: string) => {
     switch (pathname) {
       case '/':
-        return { title: "Clinical Dashboard", subtitle: "Welcome, Dr. Williamson" };
+        return { title: "Clinical Dashboard" };
       case '/patients':
         return { title: "Patient Directory", subtitle: "Manage patient records and diagnostic history" };
       case '/diagnostics':
@@ -73,7 +73,7 @@ const Layout = () => {
       case '/notifications':
         return { title: "Notifications", subtitle: "Stay updated with critical alerts and system changes." };
       default:
-        return { title: "Clinical Dashboard", subtitle: "Welcome, Dr. Williamson" };
+        return { title: "Clinical Dashboard" };
     }
   };
 

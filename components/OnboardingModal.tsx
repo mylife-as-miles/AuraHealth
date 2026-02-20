@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Database, LayoutDashboard, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
 import { db } from '../lib/db';
 import { seedDatabase } from '../lib/seedData';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 interface OnboardingModalProps {
     onComplete: () => void;
@@ -10,6 +11,11 @@ interface OnboardingModalProps {
 export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<'welcome' | 'seeding' | 'success'>('welcome');
+
+    const userEmail = localStorage.getItem('aura_auth_email');
+    const user = useLiveQuery(() => userEmail ? db.authUsers.where('email').equals(userEmail).first() : undefined, [userEmail]);
+    const displayName = user?.name || "Alex Williamson";
+    const lastName = displayName.split(' ').pop();
 
     const handleStartFresh = async () => {
         setLoading(true);
@@ -66,7 +72,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
                     {step === 'welcome' && (
                         <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-                            <h1 className="text-3xl font-bold text-white mb-2">Welcome, Dr. Williamson</h1>
+                            <h1 className="text-3xl font-bold text-white mb-2">Welcome, Dr. {lastName}</h1>
                             <p className="text-gray-400 mb-10">How would you like to set up your workspace today?</p>
 
                             <div className="grid gap-6">
