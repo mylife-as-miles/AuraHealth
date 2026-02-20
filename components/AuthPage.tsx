@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-// ─── Types ───────────────────────────────────────────────────────────
+import { db } from '../lib/db';// ─── Types ───────────────────────────────────────────────────────────
 type AuthView = 'login' | 'register' | 'forgot' | 'forgot-success';
 
 interface FormErrors {
@@ -90,23 +89,48 @@ export default function AuthPage() {
     }, []);
 
     // ─── Handlers ────────────────────────────────────────
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateLogin()) return;
         setIsLoading(true);
+
+        const existingUser = await db.users.where('email').equals(email).first();
+        let userId = existingUser?.id;
+
+        if (!existingUser) {
+            userId = crypto.randomUUID();
+            await db.users.add({
+                id: userId,
+                name: 'Alex Williamson', // Generic fallback name since this is login
+                email: email,
+                role: 'Chief Resident'
+            });
+        }
+
         setTimeout(() => {
             localStorage.setItem('aura_auth', 'true');
+            if (userId) localStorage.setItem('aura_userid', userId);
             setIsLoading(false);
             window.location.href = '/';
         }, 1800);
     };
 
-    const handleRegister = (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateRegister()) return;
         setIsLoading(true);
+
+        const newUser = {
+            id: crypto.randomUUID(),
+            name: name,
+            email: email,
+            role: 'Medical Professional'
+        };
+        await db.users.put(newUser);
+
         setTimeout(() => {
             localStorage.setItem('aura_auth', 'true');
+            localStorage.setItem('aura_userid', newUser.id);
             setIsLoading(false);
             window.location.href = '/';
         }, 2000);
@@ -129,10 +153,23 @@ export default function AuthPage() {
         }, 1500);
     };
 
-    const handleBiometric = (type: 'touch' | 'face') => {
+    const handleBiometric = async (type: 'touch' | 'face') => {
         setBiometricModal(type);
+        const existingUser = await db.users.toCollection().first();
+        const userId = existingUser ? existingUser.id : crypto.randomUUID();
+
+        if (!existingUser) {
+            await db.users.add({
+                id: userId,
+                name: 'Alex Williamson',
+                email: 'doctor@hospital.com',
+                role: 'Chief Resident'
+            });
+        }
+
         setTimeout(() => {
             localStorage.setItem('aura_auth', 'true');
+            localStorage.setItem('aura_userid', userId);
             setBiometricModal(null);
             window.location.href = '/';
         }, 2500);

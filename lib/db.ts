@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Patient, DiagCase, WorkflowCard, NotificationItem, AppSettings } from './types';
+import { Patient, DiagCase, WorkflowCard, NotificationItem, AppSettings, User } from './types';
 
 export class AuraDatabase extends Dexie {
     patients!: Table<Patient>;
@@ -7,6 +7,7 @@ export class AuraDatabase extends Dexie {
     workflowCards!: Table<WorkflowCard>;
     notifications!: Table<NotificationItem>;
     appSettings!: Table<AppSettings>;
+    users!: Table<User>;
 
     constructor() {
         super('AuraHealthDB');
@@ -17,6 +18,10 @@ export class AuraDatabase extends Dexie {
             workflowCards: 'id, patientId, column, priority',
             notifications: 'id, type, read, timestamp',
             appSettings: 'id'
+        });
+
+        this.version(2).stores({
+            users: 'id, email'
         });
     }
 }

@@ -142,3 +142,12 @@ export interface AppSettings {
     theme: 'light' | 'dark';
     lastSeedDate?: number;
 }
+
+// User
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    avatar?: string;
+}

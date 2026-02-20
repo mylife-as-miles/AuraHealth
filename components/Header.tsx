@@ -1,17 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
 
 interface HeaderProps {
   title?: string;
   subtitle?: string;
 }
 
-export default function Header({ title = "Clinical Dashboard", subtitle = "Welcome back, Dr. Williamson" }: HeaderProps) {
+export default function Header({ title = "Clinical Dashboard", subtitle }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const userId = localStorage.getItem('aura_userid');
+  const user = useLiveQuery(() => userId ? db.users.get(userId) : undefined, [userId]);
+
+  const displayName = user?.name || "Alex Williamson";
+  const displayRole = user?.role || "Chief Resident";
+  const displaySubtitle = subtitle || `Welcome back, Dr. ${displayName.split(' ').pop()}`;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -27,6 +36,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
 
   const confirmSignOut = () => {
     localStorage.removeItem('aura_auth');
+    localStorage.removeItem('aura_userid');
     console.log("Signing out user...");
     setIsSignOutModalOpen(false);
     navigate('/auth');
@@ -36,7 +46,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
     <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 flex-shrink-0 z-40 relative">
       <div>
         <h2 className="text-2xl font-bold text-primary dark:text-white mb-1">{title}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{subtitle}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{displaySubtitle}</p>
       </div>
 
       <div className="flex items-center gap-6">
@@ -63,8 +73,8 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
                 className="w-10 h-10 rounded-full object-cover shadow-sm"
               />
               <div className="hidden md:block">
-                <p className="text-sm font-bold text-primary dark:text-white leading-tight group-hover:text-secondary transition-colors">Alex Williamson</p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Chief Resident</p>
+                <p className="text-sm font-bold text-primary dark:text-white leading-tight group-hover:text-secondary transition-colors">{displayName}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{displayRole}</p>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-400 hidden md:block transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
             </div>
@@ -73,8 +83,8 @@ export default function Header({ title = "Clinical Dashboard", subtitle = "Welco
             {isProfileOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-card-dark rounded-2xl shadow-xl border border-gray-100 dark:border-border-dark py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 md:hidden">
-                  <p className="text-sm font-bold text-primary dark:text-white">Alex Williamson</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Chief Resident</p>
+                  <p className="text-sm font-bold text-primary dark:text-white">{displayName}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{displayRole}</p>
                 </div>
 
                 <div className="p-1">
