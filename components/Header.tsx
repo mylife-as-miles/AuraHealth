@@ -15,11 +15,11 @@ export default function Header({ title = "Clinical Dashboard", subtitle }: Heade
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const userId = localStorage.getItem('aura_userid');
-  const user = useLiveQuery(() => userId ? db.users.get(userId) : undefined, [userId]);
+  const userEmail = localStorage.getItem('aura_auth_email');
+  const user = useLiveQuery(() => userEmail ? db.authUsers.where('email').equals(userEmail).first() : undefined, [userEmail]);
 
   const displayName = user?.name || "Alex Williamson";
-  const displayRole = user?.role || "Chief Resident";
+  const displayRole = "Chief Resident";
   const displaySubtitle = subtitle || `Welcome back, Dr. ${displayName.split(' ').pop()}`;
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function Header({ title = "Clinical Dashboard", subtitle }: Heade
 
   const confirmSignOut = () => {
     localStorage.removeItem('aura_auth');
-    localStorage.removeItem('aura_userid');
+    localStorage.removeItem('aura_auth_email');
     console.log("Signing out user...");
     setIsSignOutModalOpen(false);
     navigate('/auth');

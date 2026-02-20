@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/db';// ─── Types ───────────────────────────────────────────────────────────
+import { db } from '../lib/db';
+
+// ─── Types ───────────────────────────────────────────────────────────
 type AuthView = 'login' | 'register' | 'forgot' | 'forgot-success';
 
 interface FormErrors {
@@ -7,6 +9,7 @@ interface FormErrors {
     email?: string;
     password?: string;
     confirmPassword?: string;
+    auth?: string;
 }
 
 // ─── Password Strength Helper ────────────────────────────────────────
@@ -41,6 +44,14 @@ export default function AuthPage() {
     const [forgotEmail, setForgotEmail] = useState('');
     const [errors, setErrors] = useState<FormErrors>({});
     const [forgotError, setForgotError] = useState('');
+
+    const normalizeEmail = (value: string) => value.trim().toLowerCase();
+
+    const completeAuth = (signedInEmail: string) => {
+        localStorage.setItem('aura_auth', 'true');
+        localStorage.setItem('aura_auth_email', signedInEmail);
+        window.location.href = '/';
+    };
 
     // Trigger fade animation on view change
     useEffect(() => {
@@ -92,86 +103,100 @@ export default function AuthPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateLogin()) return;
+
         setIsLoading(true);
+        try {
+            const normalizedEmail = normalizeEmail(email);
+            const user = await db.authUsers.where('email').equals(normalizedEmail).first();
 
-        const existingUser = await db.users.where('email').equals(email).first();
-        let userId = existingUser?.id;
+            if (!user || user.password !== password) {
+                setErrors(prev => ({ ...prev, auth: 'Invalid email or password' }));
+                return;
+            }
 
-        if (!existingUser) {
-            userId = crypto.randomUUID();
-            await db.users.add({
-                id: userId,
-                name: 'Alex Williamson', // Generic fallback name since this is login
-                email: email,
-                role: 'Chief Resident'
-            });
-        }
-
-        setTimeout(() => {
-            localStorage.setItem('aura_auth', 'true');
-            if (userId) localStorage.setItem('aura_userid', userId);
+            completeAuth(user.email);
+        } finally {
             setIsLoading(false);
-            window.location.href = '/';
-        }, 1800);
+        }
     };
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateRegister()) return;
+
         setIsLoading(true);
+        try {
+            const normalizedEmail = normalizeEmail(email);
+            const existing = await db.authUsers.where('email').equals(normalizedEmail).first();
 
-        const newUser = {
-            id: crypto.randomUUID(),
-            name: name,
-            email: email,
-            role: 'Medical Professional'
-        };
-        await db.users.put(newUser);
+            if (existing) {
+                setErrors(prev => ({ ...prev, email: 'An account with this email already exists' }));
+                return;
+            }
 
-        setTimeout(() => {
-            localStorage.setItem('aura_auth', 'true');
-            localStorage.setItem('aura_userid', newUser.id);
+            const now = Date.now();
+            await db.authUsers.add({
+                name: name.trim(),
+                email: normalizedEmail,
+                password,
+                createdAt: now,
+                updatedAt: now
+            });
+
+            completeAuth(normalizedEmail);
+        } finally {
             setIsLoading(false);
-            window.location.href = '/';
-        }, 2000);
+        }
     };
 
-    const handleForgotPassword = (e: React.FormEvent) => {
+    const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!forgotEmail.trim()) {
+        const normalizedEmail = normalizeEmail(forgotEmail);
+
+        if (!normalizedEmail) {
             setForgotError('Please enter your email address');
             return;
         }
-        if (!emailRegex.test(forgotEmail)) {
+
+        if (!emailRegex.test(normalizedEmail)) {
             setForgotError('Please enter a valid email address');
             return;
         }
+
         setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            const user = await db.authUsers.where('email').equals(normalizedEmail).first();
+            if (!user) {
+                setForgotError('No account found for that email address');
+                return;
+            }
+
+            setForgotEmail(normalizedEmail);
             setView('forgot-success');
-        }, 1500);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleBiometric = async (type: 'touch' | 'face') => {
         setBiometricModal(type);
-        const existingUser = await db.users.toCollection().first();
-        const userId = existingUser ? existingUser.id : crypto.randomUUID();
+        const existingUser = await db.authUsers.toCollection().first();
+        const userEmail = existingUser ? existingUser.email : 'doctor@hospital.com';
 
         if (!existingUser) {
-            await db.users.add({
-                id: userId,
+            const now = Date.now();
+            await db.authUsers.add({
                 name: 'Alex Williamson',
                 email: 'doctor@hospital.com',
-                role: 'Chief Resident'
+                password: 'biometric_login_placeholder',
+                createdAt: now,
+                updatedAt: now
             });
         }
 
         setTimeout(() => {
-            localStorage.setItem('aura_auth', 'true');
-            localStorage.setItem('aura_userid', userId);
+            completeAuth(userEmail);
             setBiometricModal(null);
-            window.location.href = '/';
         }, 2500);
     };
 
@@ -180,6 +205,10 @@ export default function AuthPage() {
         setForgotError('');
         setShowPassword(false);
         setShowConfirmPassword(false);
+        setEmail('');
+        setPassword('');
+        setName('');
+        setConfirmPassword('');
         setView(target);
     };
 
@@ -307,7 +336,10 @@ export default function AuthPage() {
                                                         type="text"
                                                         placeholder="dr.name@hospital.com"
                                                         value={email}
-                                                        onChange={e => { setEmail(e.target.value); if (errors.email) setErrors(p => ({ ...p, email: undefined })); }}
+                                                        onChange={e => {
+                                                            setEmail(e.target.value);
+                                                            if (errors.email || errors.auth) setErrors(p => ({ ...p, email: undefined, auth: undefined }));
+                                                        }}
                                                         className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm focus:ring-2 focus:ring-[#14F5D6] focus:border-[#14F5D6] transition-all outline-none text-gray-700 placeholder-gray-400 ${errors.email ? 'border-red-400' : 'border-gray-200'}`}
                                                     />
                                                 </div>
@@ -323,7 +355,10 @@ export default function AuthPage() {
                                                         type={showPassword ? 'text' : 'password'}
                                                         placeholder="••••••••"
                                                         value={password}
-                                                        onChange={e => { setPassword(e.target.value); if (errors.password) setErrors(p => ({ ...p, password: undefined })); }}
+                                                        onChange={e => {
+                                                            setPassword(e.target.value);
+                                                            if (errors.password || errors.auth) setErrors(p => ({ ...p, password: undefined, auth: undefined }));
+                                                        }}
                                                         className={`w-full pl-11 pr-12 py-3.5 bg-gray-50 border rounded-2xl text-sm focus:ring-2 focus:ring-[#14F5D6] focus:border-[#14F5D6] transition-all outline-none text-gray-700 placeholder-gray-400 ${errors.password ? 'border-red-400' : 'border-gray-200'}`}
                                                     />
                                                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#160527] transition-colors">
@@ -335,6 +370,8 @@ export default function AuthPage() {
                                                     <button type="button" onClick={() => switchView('forgot')} className="text-xs font-medium text-[#160527] hover:text-[#FE5796] transition-colors">Forgot Password?</button>
                                                 </div>
                                             </div>
+
+                                            <ErrorMsg msg={errors.auth} />
 
                                             <button
                                                 type="submit"
@@ -415,7 +452,10 @@ export default function AuthPage() {
                                                         type="email"
                                                         placeholder="dr.name@hospital.com"
                                                         value={email}
-                                                        onChange={e => { setEmail(e.target.value); if (errors.email) setErrors(p => ({ ...p, email: undefined })); }}
+                                                        onChange={e => {
+                                                            setEmail(e.target.value);
+                                                            if (errors.email || errors.auth) setErrors(p => ({ ...p, email: undefined, auth: undefined }));
+                                                        }}
                                                         className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-2xl text-sm focus:ring-2 focus:ring-[#14F5D6] focus:border-[#14F5D6] transition-all outline-none text-gray-700 placeholder-gray-400 ${errors.email ? 'border-red-400' : 'border-gray-200'}`}
                                                     />
                                                 </div>
@@ -432,7 +472,10 @@ export default function AuthPage() {
                                                         type={showPassword ? 'text' : 'password'}
                                                         placeholder="Min. 8 characters"
                                                         value={password}
-                                                        onChange={e => { setPassword(e.target.value); if (errors.password) setErrors(p => ({ ...p, password: undefined })); }}
+                                                        onChange={e => {
+                                                            setPassword(e.target.value);
+                                                            if (errors.password || errors.auth) setErrors(p => ({ ...p, password: undefined, auth: undefined }));
+                                                        }}
                                                         className={`w-full pl-11 pr-12 py-3.5 bg-gray-50 border rounded-2xl text-sm focus:ring-2 focus:ring-[#14F5D6] focus:border-[#14F5D6] transition-all outline-none text-gray-700 placeholder-gray-400 ${errors.password ? 'border-red-400' : 'border-gray-200'}`}
                                                     />
                                                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#160527] transition-colors">
@@ -478,6 +521,8 @@ export default function AuthPage() {
                                                     I agree to the <a href="#" className="text-[#160527] font-medium hover:text-[#FE5796]">Terms of Service</a> and <a href="#" className="text-[#160527] font-medium hover:text-[#FE5796]">Privacy Policy</a>
                                                 </label>
                                             </div>
+
+                                            <ErrorMsg msg={errors.auth} />
 
                                             <button
                                                 type="submit"
@@ -528,6 +573,8 @@ export default function AuthPage() {
                                                 </div>
                                                 {forgotError && <p className="text-xs text-red-500 mt-1 ml-1 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">error</span>{forgotError}</p>}
                                             </div>
+
+                                            <ErrorMsg msg={errors.auth} />
 
                                             <button
                                                 type="submit"

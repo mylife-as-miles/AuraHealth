@@ -143,11 +143,22 @@ export interface AppSettings {
     lastSeedDate?: number;
 }
 
-// User
-export interface User {
-    id: string;
+export interface UserSettings {
+    id: string; // Singleton 'user-settings'
+    profileName: string;
+    profileTitle: string;
+    profileEmail: string;
+    mfa: boolean;
+    activeModels: Record<string, boolean>;
+    reasoningModules: Record<string, boolean>;
+    updatedAt: number;
+}
+
+export interface AuthUser {
+    id?: number;
     name: string;
     email: string;
-    role: string;
-    avatar?: string;
+    password: string;
+    createdAt: number;
+    updatedAt: number;
 }

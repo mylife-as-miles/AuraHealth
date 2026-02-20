@@ -9,7 +9,7 @@ import {
   Settings,
   Search,
   Command,
-  Hospital,
+  Sparkles,
   Cpu
 } from 'lucide-react';
 
@@ -49,8 +49,8 @@ export default function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void })
     <aside className="w-full md:w-64 flex-shrink-0 p-6 flex flex-col border-r border-border-light dark:border-border-dark bg-white dark:bg-card-dark">
       {/* Brand */}
       <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-cyan flex items-center justify-center text-primary shadow-glow">
-          <Hospital size={18} strokeWidth={2.5} />
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-secondary to-cyan flex items-center justify-center text-primary shadow-glow">
+          <Sparkles size={20} strokeWidth={2.5} />
         </div>
         <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white">AuraHealth</h1>
       </div>
