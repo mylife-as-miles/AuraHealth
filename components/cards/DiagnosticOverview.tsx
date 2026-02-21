@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ComposedChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
+import { ComposedChart, Bar, ResponsiveContainer, Cell, XAxis, YAxis, Tooltip } from 'recharts';
 import { Download, AlertCircle, RefreshCw } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
@@ -34,8 +34,6 @@ function DiagnosticOverviewContent() {
 
   // Aggregate data based on date range
   const { data, meta } = useMemo(() => {
-    if (!allCases.length) return { data: [], meta: { date: new Date().toLocaleDateString(), trend: '0%' } };
-
     const now = new Date();
     const monthsToShow = dateRange === '6 Months' ? 6 : 12;
     const aggregated: Record<string, number> = {};
@@ -186,13 +184,6 @@ function DiagnosticOverviewContent() {
 
       {/* Fixed height container */}
       <div className="h-[250px] w-full relative min-w-0">
-        {/* Y Axis Labels */}
-        <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[10px] font-bold text-gray-300 pointer-events-none z-0">
-          <span>600K</span>
-          <span>400K</span>
-          <span>200K</span>
-          <span>0</span>
-        </div>
 
         <ErrorBoundary>
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
@@ -217,7 +208,16 @@ function DiagnosticOverviewContent() {
                     tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
                     dy={10}
                   />
-                  <Bar dataKey="val" radius={[12, 12, 0, 0]} fill="#54E097" isAnimationActive={false}>
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
+                    width={40}
+                  />
+                  <Bar dataKey="val" radius={[12, 12, 0, 0]} isAnimationActive={false}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.isPeak ? "url(#stripePattern)" : "#54E097"} />
+                    ))}
                   </Bar>
                 </ComposedChart>
               </SafeChart>
