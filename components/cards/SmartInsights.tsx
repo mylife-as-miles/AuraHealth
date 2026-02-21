@@ -97,36 +97,53 @@ export default function SmartInsights() {
 
       <div className="relative z-10 p-6 flex flex-col h-full items-center justify-end text-center">
 
-        {/* Center Visual Icon */}
-        <div className="absolute top-[35%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm flex items-center justify-center shadow-[0_0_40px_rgba(20,245,214,0.3)]">
-          <Zap className="w-12 h-12 text-cyan drop-shadow-[0_0_10px_rgba(20,245,214,0.8)]" strokeWidth={2.5} />
+        {/* Top Space for Icon */}
+        <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[160px]">
+          {/* Center Visual Icon */}
+          <div className="relative w-32 h-32 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm flex items-center justify-center shadow-[0_0_40px_rgba(20,245,214,0.3)]">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-12 h-12 text-cyan drop-shadow-[0_0_15px_rgba(20,245,214,0.8)] relative z-10"
+            >
+              <path strokeDasharray="80" strokeDashoffset="80" d="M13 2L3 14H12L11 22L21 10H12L13 2Z">
+                <animate attributeName="stroke-dashoffset" values="80;0;0;80" keyTimes="0;0.35;0.65;1" dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="fill" values="transparent;rgba(20,245,214,0.6);rgba(20,245,214,0.6);transparent" keyTimes="0;0.35;0.65;1" dur="2.5s" repeatCount="indefinite" />
+              </path>
+            </svg>
 
-          {/* Rotating ring element */}
-          <div className="absolute inset-0 rounded-full border-t border-secondary/50 animate-spin duration-[3s]"></div>
-        </div>
+            {/* Rotating ring element */}
+            <div className="absolute inset-0 rounded-full border-t border-secondary/50 animate-spin duration-[3s]"></div>
 
-        {/* Floating Tags */}
-        <div className="absolute top-[25%] right-2 bg-secondary/20 backdrop-blur-md border border-secondary/30 text-secondary text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg animate-[bounce_3s_infinite]">
-          <TrendingUp size={12} />
-          +{insight.highlight} Expected
-        </div>
+            {/* Floating Tags relative to the icon */}
+            <div className="absolute -top-4 -right-12 bg-secondary/20 backdrop-blur-md border border-secondary/30 text-secondary text-[10px] whitespace-nowrap font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg animate-[bounce_3s_infinite] z-20">
+              <TrendingUp size={12} />
+              +{insight.highlight} Expected
+            </div>
 
-        <div className="absolute top-[50%] left-2 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] font-medium px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg animate-[pulse_4s_infinite]">
-          <Verified size={12} className="text-cyan" />
-          High Accuracy
+            <div className="absolute -bottom-2 -left-10 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] whitespace-nowrap font-medium px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg animate-[pulse_4s_infinite] z-20">
+              <Verified size={12} className="text-cyan" />
+              High Accuracy
+            </div>
+          </div>
         </div>
 
         {/* Action Button — navigates to AI Insights */}
         <button
           onClick={() => navigate('/ai-insights')}
-          className="mb-6 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center shadow-lg hover:scale-110 transition-transform hover:bg-cyan hover:text-primary z-20"
+          className="mb-6 -mt-6 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center shadow-lg hover:scale-110 transition-transform hover:bg-cyan hover:text-primary z-30 relative"
           title="View AI Insights"
         >
           <ArrowUp strokeWidth={3} size={20} />
         </button>
 
         {/* Glass Text Panel with rotating insights */}
-        <div className="w-full p-5 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md shadow-lg text-left">
+        <div className="w-full p-5 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md shadow-lg text-left relative z-20">
           <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
             Smart AI Insights
             <span className="w-2 h-2 rounded-full bg-cyan shadow-[0_0_10px_#14F5D6] animate-pulse"></span>
