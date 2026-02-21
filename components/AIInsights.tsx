@@ -80,26 +80,16 @@ const DATA_BY_PERIOD: Record<string, Array<Record<string, number | string | unde
 
 // --- Notification data removed (using DB) ---
 
-// --- Prediction alerts ---
-interface PredictionAlert {
-  id: string;
-  ward: string;
-  risk: string;
-  riskChange: number;
-  description: string;
-  severity: 'high' | 'medium' | 'low';
-}
-
-const PREDICTION_ALERTS: PredictionAlert[] = [
-  { id: 'p1', ward: 'Ward 4B (Pediatrics)', risk: '+22%', riskChange: 22, description: 'Projected spike in RSV cases over next 72 hours based on community transmission data.', severity: 'high' },
-  { id: 'p2', ward: 'Ward 2A (Cardiology)', risk: '+15%', riskChange: 15, description: 'Elevated cardiovascular event risk during heatwave forecast.', severity: 'medium' },
-  { id: 'p3', ward: 'ICU', risk: '+8%', riskChange: 8, description: 'Slight increase in sepsis indicators among post-op patients.', severity: 'low' },
-];
+import { analyzePatientRisks, PredictionAlert } from '../lib/gemini';
 
 // --- Series visibility ---
 type SeriesKey = 'cardio' | 'resp' | 'viral' | 'neuro';
 
 export default function AIInsights() {
+  // AI Integration State
+  const [aiAlerts, setAiAlerts] = useState<PredictionAlert[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   // Modals
   const [showExplainabilityModal, setShowExplainabilityModal] = useState(false);
   const [showModelSettings, setShowModelSettings] = useState(false);
@@ -128,13 +118,29 @@ export default function AIInsights() {
   // Export state
   const [exportSuccess, setExportSuccess] = useState(false);
 
-  // Animated accuracy
   const [displayAccuracy, setDisplayAccuracy] = useState(0);
   useEffect(() => {
     const target = 98.4;
     const timer = setTimeout(() => setDisplayAccuracy(target), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Run AI Analysis Handler
+  const handleRunAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      // In a real app we might fetch all these from Dexie before calling, 
+      // but we already have them from useLiveQuery
+      const patients = await db.patients.toArray();
+      const cases = await db.diagnosticCases.toArray();
+      const results = await analyzePatientRisks(patients, cases);
+      setAiAlerts(results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const chartData = useMemo(() => DATA_BY_PERIOD[chartPeriod], [chartPeriod]);
   const bridgeMonth = useMemo(() => {
@@ -230,6 +236,20 @@ export default function AIInsights() {
           >
             <SlidersHorizontal size={18} />
             Model Settings
+          </button>
+          <button
+            onClick={handleRunAnalysis}
+            disabled={isAnalyzing}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-soft
+              ${isAnalyzing
+                ? 'bg-cyan/20 text-cyan cursor-not-allowed border border-cyan/30'
+                : 'bg-white dark:bg-card-dark border border-cyan/40 text-cyan hover:bg-cyan/10'}`}
+          >
+            {isAnalyzing ? (
+              <><RefreshCw size={18} className="animate-spin" /> Analyzing...</>
+            ) : (
+              <><Brain size={18} /> Run AI Analysis</>
+            )}
           </button>
           {exportSuccess ? (
             <div className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-green-500 text-white text-sm font-semibold">
@@ -403,28 +423,51 @@ export default function AIInsights() {
 
           {/* Prediction Alert Card */}
           <div className="bg-white dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark">
-            <h3 className="font-bold text-primary dark:text-white mb-4 flex items-center gap-2">
-              <AlertTriangle className="text-accent" size={20} />
-              Prediction Alerts
-              <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-bold ml-auto">{PREDICTION_ALERTS.length}</span>
+            <h3 className="font-bold text-primary dark:text-white mb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="text-accent" size={20} />
+                Prediction Alerts
+              </span>
+              {aiAlerts.length > 0 && (
+                <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-bold">{aiAlerts.length}</span>
+              )}
             </h3>
-            <div className="space-y-3">
-              {PREDICTION_ALERTS.map(alert => (
-                <div key={alert.id} className={`bg-background-light dark:bg-background-dark p-3 rounded-xl border-l-4 ${alert.severity === 'high' ? 'border-accent' : alert.severity === 'medium' ? 'border-yellow-400' : 'border-gray-300'} transition-all`}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-primary dark:text-white">{alert.ward}</span>
-                    <span className={`text-[10px] font-bold ${alert.severity === 'high' ? 'text-accent' : alert.severity === 'medium' ? 'text-yellow-500' : 'text-gray-500'}`}>{alert.risk} Risk</span>
+
+            {isAnalyzing ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="animate-pulse bg-gray-100 dark:bg-gray-800 h-24 rounded-xl w-full"></div>
+                ))}
+              </div>
+            ) : aiAlerts.length > 0 ? (
+              <div className="space-y-3">
+                {aiAlerts.map(alert => (
+                  <div key={alert.id} className={`bg-background-light dark:bg-background-dark p-3 rounded-xl border-l-4 ${alert.severity === 'high' ? 'border-accent' : alert.severity === 'medium' ? 'border-yellow-400' : 'border-gray-300'} transition-all`}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold text-primary dark:text-white truncate pr-2">{alert.ward}</span>
+                      <span className={`text-[10px] font-bold whitespace-nowrap ${alert.severity === 'high' ? 'text-accent' : alert.severity === 'medium' ? 'text-yellow-500' : 'text-gray-500'}`}>{alert.risk} Risk</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 leading-tight mb-2 line-clamp-3">{alert.description}</p>
+                    <button
+                      onClick={() => setShowAlertDetail(alert.id)}
+                      className="text-[10px] font-semibold text-primary dark:text-cyan flex items-center gap-1 hover:gap-2 transition-all mt-1"
+                    >
+                      View Analysis <ChevronRight size={12} />
+                    </button>
                   </div>
-                  <p className="text-[10px] text-gray-500 leading-tight mb-2">{alert.description}</p>
-                  <button
-                    onClick={() => setShowAlertDetail(alert.id)}
-                    className="text-[10px] font-semibold text-primary dark:text-cyan flex items-center gap-1 hover:gap-2 transition-all"
-                  >
-                    View Analysis <ChevronRight size={12} />
-                  </button>
+                ))}
+
+                <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-1 text-[9px] text-gray-400 font-medium">
+                  <Sparkles size={10} className="text-cyan" /> Grounded with Google Search
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-center p-6 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                <Brain size={24} className="text-gray-400 mb-2 opacity-50" />
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400">No active alerts</p>
+                <p className="text-[10px] text-gray-400 mt-1 max-w-[200px]">Run an AI Analysis to process current patient data and identify emerging risks.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -687,7 +730,7 @@ export default function AIInsights() {
 
       {/* Alert Detail Modal */}
       {showAlertDetail && (() => {
-        const alert = PREDICTION_ALERTS.find(a => a.id === showAlertDetail);
+        const alert = aiAlerts.find(a => a.id === showAlertDetail);
         if (!alert) return null;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
