@@ -155,7 +155,7 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
   }
 }
 
-import { analyzePatientRisks, PredictionAlert } from '../lib/gemini';
+import { analyzePatientRisks, PredictionAlert } from '../lib/dr7';
 
 // --- Series visibility ---
 type SeriesKey = 'cardio' | 'resp' | 'viral' | 'neuro';
@@ -212,7 +212,13 @@ export default function AIInsights() {
       setAiAlerts(results);
     } catch (e: any) {
       if (e?.code === 'NO_API_KEY') {
-        setAiError('API key not configured. Add your GEMINI_API_KEY to the .env file and restart the dev server.');
+        setAiError('API key not configured. Add your DR7_API_KEY to the .env file and restart the dev server.');
+      } else if (e?.code === 'INVALID_API_KEY') {
+        setAiError('Invalid Dr7.ai API key. Check your DR7_API_KEY in .env.');
+      } else if (e?.code === 'INSUFFICIENT_BALANCE') {
+        setAiError('Insufficient Dr7.ai balance. Top up at dr7.ai.');
+      } else if (e?.code === 'RATE_LIMITED') {
+        setAiError('Rate limit exceeded. Please wait a moment and try again.');
       } else {
         setAiError('AI analysis failed. Check your API key and network connection.');
       }
