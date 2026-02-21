@@ -307,8 +307,7 @@ export default function PatientRecords() {
       <AddPatientModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
 
       {/* Action Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 flex-shrink-0">
-        <h2 className="text-xl font-bold text-primary dark:text-white hidden md:block">Clinical Attention Queue</h2>
+      <div className="flex flex-col md:flex-row md:items-center justify-end mb-6 gap-4 flex-shrink-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative w-full md:w-72 group">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-secondary transition-colors" />
