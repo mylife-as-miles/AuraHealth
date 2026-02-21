@@ -348,6 +348,7 @@ export default function PatientRecords() {
   const [streamingText, setStreamingText] = useState<Record<string, string>>({});
   const [reasoningLoading, setReasoningLoading] = useState<string | null>(null);
   const [reasoningDone, setReasoningDone] = useState<Set<string>>(new Set());
+  const [lastAnalyzed, setLastAnalyzed] = useState<Record<string, number>>({});
   const [acceptedPatients, setAcceptedPatients] = useState<Set<string>>(new Set());
 
   // Close context menu on outside click
@@ -758,6 +759,7 @@ export default function PatientRecords() {
                             }));
                           });
                           setReasoningDone(prev => new Set([...prev, patientId]));
+                          setLastAnalyzed(prev => ({ ...prev, [patientId]: Date.now() }));
                         } catch (e) {
                           console.error('Streaming reasoning failed:', e);
                           setStreamingText(prev => ({
@@ -781,12 +783,28 @@ export default function PatientRecords() {
                   )}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-5 relative before:absolute before:left-1.5 before:top-2 before:bottom-0 before:w-[2px] before:bg-cyan/30">
-                  <p className="mb-1.5">MedGemma reasoning:</p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p>MedGemma reasoning:</p>
+                    {reasoningDone.has(selectedPatient.id) && lastAnalyzed[selectedPatient.id] && (
+                      <span className="text-[10px] text-gray-400 font-normal">
+                        Updated {Math.floor((Date.now() - lastAnalyzed[selectedPatient.id]) / 1000)}s ago
+                      </span>
+                    )}
+                  </div>
                   {streamingText[selectedPatient.id] !== undefined ? (
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-wrap font-mono">
-                      {streamingText[selectedPatient.id]}
-                      {!reasoningDone.has(selectedPatient.id) && (
-                        <span className="inline-block w-1.5 h-3.5 bg-cyan ml-0.5 animate-pulse rounded-sm" />
+                    <div className="space-y-3">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-wrap font-mono">
+                        {streamingText[selectedPatient.id]}
+                        {!reasoningDone.has(selectedPatient.id) && (
+                          <span className="inline-block w-1.5 h-3.5 bg-cyan ml-0.5 animate-pulse rounded-sm" />
+                        )}
+                      </div>
+                      {reasoningDone.has(selectedPatient.id) && (
+                        <div className="flex items-center gap-2">
+                          <div className="px-2 py-0.5 rounded bg-cyan/10 border border-cyan/20 text-[9px] font-bold text-cyan uppercase tracking-wider">
+                            medgemma-27b-it • Clinical reasoning
+                          </div>
+                        </div>
                       )}
                     </div>
                   ) : (

@@ -463,18 +463,23 @@ export default function AIInsights() {
                   <h3 className="font-bold text-lg">Model Accuracy</h3>
                   <p className="text-xs text-gray-300">{aiEvents.length} verified AI events</p>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowExplainabilityModal(true)}
-                    className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-1.5 rounded-lg border border-white/10 transition-colors"
-                    title="How predictions work"
-                  >
-                    <Info size={14} className="text-white" />
-                  </button>
-                  <span className="bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-mono border border-white/10 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                    LIVE
-                  </span>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowExplainabilityModal(true)}
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-1.5 rounded-lg border border-white/10 transition-colors"
+                      title="How predictions work"
+                    >
+                      <Info size={14} className="text-white" />
+                    </button>
+                    <span className="bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-mono border border-white/10 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                      LIVE
+                    </span>
+                  </div>
+                  <div className="px-2 py-0.5 rounded bg-white/10 border border-white/20 text-[8px] font-bold text-gray-200 uppercase tracking-wider">
+                    medgemma-27b-it
+                  </div>
                 </div>
               </div>
 
