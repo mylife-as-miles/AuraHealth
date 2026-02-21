@@ -107,3 +107,129 @@ Return EXACTLY a JSON array of 3 objects with this structure (do not include mar
         throw error;
     }
 }
+
+// ─── Shared API helper ────────────────────────────────────────────────
+async function callDr7Api(systemPrompt: string, userPrompt: string, maxTokens = 1000): Promise<string> {
+    const apiKey = process.env.DR7_API_KEY;
+
+    if (!apiKey) {
+        const err = new Error("DR7_API_KEY is not configured. Add your API key to the .env file.");
+        (err as any).code = 'NO_API_KEY';
+        throw err;
+    }
+
+    const response = await fetch(DR7_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'medgemma-27b-it',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            max_tokens: maxTokens,
+            temperature: 0.2
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const errorMessage = (errorBody as any)?.error?.message || response.statusText;
+
+        if (response.status === 401) { const e = new Error(`Invalid API key.`); (e as any).code = 'INVALID_API_KEY'; throw e; }
+        if (response.status === 402) { const e = new Error(`Insufficient balance.`); (e as any).code = 'INSUFFICIENT_BALANCE'; throw e; }
+        if (response.status === 429) { const e = new Error(`Rate limited.`); (e as any).code = 'RATE_LIMITED'; throw e; }
+
+        throw new Error(`Dr7.ai API error (${response.status}): ${errorMessage}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+}
+
+function parseJson<T>(raw: string): T {
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(cleaned);
+}
+
+// ─── Flow A: Referral Note → AI Triage ────────────────────────────────
+export interface TriageResult {
+    priority: 'High Risk' | 'Moderate' | 'Low Risk';
+    aiReason: string;
+    riskPercentage: number;
+    condition: string;
+}
+
+export async function triageReferralNotes(
+    notes: string, context: string, age: number, gender: string
+): Promise<TriageResult> {
+    const prompt = `
+Analyze the following unstructured referral notes for a ${age}-year-old ${gender} patient in a ${context} context.
+
+Referral Notes:
+"""
+${notes}
+"""
+
+Return EXACTLY one JSON object (no markdown wrappers):
+{
+  "priority": "High Risk" | "Moderate" | "Low Risk",
+  "aiReason": "3-5 word clinical justification (e.g. 'Acute cardiac deterioration')",
+  "riskPercentage": integer 1-100 representing complication risk if ignored,
+  "condition": "Primary suspected condition (e.g. 'Acute Myocardial Infarction')"
+}
+`;
+
+    const raw = await callDr7Api(
+        'You are MedGemma, an autonomous triage agent. Analyze referral notes and determine clinical priority. Always respond with valid JSON only.',
+        prompt,
+        500
+    );
+
+    return parseJson<TriageResult>(raw);
+}
+
+// ─── Flow B: "Why This Patient Appeared" — Live Reasoning ─────────────
+export interface PatientReasoning {
+    deviation: string;
+    patternDetection: string;
+    riskForecast: string;
+}
+
+export async function generatePatientReasoning(patient: Patient): Promise<PatientReasoning> {
+    const vitalsStr = patient.vitals.length > 0
+        ? patient.vitals.slice(-5).map(v => `HR:${v.hr} BP:${v.sys}/${v.dia} Temp:${v.temp}°F`).join('; ')
+        : 'No vitals recorded';
+
+    const historyStr = patient.history.length > 0
+        ? patient.history.slice(-3).map(h => `${h.date}: ${h.title} (${h.type})`).join('; ')
+        : 'No history';
+
+    const prompt = `
+Patient: ${patient.name}, ${patient.age}yo ${patient.gender}
+Condition: ${patient.condition}
+Risk Level: ${patient.risk}
+Recent Vitals: ${vitalsStr}
+History: ${historyStr}
+AI Summary: ${patient.aiSummary || 'None'}
+
+As a HAI-DEF clinical monitoring system, explain WHY this patient was surfaced in the Clinical Attention Queue.
+Return EXACTLY one JSON object (no markdown wrappers):
+{
+  "deviation": "A specific statement about how this patient's data deviates from their established baseline (e.g. 'Heart rate trending 22% above 7-day average')",
+  "patternDetection": "What clinical pattern was detected across their records (e.g. 'Matches 847 prior CHF decompensation trajectories')",
+  "riskForecast": "A time-bound risk forecast with urgency (e.g. 'Escalation recommended within 15 minutes — 78% probability of adverse event within 6 hours')"
+}
+`;
+
+    const raw = await callDr7Api(
+        'You are MedGemma, a HAI-DEF clinical AI system. Provide specific, data-grounded reasoning for clinical escalation. Always respond with valid JSON only.',
+        prompt,
+        600
+    );
+
+    return parseJson<PatientReasoning>(raw);
+}

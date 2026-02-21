@@ -39,6 +39,8 @@ export interface Patient {
     history: TimelineEvent[];
     insurance: { provider: string; policy: string };
     aiSummary: string;
+    aiReason?: string;       // AI-generated triage reason (e.g. "Vital deterioration")
+    riskPercentage?: number; // AI-estimated complication risk if ignored
 }
 
 // Diagnostics
@@ -161,4 +163,12 @@ export interface AuthUser {
     password: string;
     createdAt: number;
     updatedAt: number;
+}
+
+export interface AIDecision {
+    id?: number;            // Auto-increment
+    patientId: string;
+    aiPriority: string;     // The risk level AI assigned
+    clinicianAccepted: boolean;
+    timestamp: number;
 }
