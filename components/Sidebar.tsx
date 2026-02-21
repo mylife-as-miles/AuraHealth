@@ -24,8 +24,8 @@ const NavItem = ({ icon: Icon, label, to, isNew = false }: NavItemProps) => (
   <NavLink
     to={to}
     className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl transition-all group ${isActive
-        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-        : 'text-gray-500 dark:text-gray-400 hover:bg-background-light dark:hover:bg-gray-800'
+      ? 'bg-primary text-white shadow-lg shadow-primary/20'
+      : 'text-gray-500 dark:text-gray-400 hover:bg-background-light dark:hover:bg-gray-800'
       }`}
   >
     {({ isActive }) => (
@@ -72,7 +72,7 @@ export default function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void })
       <nav className="flex-1 space-y-1">
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Overview</div>
         <NavItem icon={LayoutDashboard} label="Dashboard" to="/" />
-        <NavItem icon={FolderOpen} label="Patient Records" to="/patients" />
+        <NavItem icon={FolderOpen} label="Clinical Queue" to="/patients" />
         <NavItem icon={Activity} label="Diagnostics" to="/diagnostics" />
         <NavItem icon={BrainCircuit} label="AI Insights" to="/ai-insights" isNew />
         <NavItem icon={GitBranch} label="Clinical Workflow" to="/workflow" />
