@@ -1,148 +1,149 @@
-import React, { useState, useEffect } from 'react';
-import { MoreHorizontal, TrendingUp } from 'lucide-react';
-
+import React, { useMemo, useState, useEffect } from 'react';
+import { Activity, Clock, AlertTriangle, ShieldAlert, Zap, Stethoscope, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
-import { Patient } from '../../lib/types';
-
-type Period = 'Today' | 'This Week' | 'This Month';
-
-const useAnimatedNumber = (target: number, duration = 600) => {
-  const [value, setValue] = useState(target);
-  useEffect(() => {
-    let start: number | null = null;
-    const from = value;
-    const diff = target - from;
-    if (diff === 0) return;
-    const step = (ts: number) => {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      setValue(Math.round(from + diff * progress));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target]);
-  return value;
-};
-
-const StatBox = ({ label, value, trend, trendColor }: { label: string, value: string, trend: string, trendColor: 'secondary' | 'cyan' }) => (
-  <div className="flex-1 p-4 rounded-2xl bg-background-light dark:bg-gray-800/50 border border-transparent dark:border-border-dark">
-    <p className="text-xs font-semibold text-gray-500 mb-2">{label}</p>
-    <div className="flex items-baseline gap-2">
-      <h4 className="text-2xl font-bold text-primary dark:text-white tracking-tight">{value}</h4>
-      <span className={`text-xs font-bold flex items-center px-1.5 py-0.5 rounded ${trendColor === 'secondary' ? 'text-secondary bg-secondary/10' : 'text-cyan bg-cyan/10'
-        }`}>
-        {trendColor === 'secondary' && <TrendingUp className="w-3 h-3 mr-0.5" />}
-        {trend}
-      </span>
-    </div>
-  </div>
-);
-
-const ProgressBar = ({ label, percentage, color }: { label: string, percentage: number, color: string }) => (
-  <div>
-    <div className="flex justify-between text-xs font-bold mb-2">
-      <span className="text-gray-600 dark:text-gray-300">{label}</span>
-      <span className="text-primary dark:text-white">{percentage}% Capacity</span>
-    </div>
-    <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-      <div
-        className="h-full rounded-full transition-all duration-1000 ease-out"
-        style={{ width: `${percentage}%`, backgroundColor: color }}
-      ></div>
-    </div>
-  </div>
-);
 
 export default function ClinicalInsights() {
-  const [period, setPeriod] = useState<Period>('This Week');
-  const [showMenu, setShowMenu] = useState(false);
-
   const patients = useLiveQuery(() => db.patients.toArray()) || [];
+  const notifications = useLiveQuery(() => db.notifications.orderBy('timestamp').reverse().toArray()) || [];
 
-  // Calculate stats
-  const stats = React.useMemo(() => {
-    const total = patients.length || 1;
-    const active = patients.filter(p => p.active).length;
-    const stable = patients.filter(p => p.risk === 'Low Risk').length;
+  // 1. AI Agent Status: Monitoring X Active Cases
+  const activeCasesCount = useMemo(() => patients.filter(p => p.active !== false).length, [patients]);
 
-    // Simple keyword matching for demo purposes
-    const cardio = patients.filter(p => /heart|arythmia|cardio|hyper/i.test(p.condition)).length;
-    const neuro = patients.filter(p => /neuro|brain|migraine|seizure|epilepsy/i.test(p.condition)).length;
+  // 2. Last autonomous intervention: 3 minutes ago
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000); // update every minute
+    return () => clearInterval(timer);
+  }, []);
 
-    // Mock trends based on period for visual variety
-    const trendMult = period === 'Today' ? 0.2 : period === 'This Week' ? 1 : 4;
+  const interventions = useMemo(() => {
+    return notifications.filter(n => ['task', 'critical', 'consult', 'system'].includes(n.type));
+  }, [notifications]);
 
-    return {
-      activeCases: active,
-      activeTrend: active > 0 ? `+${Math.round(active * 0.1 * trendMult)}%` : '0%',
-      recoveryRate: Math.round((stable / total) * 100),
-      recoveryTrend: `+${(1.2 * trendMult).toFixed(1)}%`,
-      cardiology: Math.round((cardio / total) * 100),
-      neurology: Math.round((neuro / total) * 100)
-    };
-  }, [patients, period]);
+  const lastInterventionTime = useMemo(() => {
+    if (interventions.length === 0) return 'No recent interventions';
+    const last = interventions[0].timestamp;
+    const diffMins = Math.floor((now - last) / 60000);
+    if (diffMins === 0) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    return `${Math.floor(diffHours / 24)} days ago`;
+  }, [interventions, now]);
 
-  const animatedCases = useAnimatedNumber(stats.activeCases);
-  const animatedRecovery = useAnimatedNumber(stats.recoveryRate);
-  const animatedCardio = useAnimatedNumber(stats.cardiology);
-  const animatedNeuro = useAnimatedNumber(stats.neurology);
+  // 3. Escalations today: 7
+  const escalationsToday = useMemo(() => {
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    return notifications.filter(n =>
+      ['critical', 'consult'].includes(n.type) && n.timestamp > oneDayAgo
+    ).length;
+  }, [notifications, now]);
+
+  // 🔴 Active Interventions List (Top 3)
+  const activeInterventionsList = useMemo(() => {
+    return interventions.slice(0, 3);
+  }, [interventions]);
+
+  const getInterventionIcon = (type: string) => {
+    switch (type) {
+      case 'critical': return <ShieldAlert className="w-4 h-4 text-accent" />;
+      case 'consult': return <Stethoscope className="w-4 h-4 text-purple-500" />;
+      case 'task': return <Zap className="w-4 h-4 text-cyan" />;
+      case 'system': return <Activity className="w-4 h-4 text-secondary" />;
+      default: return <Activity className="w-4 h-4 text-secondary" />;
+    }
+  };
+
+  const getInterventionColor = (type: string) => {
+    switch (type) {
+      case 'critical': return 'border-l-accent';
+      case 'consult': return 'border-l-purple-500';
+      case 'task': return 'border-l-cyan';
+      case 'system': return 'border-l-secondary';
+      default: return 'border-l-secondary';
+    }
+  };
 
   return (
-    <div className="flex-1 flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-bold text-primary dark:text-white text-lg">Clinical Insights</h3>
-          <p className="text-xs text-gray-500 font-medium mt-1">MedGemma Model Analysis</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Period Selector */}
-          <div className="flex bg-background-light dark:bg-gray-800 rounded-lg p-0.5">
-            {(['Today', 'This Week', 'This Month'] as Period[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${period === p
-                  ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                  }`}
-              >
-                {p}
-              </button>
-            ))}
+    <div className="flex-1 flex flex-col bg-white dark:bg-card-dark rounded-3xl border border-accent/20 dark:border-accent/10 shadow-[0_0_30px_rgba(254,87,150,0.05)] overflow-hidden relative">
+      {/* Subtle pulsing background gradient for the active AI feel */}
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-50 animate-pulse pointer-events-none"></div>
+
+      <div className="p-5 lg:p-6 flex flex-col h-full relative z-10 w-full">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <h3 className="font-extrabold text-primary dark:text-white text-base lg:text-lg tracking-tight">LIVE AI MONITOR</h3>
           </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <MoreHorizontal className="text-gray-400 w-5 h-5" />
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 w-40">
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  View Full Report
-                </button>
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  Export Data
-                </button>
-                <button onClick={() => setShowMenu(false)} className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  Configure Alerts
-                </button>
+          <div className="bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] lg:text-[10px] font-bold px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-full border border-green-500/20 uppercase tracking-widest flex items-center gap-1">
+            <Activity size={12} /> Active
+          </div>
+        </div>
+
+        {/* Persistent Panel */}
+        <div className="bg-background-light dark:bg-gray-800/80 rounded-2xl p-4 lg:p-5 mb-6 border border-gray-100 dark:border-gray-700/50 shadow-inner w-full">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700 w-full">
+              <span className="text-[11px] lg:text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <ShieldAlert size={14} className="text-gray-400 flex-shrink-0" />
+                AI Agent Status
+              </span>
+              <span className="text-[11px] lg:text-sm font-bold text-primary dark:text-white text-right">Monitoring {activeCasesCount} Active Cases</span>
+            </div>
+            <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-700 w-full">
+              <span className="text-[11px] lg:text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <Clock size={14} className="text-gray-400 flex-shrink-0" />
+                Last autonomous intervention
+              </span>
+              <span className="text-[11px] lg:text-sm font-bold text-primary dark:text-white text-right">{lastInterventionTime}</span>
+            </div>
+            <div className="flex justify-between items-center w-full">
+              <span className="text-[11px] lg:text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <AlertTriangle size={14} className="text-gray-400 flex-shrink-0" />
+                Escalations today
+              </span>
+              <span className="text-[11px] lg:text-sm font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md text-right">{escalationsToday}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Interventions */}
+        <div className="flex-1 flex flex-col justify-start">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+            <h4 className="text-[11px] lg:text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Active Interventions</h4>
+          </div>
+
+          <div className="space-y-3 flex-1 w-full">
+            {activeInterventionsList.length > 0 ? (
+              activeInterventionsList.map(item => (
+                <div key={item.id} className={`bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 p-3 rounded-xl shadow-sm flex items-start gap-3 border-l-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${getInterventionColor(item.type)} w-full`}>
+                  <div className={`p-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 mt-0.5`}>
+                    {getInterventionIcon(item.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-[11px] lg:text-xs font-bold text-primary dark:text-white truncate">{item.title}</h5>
+                    <p className="text-[9px] lg:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight line-clamp-2">{item.content}</p>
+                  </div>
+                  <ChevronRight size={14} className="text-gray-400 flex-shrink-0 mt-1 hidden sm:block" />
+                </div>
+              ))
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 min-h-[140px] w-full">
+                <CheckCircle2 size={24} className="text-green-400 mb-2 opacity-50" />
+                <p className="text-[11px] lg:text-xs font-bold text-gray-500 dark:text-gray-400">All systems nominal</p>
+                <p className="text-[9px] lg:text-[10px] text-gray-400 mt-1">No active interventions required at this time.</p>
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <StatBox label="Active Cases" value={String(animatedCases)} trend={stats.activeTrend} trendColor="secondary" />
-        <StatBox label="Recovery Rate" value={`${animatedRecovery}%`} trend={stats.recoveryTrend} trendColor="cyan" />
-      </div>
-
-      <div className="space-y-5">
-        <ProgressBar label="Cardiology Ward" percentage={animatedCardio} color="#FE5796" />
-        <ProgressBar label="Neurology Ward" percentage={animatedNeuro} color="#54E097" />
       </div>
     </div>
   );
