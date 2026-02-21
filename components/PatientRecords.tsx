@@ -117,7 +117,18 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         insurance: { provider: formData.insurance || 'Unknown', policy: 'Pending' },
         aiSummary: `AI Triage Result: ${triageData.condition} — ${triageData.aiReason}. Complication risk if ignored: ${triageData.riskPercentage}%.`,
         aiReason: triageData.aiReason,
-        riskPercentage: triageData.riskPercentage
+        riskPercentage: triageData.riskPercentage,
+        baselineSummary: `Baseline established for ${triageData.condition}. Risk profile: ${triageData.priority}.`,
+        currentPriority: triageData.priority,
+        riskIfIgnored: triageData.riskPercentage
+      });
+
+      // Log AI Event: TRIAGED
+      await db.aiDecisions.add({
+        patientId: newId,
+        type: 'TRIAGED',
+        model: 'medgemma-27b-it',
+        timestamp: Date.now()
       });
 
       await db.notifications.add({
@@ -794,8 +805,8 @@ export default function PatientRecords() {
                     try {
                       await db.aiDecisions.add({
                         patientId: selectedPatient.id,
-                        aiPriority: selectedPatient.risk,
-                        clinicianAccepted: true,
+                        type: 'ESCALATED',
+                        model: 'medgemma-27b-it',
                         timestamp: Date.now()
                       });
                       // Mark patient as active & add history entry
