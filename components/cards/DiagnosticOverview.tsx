@@ -5,6 +5,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { SafeChart } from '../SafeChart';
+import EmptyState from '../EmptyState';
+import { Activity } from 'lucide-react';
 
 type DateRange = '6 Months' | '1 Year';
 
@@ -182,16 +184,14 @@ function DiagnosticOverviewContent() {
         </div>
       </div>
 
-      {/* Fixed height container */}
-      <div className="h-[250px] w-full relative min-w-0">
+      <div className="h-[300px] w-full relative min-w-0">
 
         <ErrorBoundary>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
-            {data && data.length > 0 ? (
+          {allCases.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
               <SafeChart>
                 <ComposedChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }}>
                   <defs>
-                    {/* Stripe Pattern for the Peak bar */}
                     <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
                       <rect width="10" height="10" fill="#54E097" />
                       <path d="M 0,10 L 10,0" stroke="rgba(255,255,255,0.3)" strokeWidth="4" />
@@ -221,12 +221,16 @@ function DiagnosticOverviewContent() {
                   </Bar>
                 </ComposedChart>
               </SafeChart>
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-gray-400">
-                No data available
-              </div>
-            )}
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full bg-white dark:bg-card-dark rounded-3xl border border-dashed border-gray-200 dark:border-gray-700/50">
+              <EmptyState
+                icon={Activity}
+                title="No Diagnostic Data"
+                description="Import patient records or run new diagnostics to see intake vs discharge trends."
+              />
+            </div>
+          )}
         </ErrorBoundary>
 
         {/* Floating Peak Label - dynamically positioned */}
