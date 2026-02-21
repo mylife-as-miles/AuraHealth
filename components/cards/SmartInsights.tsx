@@ -13,45 +13,52 @@ export default function SmartInsights() {
   const cases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
 
   const insights = useMemo(() => {
-    // defaults
     if (!patients.length && !cases.length) return [];
 
-    // 1. Recovery Rate (Low Risk / Total)
-    const active = patients.filter(p => p.active).length;
-    const stable = patients.filter(p => p.risk === 'Low Risk').length;
-    const recoveryParam = active > 0 ? Math.round((stable / (active || 1)) * 100) / 10 : 12; // simulated growth
+    const active = patients.filter(p => p.active !== false);
+    const totalActive = active.length || 1;
 
-    // 2. High Confidence Cases
+    // 1. Recovery Rate: based on actual Low Risk patient ratio
+    const lowRisk = active.filter(p => p.risk === 'Low Risk').length;
+    const recoveryRate = ((lowRisk / totalActive) * 100).toFixed(1);
+
+    // 2. Diagnostic Efficiency: based on avg confidence score from completed cases
+    const completedCases = cases.filter(c => c.confidence > 0);
+    const avgConfidence = completedCases.length > 0
+      ? (completedCases.reduce((sum, c) => sum + c.confidence, 0) / completedCases.length).toFixed(1)
+      : '0';
+
+    // 3. High Confidence Accuracy: percentage of cases above 90% confidence
     const highConf = cases.filter(c => c.confidence > 90).length;
-    const accuracy = cases.length > 0 ? ((highConf / cases.length) * 100).toFixed(1) : '96.4';
+    const accuracy = cases.length > 0 ? ((highConf / cases.length) * 100).toFixed(1) : '0';
 
-    // 3. Avg Turnaround (mocked variation based on case count)
-    const turnAround = Math.max(15, 45 - cases.length);
+    // 4. Avg Processing: based on total slices across active scans
+    const totalSlices = cases.reduce((sum, c) => sum + c.totalSlices, 0);
+    const avgSlices = cases.length > 0 ? Math.round(totalSlices / cases.length) : 0;
 
     const dynamic = [
       {
-        text: 'Patient recovery rates are projected to increase by',
-        highlight: `${recoveryParam}%`,
-        suffix: 'based on current HAI-DEF diagnostic trends.'
+        text: `${lowRisk} of ${totalActive} patients classified as low-risk — recovery rate at`,
+        highlight: `${recoveryRate}%`,
+        suffix: 'based on current triage data.'
       },
       {
-        text: 'Cardiology ward efficiency has improved by',
-        highlight: `${(8 + (cases.length % 5)).toFixed(1)}%`,
-        suffix: 'after MedGemma model optimizations.'
+        text: 'Average diagnostic confidence across completed scans is',
+        highlight: `${avgConfidence}%`,
+        suffix: 'powered by MedGemma model analysis.'
       },
       {
-        text: 'Early detection accuracy for oncology cases reached',
+        text: 'High-confidence detection (>90%) achieved in',
         highlight: `${accuracy}%`,
-        suffix: 'using cross-referencing modules.'
+        suffix: `of ${cases.length} diagnostic ${cases.length === 1 ? 'case' : 'cases'}.`
       },
       {
-        text: 'Average diagnostic turnaround time reduced by',
-        highlight: `${turnAround} min`,
-        suffix: 'compared to the previous quarter.'
+        text: 'Average scan complexity:',
+        highlight: `${avgSlices} slices`,
+        suffix: `across ${cases.length} active ${cases.length === 1 ? 'study' : 'studies'}.`
       },
     ];
     return dynamic;
-
   }, [patients, cases]);
 
   useEffect(() => {

@@ -39,6 +39,11 @@ export interface Patient {
     history: TimelineEvent[];
     insurance: { provider: string; policy: string };
     aiSummary: string;
+    aiReason?: string;           // AI-generated triage reason
+    riskPercentage?: number;     // AI-estimated complication risk if ignored
+    baselineSummary?: string;    // AI-generated baseline summary for HAI-DEF
+    currentPriority?: string;    // AI-assigned queue priority
+    riskIfIgnored?: number;      // Numeric risk score if patient is ignored
 }
 
 // Diagnostics
@@ -161,4 +166,12 @@ export interface AuthUser {
     password: string;
     createdAt: number;
     updatedAt: number;
+}
+
+export interface AIEvent {
+    id?: number;             // Auto-increment
+    patientId: string;
+    type: 'TRIAGED' | 'ESCALATED';
+    model: string;           // e.g. 'medgemma-27b-it'
+    timestamp: number;
 }

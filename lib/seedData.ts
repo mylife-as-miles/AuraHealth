@@ -1,4 +1,4 @@
-import { Patient, DiagCase, WorkflowCard, NotificationItem, AppSettings } from './types';
+import { Patient, DiagCase, WorkflowCard, NotificationItem, AppSettings, Finding, Annotation, Diagnosis } from './types';
 import { db } from './db';
 
 const generateVitals = (baseHr: number, baseSys: number) => [
@@ -439,7 +439,458 @@ export const MOCK_PATIENTS: Patient[] = [
     }
 ];
 
-// Mock data for other tables removed as per user request (patients only)
+// ─── Mock Diagnostic Cases ──────────────────────────────────────────────────
+
+const NOW = Date.now();
+const HOUR = 3600000;
+
+export const MOCK_DIAGNOSTIC_CASES: DiagCase[] = [
+    {
+        id: 'DC-001',
+        patientId: '#AH-1001',
+        patientName: 'Eleanor Voss',
+        scanType: 'Chest X-Ray',
+        status: 'Critical',
+        time: '08:42 AM',
+        image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=600&q=80',
+        totalSlices: 1,
+        confidence: 94.2,
+        modelName: 'CheXAgent v2.1',
+        findings: [
+            { severity: 'critical', title: 'Bilateral pleural effusion', description: 'Moderate fluid accumulation in both pleural spaces, more prominent on the right.' },
+            { severity: 'info', title: 'Cardiomegaly', description: 'Cardiothoracic ratio 0.58, consistent with known atrial fibrillation history.' }
+        ],
+        diagnosis: [
+            { label: 'Pleural Effusion', val: 94, color: '#FE5796' },
+            { label: 'Cardiomegaly', val: 87, color: '#F59E0B' },
+            { label: 'Pulmonary Edema', val: 62, color: '#54E097' }
+        ],
+        annotations: [
+            { type: 'box', top: '35%', left: '15%', width: '30%', height: '25%', label: 'R. Pleural Effusion', confidence: 94, severity: 'critical' },
+            { type: 'box', top: '40%', left: '55%', width: '28%', height: '22%', label: 'L. Pleural Effusion', confidence: 89, severity: 'critical' },
+            { type: 'point', top: '30%', left: '45%', label: 'Enlarged cardiac silhouette', confidence: 87, severity: 'info', lineX2: '50%', lineY2: '45%' }
+        ],
+        aiSummary: 'CheXAgent detected bilateral pleural effusion with high confidence (94.2%). Cardiomegaly noted, consistent with patient history of atrial fibrillation. Recommend urgent echocardiography and thoracentesis evaluation.',
+        timestamp: NOW - HOUR * 2
+    },
+    {
+        id: 'DC-002',
+        patientId: '#AH-1004',
+        patientName: 'James Whitfield',
+        scanType: 'CT Thorax',
+        status: 'Ready',
+        time: '09:15 AM',
+        image: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=600&q=80',
+        totalSlices: 128,
+        confidence: 91.7,
+        modelName: 'MedGemma-27b',
+        findings: [
+            { severity: 'critical', title: 'Emphysematous changes', description: 'Extensive bullous emphysema involving upper lobes bilaterally, consistent with COPD Stage III.' },
+            { severity: 'info', title: 'Bronchial wall thickening', description: 'Diffuse bronchial wall thickening suggesting chronic bronchitis component.' }
+        ],
+        diagnosis: [
+            { label: 'Emphysema', val: 92, color: '#FE5796' },
+            { label: 'Chronic Bronchitis', val: 78, color: '#F59E0B' },
+            { label: 'Pneumothorax', val: 12, color: '#54E097' }
+        ],
+        annotations: [
+            { type: 'box', top: '20%', left: '20%', width: '25%', height: '20%', label: 'R. Upper Lobe Bullae', confidence: 92, severity: 'critical' },
+            { type: 'box', top: '22%', left: '55%', width: '23%', height: '18%', label: 'L. Upper Lobe Bullae', confidence: 89, severity: 'critical' }
+        ],
+        aiSummary: 'CT confirms advanced emphysematous changes consistent with COPD Stage III. Bullous disease predominates in upper lobes. No acute pneumothorax identified. Bronchial wall thickening suggests chronic bronchitis overlap.',
+        timestamp: NOW - HOUR * 3
+    },
+    {
+        id: 'DC-003',
+        patientId: '#AH-1007',
+        patientName: 'Priya Sharma',
+        scanType: 'Breast MRI',
+        status: 'In Progress',
+        time: '10:30 AM',
+        image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=600&q=80',
+        totalSlices: 256,
+        confidence: 88.5,
+        modelName: 'MedSigLIP v1',
+        findings: [
+            { severity: 'info', title: 'Post-surgical changes', description: 'Expected post-lumpectomy changes in right breast upper outer quadrant.' },
+            { severity: 'info', title: 'No suspicious enhancement', description: 'No new areas of abnormal enhancement identified on dynamic sequences.' }
+        ],
+        diagnosis: [
+            { label: 'Post-Surgical', val: 95, color: '#54E097' },
+            { label: 'Recurrence', val: 8, color: '#FE5796' },
+            { label: 'Benign Cyst', val: 15, color: '#F59E0B' }
+        ],
+        annotations: [
+            { type: 'box', top: '30%', left: '60%', width: '20%', height: '15%', label: 'Surgical site', confidence: 95, severity: 'info' }
+        ],
+        aiSummary: 'Post-treatment surveillance MRI shows expected surgical changes. No suspicious enhancement or mass lesion to suggest recurrence. BI-RADS 2 - Benign.',
+        progress: 72,
+        timestamp: NOW - HOUR * 1.5
+    },
+    {
+        id: 'DC-004',
+        patientId: '#AH-1006',
+        patientName: 'Robert Tanaka',
+        scanType: 'Echocardiogram',
+        status: 'Ready',
+        time: '11:05 AM',
+        image: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80',
+        totalSlices: 1,
+        confidence: 96.1,
+        modelName: 'MedGemma-27b',
+        findings: [
+            { severity: 'critical', title: 'Reduced ejection fraction', description: 'LVEF estimated at 42%, reduced from previous 45%. Mild global hypokinesis.' },
+            { severity: 'info', title: 'Stent patency confirmed', description: 'LAD stent appears patent with no evidence of in-stent restenosis on color Doppler.' }
+        ],
+        diagnosis: [
+            { label: 'Reduced EF', val: 96, color: '#FE5796' },
+            { label: 'Hypokinesis', val: 82, color: '#F59E0B' },
+            { label: 'Valve Disease', val: 18, color: '#54E097' }
+        ],
+        annotations: [
+            { type: 'point', top: '45%', left: '40%', label: 'LV - EF 42%', confidence: 96, severity: 'critical', lineX2: '55%', lineY2: '50%' }
+        ],
+        aiSummary: 'Echocardiogram reveals progressive decline in LVEF (42%, previously 45%). Post-MI recovery complicated by mild global hypokinesis. Stent remains patent. Consider up-titration of heart failure medications.',
+        timestamp: NOW - HOUR * 4
+    },
+    {
+        id: 'DC-005',
+        patientId: '#AH-1018',
+        patientName: 'Charles Dubois',
+        scanType: 'Chest X-Ray',
+        status: 'Critical',
+        time: '07:30 AM',
+        image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=600&q=80',
+        totalSlices: 1,
+        confidence: 97.3,
+        modelName: 'CheXAgent v2.1',
+        findings: [
+            { severity: 'critical', title: 'Pulmonary congestion', description: 'Cephalization of pulmonary vessels and bilateral perihilar haziness consistent with acute decompensated heart failure.' },
+            { severity: 'critical', title: 'Bilateral pleural effusion', description: 'Small bilateral pleural effusions, right greater than left.' }
+        ],
+        diagnosis: [
+            { label: 'Pulmonary Congestion', val: 97, color: '#FE5796' },
+            { label: 'Pleural Effusion', val: 91, color: '#F59E0B' },
+            { label: 'Pneumonia', val: 22, color: '#54E097' }
+        ],
+        annotations: [
+            { type: 'box', top: '25%', left: '25%', width: '50%', height: '30%', label: 'Perihilar congestion', confidence: 97, severity: 'critical' },
+            { type: 'box', top: '60%', left: '15%', width: '25%', height: '15%', label: 'R. Effusion', confidence: 91, severity: 'critical' }
+        ],
+        aiSummary: 'Chest X-ray demonstrates classic findings of acute decompensated heart failure: pulmonary venous congestion with cephalization and bilateral pleural effusions. BNP correlation recommended. Urgent diuretic adjustment advised.',
+        timestamp: NOW - HOUR * 5
+    },
+    {
+        id: 'DC-006',
+        patientId: '#AH-1016',
+        patientName: 'Benjamin Cruz',
+        scanType: 'Brain MRI',
+        status: 'Pending',
+        time: '12:00 PM',
+        image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=600&q=80',
+        totalSlices: 192,
+        confidence: 0,
+        modelName: 'MedGemma-27b',
+        findings: [],
+        diagnosis: [],
+        annotations: [],
+        aiSummary: '',
+        progress: 0,
+        timestamp: NOW - HOUR * 0.5
+    }
+];
+
+// ─── Mock Workflow Cards ────────────────────────────────────────────────────
+
+export const MOCK_WORKFLOW_CARDS: WorkflowCard[] = [
+    {
+        id: 'WF-001',
+        patientId: '#AH-1001',
+        patientName: 'Eleanor Voss',
+        age: 67,
+        gender: 'Female',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100',
+        priority: 'critical',
+        scanType: 'Chest X-Ray',
+        aiProgress: 100,
+        column: 'consultation',
+        time: '8:42 AM',
+        doctor: 'Dr. Reyes',
+        note: 'Bilateral pleural effusion confirmed. Awaiting cardiology consult for thoracentesis decision.',
+        tags: ['Cardiology', 'Urgent'],
+        aiRecommendations: [
+            { icon: 'alert', title: 'Urgent Thoracentesis', description: 'Moderate-to-large bilateral effusion. Diagnostic and therapeutic thoracentesis recommended.', actionLabel: 'Schedule', actionColor: 'bg-accent' },
+            { icon: 'file', title: 'Echocardiogram', description: 'Assess cardiac function given known AFib and new effusions.', actionLabel: 'Order', actionColor: 'bg-primary' }
+        ],
+        nextSteps: [
+            { icon: 'stethoscope', title: 'Cardiology Consult', subtitle: 'Dr. Reyes reviewing', color: 'text-purple-500' },
+            { icon: 'clipboard', title: 'Thoracentesis Decision', subtitle: 'Pending consult outcome', color: 'text-cyan' }
+        ]
+    },
+    {
+        id: 'WF-002',
+        patientId: '#AH-1018',
+        patientName: 'Charles Dubois',
+        age: 82,
+        gender: 'Male',
+        initials: 'CD',
+        priority: 'critical',
+        scanType: 'Chest X-Ray',
+        aiProgress: 100,
+        column: 'treatment',
+        time: '7:30 AM',
+        doctor: 'Dr. Okafor',
+        note: 'Acute decompensated CHF. IV Lasix 80mg initiated. Daily weight monitoring ordered.',
+        tags: ['Cardiology', 'ICU'],
+        aiRecommendations: [
+            { icon: 'alert', title: 'Fluid Restriction', description: 'Limit to 1.5L/day. Monitor I/O strictly.', actionLabel: 'Confirm', actionColor: 'bg-accent' }
+        ],
+        nextSteps: [
+            { icon: 'stethoscope', title: 'Repeat CXR in 24h', subtitle: 'Assess diuretic response', color: 'text-accent' }
+        ]
+    },
+    {
+        id: 'WF-003',
+        patientId: '#AH-1006',
+        patientName: 'Robert Tanaka',
+        age: 55,
+        gender: 'Male',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&h=100',
+        priority: 'urgent',
+        scanType: 'Echocardiogram',
+        aiProgress: 100,
+        column: 'analysis',
+        time: '11:05 AM',
+        doctor: 'Dr. Chen',
+        tags: ['Cardiology', 'Post-MI'],
+        aiRecommendations: [
+            { icon: 'stethoscope', title: 'HF Med Adjustment', description: 'EF decline from 45% to 42%. Consider sacubitril/valsartan initiation.', actionLabel: 'Review', actionColor: 'bg-primary' },
+            { icon: 'file', title: 'Cardiac Rehab', description: 'Eligible for Phase II cardiac rehabilitation program.', actionLabel: 'Refer', actionColor: 'bg-secondary' }
+        ]
+    },
+    {
+        id: 'WF-004',
+        patientId: '#AH-1004',
+        patientName: 'James Whitfield',
+        age: 72,
+        gender: 'Male',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100',
+        priority: 'urgent',
+        scanType: 'CT Thorax',
+        aiProgress: 100,
+        column: 'consultation',
+        time: '9:15 AM',
+        doctor: 'Dr. Patel',
+        note: 'Progressive emphysema. Pulmonology reviewing for oxygen therapy escalation.',
+        tags: ['Pulmonology', 'COPD'],
+        aiRecommendations: [
+            { icon: 'alert', title: 'Home O2 Reassessment', description: 'SpO2 <88% on exertion. Continuous home oxygen may be indicated.', actionLabel: 'Evaluate', actionColor: 'bg-accent' }
+        ]
+    },
+    {
+        id: 'WF-005',
+        patientId: '#AH-1007',
+        patientName: 'Priya Sharma',
+        age: 41,
+        gender: 'Female',
+        initials: 'PS',
+        priority: 'stable',
+        scanType: 'Breast MRI',
+        aiProgress: 72,
+        column: 'analysis',
+        time: '10:30 AM',
+        tags: ['Oncology', 'Surveillance'],
+        aiRecommendations: [
+            { icon: 'file', title: 'MRI Analysis In Progress', description: 'MedSigLIP processing 256 slices. Preliminary findings benign.', actionLabel: 'View', actionColor: 'bg-primary' }
+        ]
+    },
+    {
+        id: 'WF-006',
+        patientId: '#AH-1016',
+        patientName: 'Benjamin Cruz',
+        age: 69,
+        gender: 'Male',
+        avatar: 'https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=100&h=100',
+        priority: 'stable',
+        scanType: 'Brain MRI',
+        column: 'pending',
+        time: '12:00 PM',
+        tags: ['Neurology', 'Parkinsons']
+    },
+    {
+        id: 'WF-007',
+        patientId: '#AH-1020',
+        patientName: 'Samuel Adeyemi',
+        age: 44,
+        gender: 'Male',
+        avatar: 'https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?auto=format&fit=crop&w=100&h=100',
+        priority: 'critical',
+        scanType: 'Abdominal Ultrasound',
+        aiProgress: 100,
+        column: 'treatment',
+        time: '6:45 AM',
+        doctor: 'Dr. Nguyen',
+        note: 'Increasing ascites. Paracentesis scheduled for today. MELD score recalculation pending.',
+        tags: ['Hepatology', 'Transplant'],
+        aiRecommendations: [
+            { icon: 'alert', title: 'Paracentesis', description: 'Large-volume paracentesis indicated. Albumin infusion post-procedure.', actionLabel: 'Schedule', actionColor: 'bg-accent' },
+            { icon: 'stethoscope', title: 'MELD Recalculation', description: 'INR and creatinine trending up. Transplant list reassessment needed.', actionLabel: 'Calculate', actionColor: 'bg-primary' }
+        ]
+    },
+    {
+        id: 'WF-008',
+        patientId: '#AH-1003',
+        patientName: 'Aisha Okonkwo',
+        age: 34,
+        gender: 'Female',
+        avatar: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=100&h=100',
+        priority: 'follow-up',
+        scanType: 'Obstetric Ultrasound',
+        column: 'pending',
+        time: '1:30 PM',
+        tags: ['OB/GYN', 'High-Risk'],
+        aiRecommendations: [
+            { icon: 'file', title: 'Growth Scan', description: 'Scheduled 28-week growth scan to reassess fetal development trajectory.', actionLabel: 'Confirm', actionColor: 'bg-secondary' }
+        ]
+    }
+];
+
+// ─── Mock Notifications ─────────────────────────────────────────────────────
+
+export const MOCK_NOTIFICATIONS: NotificationItem[] = [
+    {
+        id: 'NOTIF-001',
+        type: 'critical',
+        title: 'Critical Alert: Eleanor Voss (#AH-1001)',
+        content: 'CheXAgent detected bilateral pleural effusion with 94.2% confidence. Immediate cardiology review recommended. Risk if ignored: +28%.',
+        time: '2 hours ago',
+        timestamp: NOW - HOUR * 2,
+        read: false,
+        action: { label: 'View Patient' },
+        dismissible: false
+    },
+    {
+        id: 'NOTIF-002',
+        type: 'critical',
+        title: 'CHF Decompensation: Charles Dubois (#AH-1018)',
+        content: 'Chest X-ray shows acute pulmonary congestion. BNP elevated at 1,240 pg/mL. IV diuretics initiated. ICU transfer may be needed.',
+        time: '5 hours ago',
+        timestamp: NOW - HOUR * 5,
+        read: false,
+        action: { label: 'Review Case' },
+        dismissible: false
+    },
+    {
+        id: 'NOTIF-003',
+        type: 'task',
+        title: 'Echocardiogram Report Ready',
+        content: 'Robert Tanaka\'s echocardiogram has been analyzed by MedGemma-27b. LVEF 42% — declining from baseline. Action required: medication adjustment review.',
+        time: '4 hours ago',
+        timestamp: NOW - HOUR * 4,
+        read: false,
+        action: { label: 'View Report' },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-004',
+        type: 'consult',
+        title: 'Pulmonology Consult Requested',
+        content: 'James Whitfield requires pulmonology consult for home oxygen therapy assessment. CT thorax shows progressive emphysematous changes.',
+        time: '3 hours ago',
+        timestamp: NOW - HOUR * 3,
+        read: false,
+        action: { label: 'Accept Consult' },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-005',
+        type: 'system',
+        title: 'MedGemma Model Update',
+        content: 'MedGemma-27b has been updated to v2.4.1 with improved cardiac imaging analysis. CheXAgent confidence scores may show slight variations.',
+        time: '6 hours ago',
+        timestamp: NOW - HOUR * 6,
+        read: true,
+        action: { label: 'View Changelog', secondary: true },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-006',
+        type: 'task',
+        title: 'Priya Sharma MRI — Analysis In Progress',
+        content: 'Breast MRI for Priya Sharma (#AH-1007) is 72% complete. MedSigLIP processing 256 slices. Preliminary findings suggest post-surgical changes only.',
+        time: '90 minutes ago',
+        timestamp: NOW - HOUR * 1.5,
+        read: true,
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-007',
+        type: 'critical',
+        title: 'Liver Function Deterioration: Samuel Adeyemi',
+        content: 'MELD score increased from 18 to 22 over the past 72 hours. INR 1.8, Creatinine 1.6. Transplant list reassessment recommended.',
+        time: '8 hours ago',
+        timestamp: NOW - HOUR * 8,
+        read: false,
+        action: { label: 'View Labs' },
+        dismissible: false
+    },
+    {
+        id: 'NOTIF-008',
+        type: 'consult',
+        title: 'Neurology Follow-Up Due',
+        content: 'Benjamin Cruz (#AH-1016) has a scheduled neurology follow-up for Parkinson\'s tremor assessment. Brain MRI pending review.',
+        time: '30 minutes ago',
+        timestamp: NOW - HOUR * 0.5,
+        read: false,
+        action: { label: 'View Schedule' },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-009',
+        type: 'system',
+        title: 'Daily Clinical Summary Generated',
+        content: 'Today\'s AI-generated clinical summary is ready. 8 active patients monitored, 3 escalations flagged, 2 new diagnostic reports available.',
+        time: '1 hour ago',
+        timestamp: NOW - HOUR * 1,
+        read: true,
+        action: { label: 'View Summary', secondary: true },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-010',
+        type: 'task',
+        title: 'Medication Review: Marcus Chen',
+        content: 'A1C remains elevated at 8.2%. MedGemma recommends reviewing metformin dosage and considering SGLT2 inhibitor addition for cardiorenal protection.',
+        time: '10 hours ago',
+        timestamp: NOW - HOUR * 10,
+        read: true,
+        action: { label: 'Review Plan' },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-011',
+        type: 'consult',
+        title: 'Oncology Consult: Priya Sharma',
+        content: 'Follow-up with oncology for adjuvant therapy discussion. MRI results pending — preliminary scan appears clear.',
+        time: '12 hours ago',
+        timestamp: NOW - HOUR * 12,
+        read: true,
+        action: { label: 'View Notes', secondary: true },
+        dismissible: true
+    },
+    {
+        id: 'NOTIF-012',
+        type: 'system',
+        title: 'Agentic Surveillance Cycle Complete',
+        content: 'Background surveillance cycle #1847 completed. All IoT vital streams within acceptable baselines. No new escalations triggered.',
+        time: '15 minutes ago',
+        timestamp: NOW - HOUR * 0.25,
+        read: true,
+        dismissible: true
+    }
+];
+
+// ─── Seed Function ──────────────────────────────────────────────────────────
 
 export async function seedDatabase() {
     await db.transaction('rw', db.patients, db.diagnosticCases, db.workflowCards, db.notifications, async () => {
@@ -451,14 +902,23 @@ export async function seedDatabase() {
             db.notifications.clear()
         ]);
 
-        // Add mock data (Patients ONLY, no pre-calculated AI insights)
+        // Seed patients (with risk reset for AI to re-evaluate)
         const cleanPatients: Patient[] = MOCK_PATIENTS.map(p => ({
             ...p,
-            aiSummary: "", // Clear AI summary
-            risk: "Unknown", // Reset risk to be determined
-            riskColor: "secondary" // Neutral color
+            aiSummary: "",
+            risk: "Unknown",
+            riskColor: "secondary"
         }));
-
         await db.patients.bulkAdd(cleanPatients);
+
+        // Seed diagnostic cases
+        await db.diagnosticCases.bulkAdd(MOCK_DIAGNOSTIC_CASES);
+
+        // Seed workflow cards
+        await db.workflowCards.bulkAdd(MOCK_WORKFLOW_CARDS);
+
+        // Seed notifications
+        await db.notifications.bulkAdd(MOCK_NOTIFICATIONS);
     });
 }
+

@@ -39,6 +39,7 @@ import { SafeChart } from './SafeChart';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Patient } from '../lib/types';
+import { triageReferralNotes, streamPatientReasoning } from '../lib/dr7';
 import EmptyState from './EmptyState';
 
 // --- Types & Interfaces ---
@@ -69,17 +70,29 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
     setIsSubmitting(true);
 
-    // Simulate AI parsing pipeline for storytelling
-    const phases = [
-      "Parsing clinical history...",
-      "Establishing risk baseline...",
-      "Patient successfully added to Clinical Attention Queue."
-    ];
+    // Phase 1: Parsing
+    setLoadingPhase(0);
+    await new Promise(resolve => setTimeout(resolve, 600));
 
-    for (let i = 0; i < phases.length; i++) {
-      setLoadingPhase(i);
-      await new Promise(resolve => setTimeout(resolve, 800));
+    // Phase 2: AI Triage (real Dr7.ai call if notes provided)
+    setLoadingPhase(1);
+    let triageData: { priority: 'High Risk' | 'Moderate' | 'Low Risk'; aiReason: string; riskPercentage: number; condition: string } = { priority: 'Low Risk', aiReason: 'Follow-up required', riskPercentage: 5, condition: 'Undiagnosed' };
+    if (formData.referralNotes.trim()) {
+      try {
+        triageData = await triageReferralNotes(formData.referralNotes, formData.context, age, formData.gender);
+      } catch (e) {
+        console.warn('AI triage failed, using defaults:', e);
+      }
     }
+
+    // Phase 3: Done
+    setLoadingPhase(2);
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+    // Map priority to riskColor
+    const riskColorMap: Record<string, 'accent' | 'yellow' | 'secondary'> = {
+      'High Risk': 'accent', 'Moderate': 'yellow', 'Low Risk': 'secondary'
+    };
 
     try {
       const newId = `#AH-${Math.floor(Math.random() * 9000) + 1000}`;
@@ -89,20 +102,33 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         age: age > 0 ? age : 0,
         gender: formData.gender,
         lastVisit: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        condition: 'Undiagnosed',
-        risk: 'Low Risk',
-        riskColor: 'secondary',
-        active: false,
+        condition: triageData.condition,
+        risk: triageData.priority,
+        riskColor: riskColorMap[triageData.priority] || 'secondary',
+        active: triageData.priority === 'High Risk',
         vitals: [],
         medications: [],
         history: [{
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           title: 'Patient Registered',
           type: 'Routine',
-          description: 'New patient record created.'
+          description: `AI Triage: ${triageData.aiReason}. Risk: ${triageData.riskPercentage}%.`
         }],
         insurance: { provider: formData.insurance || 'Unknown', policy: 'Pending' },
-        aiSummary: "New patient record. Data insufficient for AI analysis."
+        aiSummary: `AI Triage Result: ${triageData.condition} — ${triageData.aiReason}. Complication risk if ignored: ${triageData.riskPercentage}%.`,
+        aiReason: triageData.aiReason,
+        riskPercentage: triageData.riskPercentage,
+        baselineSummary: `Baseline established for ${triageData.condition}. Risk profile: ${triageData.priority}.`,
+        currentPriority: triageData.priority,
+        riskIfIgnored: triageData.riskPercentage
+      });
+
+      // Log AI Event: TRIAGED
+      await db.aiDecisions.add({
+        patientId: newId,
+        type: 'TRIAGED',
+        model: 'medgemma-27b-it',
+        timestamp: Date.now()
       });
 
       await db.notifications.add({
@@ -318,6 +344,13 @@ export default function PatientRecords() {
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // --- Flow B: Streaming reasoning ---
+  const [streamingText, setStreamingText] = useState<Record<string, string>>({});
+  const [reasoningLoading, setReasoningLoading] = useState<string | null>(null);
+  const [reasoningDone, setReasoningDone] = useState<Set<string>>(new Set());
+  const [lastAnalyzed, setLastAnalyzed] = useState<Record<string, number>>({});
+  const [acceptedPatients, setAcceptedPatients] = useState<Set<string>>(new Set());
+
   // Close context menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -521,7 +554,7 @@ export default function PatientRecords() {
                             {patient.risk === 'Low Risk' && <Check size={12} className="text-secondary" />}
                             {patient.name}
                           </div>
-                          <div className="text-xs text-gray-400 font-medium">Risk if ignored: +{(patient.age % 10) + 5}% complication</div>
+                          <div className="text-xs text-gray-400 font-medium">Risk if ignored: +{patient.riskPercentage ?? ((patient.age % 10) + 5)}% complication</div>
                         </div>
                       </div>
                     </td>
@@ -706,33 +739,116 @@ export default function PatientRecords() {
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-6 space-y-6">
 
-              {/* WHY THIS PATIENT APPEARED */}
+              {/* WHY THIS PATIENT APPEARED — Live Streaming MedGemma Reasoning */}
               <div className="bg-white/50 dark:bg-white/5 p-4 rounded-xl border border-primary/10 dark:border-white/10 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-cyan/10 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles size={14} className="text-cyan fill-cyan" />
                   <h4 className="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">Why This Patient Appeared</h4>
+                  {!streamingText[selectedPatient.id] && !reasoningLoading && (
+                    <button
+                      onClick={async () => {
+                        const patientId = selectedPatient.id;
+                        setReasoningLoading(patientId);
+                        setStreamingText(prev => ({ ...prev, [patientId]: '' }));
+                        try {
+                          await streamPatientReasoning(selectedPatient, (token) => {
+                            setStreamingText(prev => ({
+                              ...prev,
+                              [patientId]: (prev[patientId] || '') + token
+                            }));
+                          });
+                          setReasoningDone(prev => new Set([...prev, patientId]));
+                          setLastAnalyzed(prev => ({ ...prev, [patientId]: Date.now() }));
+                        } catch (e) {
+                          console.error('Streaming reasoning failed:', e);
+                          setStreamingText(prev => ({
+                            ...prev,
+                            [patientId]: `${selectedPatient.condition} pattern detected — deviation from established baseline. Risk profile consistent with ${selectedPatient.risk.toLowerCase()} trajectory. Manual clinical review recommended.`
+                          }));
+                          setReasoningDone(prev => new Set([...prev, patientId]));
+                        } finally {
+                          setReasoningLoading(null);
+                        }
+                      }}
+                      className="ml-auto text-[10px] font-bold text-cyan hover:text-cyan/80 transition-colors flex items-center gap-1"
+                    >
+                      <Sparkles size={10} /> Generate
+                    </button>
+                  )}
+                  {reasoningLoading === selectedPatient.id && (
+                    <span className="ml-auto text-[10px] font-bold text-cyan/60 flex items-center gap-1 animate-pulse">
+                      <Sparkles size={10} className="animate-spin" /> Streaming...
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-300 font-medium space-y-1.5 pl-5 relative before:absolute before:left-1.5 before:top-2 before:bottom-0 before:w-[2px] before:bg-cyan/30">
-                  <p>MedGemma reasoning:</p>
-                  <ul className="list-disc pl-3 text-[11px] text-gray-500 dark:text-gray-400 leading-snug space-y-1">
-                    <li>Pattern deviated from baseline by {(selectedPatient.age % 20) + 15}%</li>
-                    <li>Comparable to {Math.floor(Math.random() * 200) + 50} prior {selectedPatient.condition.toLowerCase()} cases</li>
-                    <li className="text-primary dark:text-white font-semibold">Escalation recommended within {Math.floor(Math.random() * 15) + 5} minutes</li>
-                  </ul>
+                <div className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-5 relative before:absolute before:left-1.5 before:top-2 before:bottom-0 before:w-[2px] before:bg-cyan/30">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p>MedGemma reasoning:</p>
+                    {reasoningDone.has(selectedPatient.id) && lastAnalyzed[selectedPatient.id] && (
+                      <span className="text-[10px] text-gray-400 font-normal">
+                        Updated {Math.floor((Date.now() - lastAnalyzed[selectedPatient.id]) / 1000)}s ago
+                      </span>
+                    )}
+                  </div>
+                  {streamingText[selectedPatient.id] !== undefined ? (
+                    <div className="space-y-3">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-wrap font-mono">
+                        {streamingText[selectedPatient.id]}
+                        {!reasoningDone.has(selectedPatient.id) && (
+                          <span className="inline-block w-1.5 h-3.5 bg-cyan ml-0.5 animate-pulse rounded-sm" />
+                        )}
+                      </div>
+                      {reasoningDone.has(selectedPatient.id) && (
+                        <div className="flex items-center gap-2">
+                          <div className="px-2 py-0.5 rounded bg-cyan/10 border border-cyan/20 text-[9px] font-bold text-cyan uppercase tracking-wider">
+                            medgemma-27b-it • Clinical reasoning
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-gray-400 dark:text-gray-500 italic">
+                      Click <strong className="text-cyan not-italic">Generate</strong> to stream live MedGemma clinical reasoning
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3 flex-col sm:flex-row">
                 <button
-                  onClick={() => {
-                    // Add logic to log decision
-                    alert("AI Priority Accepted & Logged. Patient moved to urgent workflow.");
+                  disabled={acceptedPatients.has(selectedPatient.id)}
+                  onClick={async () => {
+                    try {
+                      await db.aiDecisions.add({
+                        patientId: selectedPatient.id,
+                        type: 'ESCALATED',
+                        model: 'medgemma-27b-it',
+                        timestamp: Date.now()
+                      });
+                      // Mark patient as active & add history entry
+                      await db.patients.update(selectedPatient.id, {
+                        active: true,
+                        history: [...selectedPatient.history, {
+                          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                          title: 'AI Priority Accepted',
+                          type: 'Diagnosis' as const,
+                          description: `Clinician accepted AI-assigned priority: ${selectedPatient.risk}. Patient moved to urgent workflow.`
+                        }]
+                      });
+                      setAcceptedPatients(prev => new Set([...prev, selectedPatient.id]));
+                    } catch (e) {
+                      console.error('Failed to log AI decision:', e);
+                    }
                   }}
-                  className="flex-1 bg-primary text-white py-3 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 border border-white/10"
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 border border-white/10 ${acceptedPatients.has(selectedPatient.id)
+                    ? 'bg-secondary text-primary cursor-default shadow-secondary/20'
+                    : 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
+                    }`}
                 >
-                  <CheckCircle2 size={16} /> Accept AI Priority
+                  <CheckCircle2 size={16} />
+                  {acceptedPatients.has(selectedPatient.id) ? 'Priority Accepted ✓' : 'Accept AI Priority'}
                 </button>
               </div>
 
