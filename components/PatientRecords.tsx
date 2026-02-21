@@ -31,7 +31,8 @@ import {
   ChevronLeft,
   Users,
   Zap,
-  Check
+  Check,
+  UploadCloud
 } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SafeChart } from './SafeChart';
@@ -51,8 +52,13 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     name: '',
     dob: '',
     gender: 'Male',
-    insurance: ''
+    insurance: '',
+    referralNotes: '',
+    context: 'Routine',
+    continuousMonitoring: true
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(0);
 
   if (!isOpen) return null;
 
@@ -60,6 +66,20 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     if (!formData.name || !formData.dob) return;
 
     const age = new Date().getFullYear() - new Date(formData.dob).getFullYear();
+
+    setIsSubmitting(true);
+
+    // Simulate AI parsing pipeline for storytelling
+    const phases = [
+      "Parsing clinical history...",
+      "Establishing risk baseline...",
+      "Patient successfully added to Clinical Attention Queue."
+    ];
+
+    for (let i = 0; i < phases.length; i++) {
+      setLoadingPhase(i);
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
 
     try {
       const newId = `#AH-${Math.floor(Math.random() * 9000) + 1000}`;
@@ -88,92 +108,197 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
       await db.notifications.add({
         id: `n-${Date.now()}`,
         type: 'system',
-        title: 'New Patient Registered',
-        content: `Patient ${formData.name} (${newId}) has been successfully added to the directory.`,
+        title: 'New Patient Monitored',
+        content: `Patient ${formData.name} (${newId}) has been added to MedGemma active surveillance.`,
         time: 'Just now',
         timestamp: Date.now(),
         read: false,
-        action: { label: 'View Patient' },
+        action: { label: 'View Insights' },
         dismissible: true
       });
 
+      setIsSubmitting(false);
+      setLoadingPhase(0);
       onClose();
-      setFormData({ name: '', dob: '', gender: 'Male', insurance: '' });
+      setFormData({ name: '', dob: '', gender: 'Male', insurance: '', referralNotes: '', context: 'Routine', continuousMonitoring: true });
     } catch (error) {
       console.error("Failed to add patient:", error);
+      setIsSubmitting(false);
+      setLoadingPhase(0);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-bold text-primary dark:text-white">Add New Patient</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-md p-4">
+      <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200 relative overflow-hidden">
+
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 z-20 bg-white/90 dark:bg-card-dark/95 backdrop-blur-sm flex items-center justify-center flex-col animate-in fade-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan shadow-[0_0_20px_rgba(20,245,214,0.4)] animate-pulse mb-6">
+              <Sparkles size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-primary dark:text-white mb-2">MedGemma Agent Logic</h3>
+            <div className="h-6 flex items-center justify-center overflow-hidden">
+              <p key={loadingPhase} className="text-sm text-cyan font-bold leading-none animate-in slide-in-from-bottom-2 fade-in duration-300">
+                {loadingPhase === 0 ? "Parsing clinical history..." :
+                  loadingPhase === 1 ? "Establishing risk baseline..." :
+                    "Patient successfully added to Clinical Attention Queue."}
+              </p>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-48 h-1 bg-gray-100 dark:bg-white/10 rounded-full mt-6 overflow-hidden">
+              <div
+                className="h-full bg-cyan transition-all duration-[800ms] shadow-[0_0_10px_#14F5D6]"
+                style={{ width: `${(loadingPhase + 1) * 33.3}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-primary dark:text-white flex items-center gap-2">
+              Register Patient for Monitoring <Sparkles size={18} className="text-cyan fill-cyan/20" />
+            </h3>
+            <p className="text-xs text-gray-500 font-medium mt-1">MedGemma will immediately begin background risk surveillance.</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors shrink-0">
             <X size={20} className="text-gray-400" />
           </button>
         </div>
-        <div className="space-y-4">
-          <div className="flex flex-col items-center gap-2">
-            <label className="relative cursor-pointer group">
-              <input type="file" accept="image/*" className="hidden" />
-              <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all">
-                <Camera size={24} className="text-gray-400 group-hover:text-secondary transition-colors" />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
-                <Plus size={14} className="text-white" />
-              </div>
-            </label>
-            <span className="text-[10px] text-gray-400 font-medium">Upload Photo</span>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">Full Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
-              placeholder="e.g. John Doe"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-6">
+
+          {/* Left Column: Core Inputs */}
+          <div className="space-y-4">
+            <div className="flex flex-col items-start gap-2 mb-2">
+              <label className="relative cursor-pointer group">
+                <input type="file" accept="image/*" className="hidden" />
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all">
+                  <Camera size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
+                  <Plus size={12} className="text-white" />
+                </div>
+              </label>
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Date of Birth</label>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
               <input
-                type="date"
-                value={formData.dob}
-                onChange={e => setFormData({ ...formData, dob: e.target.value })}
-                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-400"
+                type="text"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
+                placeholder="e.g. John Doe"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Gender</label>
-              <select
-                value={formData.gender}
-                onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-400"
-              >
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date of Birth</label>
+                <input
+                  type="date"
+                  value={formData.dob}
+                  onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-300"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Gender</label>
+                <select
+                  value={formData.gender}
+                  onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-300"
+                >
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
+              </div>
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">Insurance Provider</label>
-            <input
-              type="text"
-              value={formData.insurance}
-              onChange={e => setFormData({ ...formData, insurance: e.target.value })}
-              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
-              placeholder="e.g. BlueCross"
-            />
+
+          {/* Right Column: AI Context & Notes */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Activity size={12} className="text-secondary" /> Initial Context Parameter
+              </label>
+              <select
+                value={formData.context}
+                onChange={e => setFormData({ ...formData, context: e.target.value })}
+                className="w-full p-2.5 rounded-xl bg-secondary/5 text-secondary font-bold border border-secondary/20 focus:border-secondary outline-none text-sm"
+              >
+                <option>Routine</option>
+                <option>Emergency</option>
+                <option>Post-operative</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex justify-between">
+                <span>Referral Notes / Presenting Symptoms</span>
+                <span className="text-cyan lowercase font-semibold flex items-center gap-1"><Sparkles size={10} /> parsed by AI</span>
+              </label>
+              <textarea
+                value={formData.referralNotes}
+                onChange={e => setFormData({ ...formData, referralNotes: e.target.value })}
+                className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white h-[100px] resize-none leading-relaxed font-mono text-[11px]"
+                placeholder="Paste raw unformatted clinical notes here..."
+              />
+            </div>
+
+            <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent cursor-pointer group hover:border-cyan/30 transition-colors">
+              <div className="relative flex items-center justify-center w-5 h-5 rounded-[6px] border border-cyan/50 bg-cyan/10">
+                <input
+                  type="checkbox"
+                  className="absolute opacity-0 w-full h-full cursor-pointer"
+                  checked={formData.continuousMonitoring}
+                  onChange={(e) => setFormData({ ...formData, continuousMonitoring: e.target.checked })}
+                />
+                {formData.continuousMonitoring && <Check size={14} className="text-cyan font-bold" strokeWidth={3} />}
+              </div>
+              <span className="text-sm font-bold text-primary dark:text-white flex-1">Continuous Surveillance Mode</span>
+              <span className="text-[10px] font-bold bg-cyan/10 text-cyan px-2 py-0.5 rounded-full border border-cyan/20">Active</span>
+            </label>
+          </div>
+
+        </div>
+
+        {/* Full Width Row: Unstructured Data Ingestion (Drag-and-Drop) */}
+        <div className="mt-6">
+          <label className="block text-[10px] font-bold text-primary dark:text-white uppercase tracking-wider mb-1.5 flex justify-between items-center">
+            <span>Attach Medical Records (Labs, Imaging Reports, Vitals History)</span>
+          </label>
+          <p className="text-[11px] text-gray-500 font-medium mb-3">
+            MedGemma will auto-extract and analyze all attached documents.
+          </p>
+          <div className="w-full relative group cursor-pointer">
+            <input type="file" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            <div className="w-full h-[120px] rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 flex flex-col items-center justify-center transition-all group-hover:border-cyan group-hover:bg-cyan/5">
+              <div className="w-12 h-12 rounded-full bg-white dark:bg-card-dark shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <UploadCloud size={20} className="text-gray-400 group-hover:text-cyan transition-colors" />
+              </div>
+              <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-cyan transition-colors">
+                Drop Lab Results / Clinical Notes Here
+              </span>
+              <span className="text-xs text-gray-400 mt-1">or click to browse files</span>
+            </div>
           </div>
         </div>
-        <div className="mt-8 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
-          <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">Add Patient</button>
+
+        {/* Footer Actions */}
+        <div className="mt-8 pt-4 border-t border-gray-100 dark:border-white/5 flex gap-3 justify-end items-center">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="px-6 py-2.5 rounded-xl text-sm font-bold text-primary bg-cyan hover:bg-cyan/90 transition-all shadow-lg shadow-cyan/20 flex items-center gap-2 group"
+          >
+            <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+            Activate Monitoring
+          </button>
         </div>
       </div>
     </div>
