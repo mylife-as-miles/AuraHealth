@@ -17,8 +17,9 @@ export interface PredictionAlert {
 
 export async function analyzePatientRisks(patients: Patient[], cases: DiagCase[]): Promise<PredictionAlert[]> {
     if (!process.env.GEMINI_API_KEY) {
-        console.error("GEMINI_API_KEY is not set. Prediction alerts will be unavailable.");
-        return [];
+        const err = new Error("GEMINI_API_KEY is not configured. Add your API key to the .env file.");
+        (err as any).code = 'NO_API_KEY';
+        throw err;
     }
 
     // Define the schema for structured output so we don't have to parse raw JSON

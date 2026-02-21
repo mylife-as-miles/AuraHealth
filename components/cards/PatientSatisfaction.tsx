@@ -1,6 +1,32 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../lib/db';
 
 export default function PatientSatisfaction() {
+  const patients = useLiveQuery(() => db.patients.toArray()) || [];
+
+  const { highAcuity, moderateRisk, routineLow, total } = useMemo(() => {
+    const active = patients.filter(p => p.active !== false);
+    const t = active.length || 1; // avoid division by zero
+
+    const high = active.filter(p =>
+      p.risk === 'High Risk'
+    );
+    const moderate = active.filter(p =>
+      p.risk === 'Moderate'
+    );
+    const low = active.filter(p =>
+      p.risk === 'Low Risk' || p.risk === 'Unknown' || !p.risk
+    );
+
+    return {
+      highAcuity: { count: high.length, pct: Math.round((high.length / t) * 100) },
+      moderateRisk: { count: moderate.length, pct: Math.round((moderate.length / t) * 100) },
+      routineLow: { count: low.length, pct: Math.round((low.length / t) * 100) },
+      total: active.length
+    };
+  }, [patients]);
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-start justify-between mb-6">
@@ -8,12 +34,8 @@ export default function PatientSatisfaction() {
           <h3 className="font-bold text-primary dark:text-white text-sm">Triage Risk Stratification</h3>
           <p className="text-[10px] text-gray-500 mt-1 max-w-[150px] leading-tight">Automated intake analysis via MedGemma</p>
         </div>
-        <div className="relative">
-          <select className="appearance-none text-[10px] font-bold bg-background-light dark:bg-gray-800 border-none rounded-lg py-1.5 pl-3 pr-8 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer outline-none shadow-sm">
-            <option>Active Shift</option>
-            <option>Today</option>
-          </select>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-[8px]">▼</span>
+        <div className="text-[10px] font-bold bg-background-light dark:bg-gray-800 rounded-lg py-1.5 px-3 text-gray-600 dark:text-gray-300 shadow-sm">
+          {total} Active
         </div>
       </div>
 
@@ -23,10 +45,10 @@ export default function PatientSatisfaction() {
         <div className="space-y-1.5">
           <div className="flex items-end justify-between">
             <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">High Acuity</span>
-            <span className="text-[9px] text-gray-500 font-medium">15% of intake • 6 patients flagged</span>
+            <span className="text-[9px] text-gray-500 font-medium">{highAcuity.pct}% of intake • {highAcuity.count} patient{highAcuity.count !== 1 ? 's' : ''} flagged</span>
           </div>
           <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden flex shadow-inner">
-            <div style={{ width: `15%` }} className="h-full bg-accent transition-all duration-1000 ease-out"></div>
+            <div style={{ width: `${highAcuity.pct}%` }} className="h-full bg-accent transition-all duration-1000 ease-out"></div>
           </div>
         </div>
 
@@ -34,10 +56,10 @@ export default function PatientSatisfaction() {
         <div className="space-y-1.5">
           <div className="flex items-end justify-between">
             <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Moderate Risk</span>
-            <span className="text-[9px] text-gray-500 font-medium">35% of intake • 14 patients queued</span>
+            <span className="text-[9px] text-gray-500 font-medium">{moderateRisk.pct}% of intake • {moderateRisk.count} patient{moderateRisk.count !== 1 ? 's' : ''} queued</span>
           </div>
           <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden flex shadow-inner">
-            <div style={{ width: `35%` }} className="h-full bg-amber-400 transition-all duration-1000 ease-out delay-100"></div>
+            <div style={{ width: `${moderateRisk.pct}%` }} className="h-full bg-amber-400 transition-all duration-1000 ease-out delay-100"></div>
           </div>
         </div>
 
@@ -45,10 +67,10 @@ export default function PatientSatisfaction() {
         <div className="space-y-1.5">
           <div className="flex items-end justify-between">
             <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Routine / Low</span>
-            <span className="text-[9px] text-gray-500 font-medium">50% of intake • 20 patients queued</span>
+            <span className="text-[9px] text-gray-500 font-medium">{routineLow.pct}% of intake • {routineLow.count} patient{routineLow.count !== 1 ? 's' : ''} queued</span>
           </div>
           <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden flex shadow-inner">
-            <div style={{ width: `50%` }} className="h-full bg-secondary transition-all duration-1000 ease-out delay-200"></div>
+            <div style={{ width: `${routineLow.pct}%` }} className="h-full bg-secondary transition-all duration-1000 ease-out delay-200"></div>
           </div>
         </div>
 
