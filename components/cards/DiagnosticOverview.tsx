@@ -153,35 +153,37 @@ function DiagnosticOverviewContent() {
           <h3 className="font-bold text-primary dark:text-white text-lg">Diagnostic Overview</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Tracking patient intake vs discharge trends</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Date Range Toggle */}
-          <div className="flex bg-gray-50 dark:bg-gray-800/50 rounded-lg p-0.5">
-            {(['6 Months', '1 Year'] as DateRange[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => { setDateRange(r); }}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${dateRange === r
-                  ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                  }`}
-              >
-                {r}
-              </button>
-            ))}
+        {allCases.length > 0 && (
+          <div className="flex items-center gap-2">
+            {/* Date Range Toggle */}
+            <div className="flex bg-gray-50 dark:bg-gray-800/50 rounded-lg p-0.5">
+              {(['6 Months', '1 Year'] as DateRange[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => { setDateRange(r); }}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${dateRange === r
+                    ? 'bg-white dark:bg-gray-700 text-primary dark:text-white shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={downloadCSV}
+              className="p-2 text-gray-400 hover:text-primary dark:hover:text-white bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+              title="Export CSV"
+            >
+              <Download size={16} />
+            </button>
+            <div className="bg-primary text-white text-xs px-4 py-2 rounded-xl flex items-center gap-3 shadow-lg shadow-primary/20">
+              <span className="font-semibold opacity-90">{meta.date}</span>
+              <span className="w-px h-3 bg-white/20"></span>
+              <span className="text-secondary font-bold">{meta.trend}</span>
+            </div>
           </div>
-          <button
-            onClick={downloadCSV}
-            className="p-2 text-gray-400 hover:text-primary dark:hover:text-white bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
-            title="Export CSV"
-          >
-            <Download size={16} />
-          </button>
-          <div className="bg-primary text-white text-xs px-4 py-2 rounded-xl flex items-center gap-3 shadow-lg shadow-primary/20">
-            <span className="font-semibold opacity-90">{meta.date}</span>
-            <span className="w-px h-3 bg-white/20"></span>
-            <span className="text-secondary font-bold">{meta.trend}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="h-[300px] w-full relative min-w-0">

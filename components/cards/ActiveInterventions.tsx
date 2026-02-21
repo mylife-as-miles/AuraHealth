@@ -35,7 +35,7 @@ export default function ActiveInterventions() {
     };
 
     return (
-        <div className="w-full bg-white dark:bg-card-dark rounded-3xl p-5 lg:p-6 flex flex-col justify-between border border-accent/20 dark:border-accent/10 shadow-[0_0_30px_rgba(254,87,150,0.05)]">
+        <div className="w-full md:w-80 bg-background-light dark:bg-gray-800/40 rounded-2xl p-5 flex flex-col justify-between border border-transparent dark:border-gray-700/50">
             <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
                 <h4 className="text-[11px] lg:text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Active Interventions</h4>
@@ -44,8 +44,8 @@ export default function ActiveInterventions() {
             <div className="space-y-3 flex-1 w-full overflow-hidden">
                 {activeInterventionsList.length > 0 ? (
                     activeInterventionsList.map(item => (
-                        <div key={item.id} className={`bg-background-light dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/50 p-3 rounded-xl shadow-inner flex items-start gap-3 border-l-4 hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors ${getInterventionColor(item.type)} w-full`}>
-                            <div className={`p-1.5 rounded-lg bg-white dark:bg-gray-900 mt-0.5 flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-800`}>
+                        <div key={item.id} className={`bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 p-3 rounded-xl shadow-sm flex items-start gap-3 border-l-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${getInterventionColor(item.type)} w-full`}>
+                            <div className={`p-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 mt-0.5 flex-shrink-0`}>
                                 {getInterventionIcon(item.type)}
                             </div>
                             <div className="flex-1 min-w-0">
