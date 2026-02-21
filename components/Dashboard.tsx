@@ -1,7 +1,7 @@
 import React from 'react';
 import ClinicalInsights from './cards/ClinicalInsights';
 import ActiveInterventions from './cards/ActiveInterventions';
-import PatientSatisfaction from './cards/PatientSatisfaction';
+import AttentionHeatmap from './cards/AttentionHeatmap';
 import DiagnosticOverview from './cards/DiagnosticOverview';
 import SmartInsights from './cards/SmartInsights';
 
@@ -16,8 +16,8 @@ export default function Dashboard() {
         </div>
 
         {/* Top Row: Right col */}
-        <div className="col-span-1 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft dark:shadow-none dark:border dark:border-border-dark">
-          <PatientSatisfaction />
+        <div className="col-span-1 h-full min-h-[320px]">
+          <AttentionHeatmap />
         </div>
 
         {/* Bottom Row: Left col spans 2 */}
