@@ -60,8 +60,9 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     const age = new Date().getFullYear() - new Date(formData.dob).getFullYear();
 
     try {
+      const newId = `#AH-${Math.floor(Math.random() * 9000) + 1000}`;
       await db.patients.add({
-        id: `#AH-${Math.floor(Math.random() * 9000) + 1000}`,
+        id: newId,
         name: formData.name,
         age: age > 0 ? age : 0,
         gender: formData.gender,
@@ -81,6 +82,19 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         insurance: { provider: formData.insurance || 'Unknown', policy: 'Pending' },
         aiSummary: "New patient record. Data insufficient for AI analysis."
       });
+
+      await db.notifications.add({
+        id: `n-${Date.now()}`,
+        type: 'system',
+        title: 'New Patient Registered',
+        content: `Patient ${formData.name} (${newId}) has been successfully added to the directory.`,
+        time: 'Just now',
+        timestamp: Date.now(),
+        read: false,
+        action: { label: 'View Patient' },
+        dismissible: true
+      });
+
       onClose();
       setFormData({ name: '', dob: '', gender: 'Male', insurance: '' });
     } catch (error) {

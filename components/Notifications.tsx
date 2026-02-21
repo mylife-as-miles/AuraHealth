@@ -28,6 +28,9 @@ export default function Notifications() {
   const notifications = useLiveQuery(() => db.notifications.orderBy('timestamp').reverse().toArray()) || [];
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Limit the number of displayed notifications
+  const [displayLimit, setDisplayLimit] = useState(20);
+
   // --- Derived State ---
   const filteredNotifications = useMemo(() => {
     return notifications.filter(n => {
@@ -38,6 +41,10 @@ export default function Notifications() {
       return true;
     }).sort((a, b) => b.timestamp - a.timestamp);
   }, [notifications, filter]);
+
+  const displayedNotifications = useMemo(() => {
+    return filteredNotifications.slice(0, displayLimit);
+  }, [filteredNotifications, displayLimit]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -58,32 +65,9 @@ export default function Notifications() {
   const handleLoadMore = () => {
     setLoadingMore(true);
     setTimeout(() => {
-      const more: NotificationItem[] = [
-        {
-          id: `n-old-${Date.now()}`,
-          type: 'system',
-          title: 'Weekly Analytics Report Available',
-          content: 'Your department performance metrics for last week are now ready for review.',
-          time: '3 days ago',
-          timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
-          read: true,
-          dismissible: true
-        },
-        {
-          id: `n-old-2-${Date.now()}`,
-          type: 'task',
-          title: 'Patient Transfer Request',
-          content: 'Pending approval for transfer of Patient #229 to Oncology Ward.',
-          time: '4 days ago',
-          timestamp: Date.now() - 1000 * 60 * 60 * 24 * 4,
-          read: true,
-          action: { label: 'Review Request', secondary: true },
-          dismissible: true
-        }
-      ];
-      db.notifications.bulkAdd(more);
+      setDisplayLimit(prev => prev + 20);
       setLoadingMore(false);
-    }, 1200);
+    }, 600); // Simulate network latency
   };
 
   // --- Render Helpers ---
@@ -142,8 +126,8 @@ export default function Notifications() {
 
         {/* Notifications List */}
         <div className="space-y-4">
-          {filteredNotifications.length > 0 ? (
-            filteredNotifications.map((n) => {
+          {displayedNotifications.length > 0 ? (
+            displayedNotifications.map((n) => {
               const style = getTypeStyles(n.type);
               const Icon = style.icon;
               return (
@@ -214,7 +198,7 @@ export default function Notifications() {
         </div>
 
         {/* Load More */}
-        {notifications.length > 0 && (
+        {filteredNotifications.length > displayLimit && (
           <div className="mt-12 text-center pb-4">
             <button
               onClick={handleLoadMore}

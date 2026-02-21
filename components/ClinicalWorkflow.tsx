@@ -133,6 +133,18 @@ export default function ClinicalWorkflow() {
         column: order[idx + 1],
         aiProgress: order[idx + 1] === 'analysis' ? 0 : card.aiProgress
       });
+      // Trigger functional notification
+      db.notifications.add({
+        id: `n-${Date.now()}`,
+        type: 'task',
+        title: 'Workflow Advanced',
+        content: `Patient ${card.patientName} moved from ${COLUMNS[idx].label} to ${COLUMNS[idx + 1].label}.`,
+        time: 'Just now',
+        timestamp: Date.now(),
+        read: false,
+        action: { label: 'Review Card', secondary: true },
+        dismissible: true
+      });
     }
   }, [cards]);
 

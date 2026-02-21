@@ -515,7 +515,20 @@ export default function Diagnostics() {
               ].map((doc) => (
                 <button
                   key={doc.name}
-                  onClick={() => { setShowConsultModal(false); setConsultSent(true); }}
+                  onClick={() => {
+                    setShowConsultModal(false);
+                    setConsultSent(true);
+                    db.notifications.add({
+                      id: `n-${Date.now()}`,
+                      type: 'consult',
+                      title: 'Consult Requested',
+                      content: `Requested consult from ${doc.name} for patient ${selectedCase.patientName}.`,
+                      time: 'Just now',
+                      timestamp: Date.now(),
+                      read: false,
+                      dismissible: true
+                    });
+                  }}
                   className="w-full flex items-center gap-3 p-3 border border-gray-100 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left"
                 >
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">{doc.avatar}</div>
