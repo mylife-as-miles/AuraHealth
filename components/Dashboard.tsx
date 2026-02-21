@@ -1,5 +1,6 @@
 import React from 'react';
 import ClinicalInsights from './cards/ClinicalInsights';
+import ActiveInterventions from './cards/ActiveInterventions';
 import PatientSatisfaction from './cards/PatientSatisfaction';
 import DiagnosticOverview from './cards/DiagnosticOverview';
 import SmartInsights from './cards/SmartInsights';
@@ -11,6 +12,7 @@ export default function Dashboard() {
         {/* Top Row: Spans 2 cols, ClinicalInsights acts as the main monitor now */}
         <div className="col-span-1 md:col-span-2 flex flex-col md:flex-row gap-6">
           <ClinicalInsights />
+          <ActiveInterventions />
         </div>
 
         {/* Top Row: Right col */}

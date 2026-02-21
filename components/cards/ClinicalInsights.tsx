@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Activity, Clock, AlertTriangle, ShieldAlert, Zap, Stethoscope, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Activity, Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
 
@@ -32,38 +32,12 @@ export default function ClinicalInsights() {
     return `${Math.floor(diffHours / 24)} days ago`;
   }, [interventions, now]);
 
-  // 3. Escalations today: 7
   const escalationsToday = useMemo(() => {
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
     return notifications.filter(n =>
       ['critical', 'consult'].includes(n.type) && n.timestamp > oneDayAgo
     ).length;
   }, [notifications, now]);
-
-  // 🔴 Active Interventions List (Top 3)
-  const activeInterventionsList = useMemo(() => {
-    return interventions.slice(0, 3);
-  }, [interventions]);
-
-  const getInterventionIcon = (type: string) => {
-    switch (type) {
-      case 'critical': return <ShieldAlert className="w-4 h-4 text-accent" />;
-      case 'consult': return <Stethoscope className="w-4 h-4 text-purple-500" />;
-      case 'task': return <Zap className="w-4 h-4 text-cyan" />;
-      case 'system': return <Activity className="w-4 h-4 text-secondary" />;
-      default: return <Activity className="w-4 h-4 text-secondary" />;
-    }
-  };
-
-  const getInterventionColor = (type: string) => {
-    switch (type) {
-      case 'critical': return 'border-l-accent';
-      case 'consult': return 'border-l-purple-500';
-      case 'task': return 'border-l-cyan';
-      case 'system': return 'border-l-secondary';
-      default: return 'border-l-secondary';
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col bg-white dark:bg-card-dark rounded-3xl border border-accent/20 dark:border-accent/10 shadow-[0_0_30px_rgba(254,87,150,0.05)] overflow-hidden relative">
@@ -110,37 +84,6 @@ export default function ClinicalInsights() {
               </span>
               <span className="text-[11px] lg:text-sm font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-md text-right">{escalationsToday}</span>
             </div>
-          </div>
-        </div>
-
-        {/* Active Interventions */}
-        <div className="flex-1 flex flex-col justify-start">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-            <h4 className="text-[11px] lg:text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Active Interventions</h4>
-          </div>
-
-          <div className="space-y-3 flex-1 w-full">
-            {activeInterventionsList.length > 0 ? (
-              activeInterventionsList.map(item => (
-                <div key={item.id} className={`bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 p-3 rounded-xl shadow-sm flex items-start gap-3 border-l-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${getInterventionColor(item.type)} w-full`}>
-                  <div className={`p-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 mt-0.5`}>
-                    {getInterventionIcon(item.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-[11px] lg:text-xs font-bold text-primary dark:text-white truncate">{item.title}</h5>
-                    <p className="text-[9px] lg:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight line-clamp-2">{item.content}</p>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 flex-shrink-0 mt-1 hidden sm:block" />
-                </div>
-              ))
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-4 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 min-h-[140px] w-full">
-                <CheckCircle2 size={24} className="text-green-400 mb-2 opacity-50" />
-                <p className="text-[11px] lg:text-xs font-bold text-gray-500 dark:text-gray-400">All systems nominal</p>
-                <p className="text-[9px] lg:text-[10px] text-gray-400 mt-1">No active interventions required at this time.</p>
-              </div>
-            )}
           </div>
         </div>
 
