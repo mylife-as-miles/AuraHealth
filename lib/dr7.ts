@@ -192,13 +192,116 @@ Return EXACTLY one JSON object (no markdown wrappers):
     return parseJson<TriageResult>(raw);
 }
 
-// ─── Flow B: "Why This Patient Appeared" — Live Reasoning ─────────────
+// ─── Flow B: "Why This Patient Appeared" — Streaming Reasoning ────────
 export interface PatientReasoning {
     deviation: string;
     patternDetection: string;
     riskForecast: string;
 }
 
+export async function streamPatientReasoning(
+    patient: Patient,
+    onToken: (token: string) => void
+): Promise<string> {
+    const apiKey = process.env.DR7_API_KEY;
+
+    if (!apiKey) {
+        const err = new Error("DR7_API_KEY is not configured.");
+        (err as any).code = 'NO_API_KEY';
+        throw err;
+    }
+
+    const vitalsStr = patient.vitals.length > 0
+        ? patient.vitals.slice(-5).map(v => `HR:${v.hr} BP:${v.sys}/${v.dia} Temp:${v.temp}°F`).join('; ')
+        : 'No vitals recorded';
+
+    const historyStr = patient.history.length > 0
+        ? patient.history.slice(-3).map(h => `${h.date}: ${h.title} (${h.type})`).join('; ')
+        : 'No history';
+
+    const prompt = `
+Patient: ${patient.name}, ${patient.age}yo ${patient.gender}
+Condition: ${patient.condition}
+Risk Level: ${patient.risk}
+Recent Vitals: ${vitalsStr}
+History: ${historyStr}
+AI Summary: ${patient.aiSummary || 'None'}
+
+As a HAI-DEF clinical monitoring system, explain WHY this patient was surfaced in the Clinical Attention Queue.
+Write 3 concise lines of clinical reasoning:
+1. How the patient's data deviates from their baseline (include a specific percentage)
+2. What clinical pattern was detected (reference the number of comparable prior cases)
+3. A time-bound risk forecast with escalation urgency
+
+Be specific, data-grounded, and clinical. Do NOT use JSON. Write flowing clinical prose.
+`;
+
+    const response = await fetch(DR7_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'medgemma-27b-it',
+            messages: [
+                { role: 'system', content: 'You are MedGemma, a HAI-DEF clinical AI system providing real-time clinical reasoning. Be concise, specific, and data-grounded.' },
+                { role: 'user', content: prompt }
+            ],
+            max_tokens: 400,
+            temperature: 0.3,
+            stream: true
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const errorMessage = (errorBody as any)?.error?.message || response.statusText;
+        if (response.status === 401) { const e = new Error('Invalid API key.'); (e as any).code = 'INVALID_API_KEY'; throw e; }
+        if (response.status === 402) { const e = new Error('Insufficient balance.'); (e as any).code = 'INSUFFICIENT_BALANCE'; throw e; }
+        if (response.status === 429) { const e = new Error('Rate limited.'); (e as any).code = 'RATE_LIMITED'; throw e; }
+        throw new Error(`Dr7.ai API error (${response.status}): ${errorMessage}`);
+    }
+
+    // Read the SSE stream
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
+            const data = trimmed.slice(6);
+            if (data === '[DONE]') break;
+
+            try {
+                const parsed = JSON.parse(data);
+                const token = parsed.choices?.[0]?.delta?.content || '';
+                if (token) {
+                    fullText += token;
+                    onToken(token);
+                }
+            } catch {
+                // Skip malformed chunks
+            }
+        }
+    }
+
+    return fullText;
+}
+
+// Keep non-streaming version as fallback
 export async function generatePatientReasoning(patient: Patient): Promise<PatientReasoning> {
     const vitalsStr = patient.vitals.length > 0
         ? patient.vitals.slice(-5).map(v => `HR:${v.hr} BP:${v.sys}/${v.dia} Temp:${v.temp}°F`).join('; ')
@@ -219,9 +322,9 @@ AI Summary: ${patient.aiSummary || 'None'}
 As a HAI-DEF clinical monitoring system, explain WHY this patient was surfaced in the Clinical Attention Queue.
 Return EXACTLY one JSON object (no markdown wrappers):
 {
-  "deviation": "A specific statement about how this patient's data deviates from their established baseline (e.g. 'Heart rate trending 22% above 7-day average')",
-  "patternDetection": "What clinical pattern was detected across their records (e.g. 'Matches 847 prior CHF decompensation trajectories')",
-  "riskForecast": "A time-bound risk forecast with urgency (e.g. 'Escalation recommended within 15 minutes — 78% probability of adverse event within 6 hours')"
+  "deviation": "A specific statement about how this patient's data deviates from their established baseline",
+  "patternDetection": "What clinical pattern was detected across their records",
+  "riskForecast": "A time-bound risk forecast with urgency"
 }
 `;
 
@@ -233,3 +336,4 @@ Return EXACTLY one JSON object (no markdown wrappers):
 
     return parseJson<PatientReasoning>(raw);
 }
+
