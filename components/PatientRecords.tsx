@@ -690,7 +690,7 @@ export default function PatientRecords() {
     }
 
     return sorted;
-  }, [searchQuery, sortConfig]);
+  }, [patients, searchQuery, sortConfig]);
 
   const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
   const paginatedPatients = filteredPatients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -752,9 +752,17 @@ export default function PatientRecords() {
   };
 
   const getTimeSince = (dateStr: string) => {
-    // Generate a deterministic fake time based on the string length to make it look stable in demo
-    const mins = (dateStr.length * 7) % 59 + 2;
-    return `${mins} min ago`;
+    if (!dateStr) return 'N/A';
+    const then = new Date(dateStr).getTime();
+    if (isNaN(then)) return 'N/A';
+    const diffMs = Date.now() - then;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   };
 
   return (
@@ -1180,7 +1188,7 @@ export default function PatientRecords() {
                       {selectedPatient.aiSummary}
                     </p>
                     <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                      <Clock size={12} /> Updated 2 mins ago
+                      <Clock size={12} /> Updated {getTimeSince(selectedPatient.lastVisit)}
                     </div>
                     {selectedPatient.doctorReport && (
                       <button
