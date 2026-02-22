@@ -12,7 +12,6 @@ import Notifications from './components/Notifications';
 import AuthPage from './components/AuthPage';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './lib/db';
-import OnboardingModal from './components/OnboardingModal';
 import CommandPalette from './components/CommandPalette';
 
 // Placeholder component for non-dashboard views
@@ -40,8 +39,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const Layout = () => {
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const settings = useLiveQuery(() => db.appSettings.get('settings'));
-  const showOnboarding = !settings?.onboardingComplete;
 
   // Keyboard shortcut for Command Palette
   useEffect(() => {
@@ -101,7 +98,6 @@ const Layout = () => {
         </main>
       </div>
       <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      {showOnboarding && <OnboardingModal onComplete={() => { }} />}
     </div>
   );
 };

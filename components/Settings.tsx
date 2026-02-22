@@ -71,7 +71,7 @@ const AVAILABLE_MODELS: ModelConfig[] = [
 const REASONING_MODULES = ['Oncology Cross-Ref', 'Drug Interaction API', 'Genetic Marker DB', 'Pediatric Dosage'];
 
 // --- Initial state snapshots ---
-const INITIAL_PROFILE = { name: 'Alex Williamson', title: 'Chief Resident', email: 'alex.w@aurahealth.med' };
+const INITIAL_PROFILE = { name: '', title: '', email: '' };
 const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-27b': true, 'med-palm-2': true };
 const INITIAL_MODULES: Record<string, boolean> = { 'Oncology Cross-Ref': true, 'Drug Interaction API': true, 'Genetic Marker DB': false, 'Pediatric Dosage': false };
 const INITIAL_MFA = false;

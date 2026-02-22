@@ -31,14 +31,7 @@ const PAGES = [
     { id: 'notifications', title: 'Notifications', icon: Bell, path: '/notifications' },
 ];
 
-const PATIENTS = [
-    { id: '#AH-8832', name: 'Eleanor Pena', age: 45, condition: 'Arrhythmia', priority: 'high' },
-    { id: '#AH-9211', name: 'Cody Fisher', age: 32, condition: 'Hypertension', priority: 'high' },
-    { id: '#AH-7742', name: 'Jerome Webb', age: 58, condition: 'Type 2 Diabetes', priority: 'moderate' },
-    { id: '#AH-1029', name: 'Kristin Watson', age: 29, condition: 'Migraine', priority: 'low' },
-    { id: '#AH-5621', name: 'Darrell Steward', age: 41, condition: 'Post-Op Recovery', priority: 'high' },
-    { id: '#AH-2291', name: 'Arlene McCoy', age: 63, condition: 'Arthritis', priority: 'moderate' },
-];
+const PATIENTS: any[] = [];
 
 const ACTIONS = [
     { id: 'add-patient', title: 'Add New Patient', icon: Plus, group: 'Actions' },

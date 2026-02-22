@@ -181,13 +181,13 @@ export default function AuthPage() {
     const handleBiometric = async (type: 'touch' | 'face') => {
         setBiometricModal(type);
         const existingUser = await db.authUsers.toCollection().first();
-        const userEmail = existingUser ? existingUser.email : 'doctor@hospital.com';
+        const userEmail = existingUser ? existingUser.email : '';
 
         if (!existingUser) {
             const now = Date.now();
             await db.authUsers.add({
-                name: 'Alex Williamson',
-                email: 'doctor@hospital.com',
+                name: '',
+                email: '',
                 password: 'biometric_login_placeholder',
                 createdAt: now,
                 updatedAt: now
