@@ -80,9 +80,18 @@ export default function Diagnostics() {
   // Derived
   const selectedCase = useMemo(() => cases.find(c => c.id === selectedCaseId) || cases[0], [cases, selectedCaseId]);
   const filteredCases = useMemo(() => {
-    if (!queueSearch.trim()) return cases;
-    const q = queueSearch.toLowerCase();
-    return cases.filter(c => c.patientName.toLowerCase().includes(q) || c.scanType.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+    let result = cases;
+    if (queueSearch.trim()) {
+      const q = queueSearch.toLowerCase();
+      result = cases.filter(c => c.patientName.toLowerCase().includes(q) || c.scanType.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+    }
+    return result.sort((a, b) => {
+      // Critical jumps to the top
+      if (a.status === 'Critical' && b.status !== 'Critical') return -1;
+      if (b.status === 'Critical' && a.status !== 'Critical') return 1;
+      // Then sort by newest first
+      return b.timestamp - a.timestamp;
+    });
   }, [cases, queueSearch]);
 
   // Reset state when case changes
@@ -267,51 +276,81 @@ export default function Diagnostics() {
 
           {selectedCase.image ? (
             <div
-              className="relative w-[90%] md:w-[85%] h-[90%] md:h-[85%] max-w-[800px] aspect-[3/4] md:aspect-square bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-transform duration-150"
-              style={{ transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)` }}
+              className={`relative w-[90%] md:w-[85%] h-[90%] md:h-[85%] max-w-[800px] aspect-[3/4] md:aspect-square ${selectedCase.scanType.toLowerCase().includes('screening') || selectedCase.scanType.toLowerCase().includes('lab') ? 'bg-card-dark text-white p-8 lg:p-12 overflow-y-auto' : 'bg-gray-900'} rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-transform duration-150`}
+              style={selectedCase.scanType.toLowerCase().includes('screening') || selectedCase.scanType.toLowerCase().includes('lab') ? {} : { transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)` }}
             >
-              <img alt="Medical Scan" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity grayscale contrast-125 brightness-75" src={selectedCase.image} />
+              {selectedCase.scanType.toLowerCase().includes('screening') || selectedCase.scanType.toLowerCase().includes('lab') ? (
+                <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-4 border-b border-white/10 pb-6 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan shadow-sm">
+                      <Activity size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold font-serif">{selectedCase.scanType}</h2>
+                      <p className="text-sm text-gray-400">Dr7 Triage Text Analysis Engine</p>
+                    </div>
+                  </div>
 
-              {/* AI Overlays */}
-              {showOverlays && (
-                <div className="absolute inset-0 z-10">
-                  {selectedCase.annotations.map((ann, i) => (
-                    <React.Fragment key={i}>
-                      {ann.type === 'box' && (
-                        <div
-                          className="absolute border-2 border-cyan/60 rounded-sm shadow-[0_0_15px_rgba(20,245,214,0.3)] flex items-start justify-end group cursor-pointer hover:bg-cyan/5 transition-colors"
-                          style={{ top: ann.top, left: ann.left, width: ann.width, height: ann.height }}
-                        >
-                          <div className="absolute -top-6 right-0 bg-cyan/20 backdrop-blur-sm border border-cyan/40 text-cyan text-[9px] md:text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            <span className="font-bold">{ann.confidence}%</span>
-                            <span>{ann.label}</span>
-                          </div>
-                        </div>
-                      )}
-                      {ann.type === 'point' && (
-                        <>
-                          <div className={`absolute w-2.5 h-2.5 md:w-3 md:h-3 rounded-full animate-pulse shadow-[0_0_15px_rgba(254,87,150,0.6)] ${ann.severity === 'critical' ? 'bg-accent' : 'bg-cyan'}`} style={{ top: ann.top, left: ann.left }}></div>
-                          {ann.lineX2 && ann.lineY2 && (
-                            <>
-                              <svg className="absolute inset-0 pointer-events-none w-full h-full">
-                                <line stroke={ann.severity === 'critical' ? '#FE5796' : '#14F5D6'} strokeDasharray="4 2" strokeWidth="1" x1={`${parseInt(ann.left) + 2}%`} x2={ann.lineX2} y1={`${parseInt(ann.top) + 1}%`} y2={ann.lineY2}></line>
-                              </svg>
-                              <div className={`absolute ${ann.severity === 'critical' ? 'bg-accent/20 border-accent/40 text-accent' : 'bg-cyan/20 border-cyan/40 text-cyan'} backdrop-blur-sm border text-[9px] md:text-[10px] px-2 py-1 rounded whitespace-nowrap`} style={{ top: ann.lineY2, left: ann.lineX2 }}>
-                                <span className="font-bold">{ann.severity === 'critical' ? 'Critical:' : 'Note:'}</span> {ann.label}
+                  <div className="prose prose-invert prose-sm max-w-none flex-1">
+                    <h3 className="text-cyan mb-2">Clinical Context Review</h3>
+                    <p className="text-gray-300 leading-relaxed mb-6">{selectedCase.aiSummary}</p>
+
+                    <h3 className="text-cyan mb-2">Automated Extraction</h3>
+                    <ul className="space-y-3">
+                      {selectedCase.findings.map((f, i) => (
+                        <li key={i} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                          <span className="font-bold text-white block mb-1">{f.title}</span>
+                          <span className="text-gray-400">{f.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <img alt="Medical Scan" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity grayscale contrast-125 brightness-75" src={selectedCase.image} />
+                  {/* AI Overlays */}
+                  {showOverlays && (
+                    <div className="absolute inset-0 z-10">
+                      {selectedCase.annotations.map((ann, i) => (
+                        <React.Fragment key={i}>
+                          {ann.type === 'box' && (
+                            <div
+                              className="absolute border-2 border-cyan/60 rounded-sm shadow-[0_0_15px_rgba(20,245,214,0.3)] flex items-start justify-end group cursor-pointer hover:bg-cyan/5 transition-colors"
+                              style={{ top: ann.top, left: ann.left, width: ann.width, height: ann.height }}
+                            >
+                              <div className="absolute -top-6 right-0 bg-cyan/20 backdrop-blur-sm border border-cyan/40 text-cyan text-[9px] md:text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                <span className="font-bold">{ann.confidence}%</span>
+                                <span>{ann.label}</span>
                               </div>
+                            </div>
+                          )}
+                          {ann.type === 'point' && (
+                            <>
+                              <div className={`absolute w-2.5 h-2.5 md:w-3 md:h-3 rounded-full animate-pulse shadow-[0_0_15px_rgba(254,87,150,0.6)] ${ann.severity === 'critical' ? 'bg-accent' : 'bg-cyan'}`} style={{ top: ann.top, left: ann.left }}></div>
+                              {ann.lineX2 && ann.lineY2 && (
+                                <>
+                                  <svg className="absolute inset-0 pointer-events-none w-full h-full">
+                                    <line stroke={ann.severity === 'critical' ? '#FE5796' : '#14F5D6'} strokeDasharray="4 2" strokeWidth="1" x1={`${parseInt(ann.left) + 2}%`} x2={ann.lineX2} y1={`${parseInt(ann.top) + 1}%`} y2={ann.lineY2}></line>
+                                  </svg>
+                                  <div className={`absolute ${ann.severity === 'critical' ? 'bg-accent/20 border-accent/40 text-accent' : 'bg-cyan/20 border-cyan/40 text-cyan'} backdrop-blur-sm border text-[9px] md:text-[10px] px-2 py-1 rounded whitespace-nowrap`} style={{ top: ann.lineY2, left: ann.lineX2 }}>
+                                    <span className="font-bold">{ann.severity === 'critical' ? 'Critical:' : 'Note:'}</span> {ann.label}
+                                  </div>
+                                </>
+                              )}
                             </>
                           )}
-                        </>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        </React.Fragment>
+                      ))}
 
-                  {/* Corner Markers */}
-                  <div className="absolute top-3 left-3 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-t border-white/20"></div>
-                  <div className="absolute top-3 right-3 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-t border-white/20"></div>
-                  <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-b border-white/20"></div>
-                  <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-b border-white/20"></div>
-                </div>
+                      {/* Corner Markers */}
+                      <div className="absolute top-3 left-3 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-t border-white/20"></div>
+                      <div className="absolute top-3 right-3 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-t border-white/20"></div>
+                      <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-b border-white/20"></div>
+                      <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-b border-white/20"></div>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Measure overlay */}

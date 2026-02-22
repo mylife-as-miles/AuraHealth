@@ -712,35 +712,89 @@ const PatientHistoryModal = ({ isOpen, onClose, patient }: { isOpen: boolean; on
 
 const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: boolean; onClose: () => void; patient: Patient | undefined; modelName: string }) => {
   const [scanType, setScanType] = useState('Chest X-Ray');
+  const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
   if (!isOpen || !patient) return null;
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleStart = async () => {
     setIsProcessing(true);
     try {
+      // Create interim case while parsing
       const newCaseId = `CASE-${Math.floor(Math.random() * 9000) + 1000}`;
+
+      let finalSummary = 'Processing incoming imaging data...';
+      let status: 'Critical' | 'Ready' | 'In Progress' | 'Pending' = 'In Progress';
+      let confidenceScore = 0;
+
+      if (image) {
+        // Run the 4-Agent Pipeline
+        const response = await fetch('/api/gemini/diagnostics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image,
+            scanType,
+            patientContext: `Patient: ${patient.name}, Age: ${patient.age}, History: ${patient.history.map(h => h.title).join(', ')}. Current condition: ${patient.condition}. Medical notes: ${patient.medicalHistoryNotes || 'None'}`,
+            dr7Model: modelName
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          finalSummary = result.alertText || 'Analysis complete. Review findings.';
+          status = result.severity === 'Critical' ? 'Critical' : 'Ready';
+          confidenceScore = result.confidence || 95;
+
+          if (status === 'Critical') {
+            await db.notifications.add({
+              id: `NOTIF-${Date.now()}`,
+              type: 'critical',
+              title: `${scanType} Critical Finding`,
+              content: finalSummary,
+              time: 'Just now',
+              timestamp: Date.now(),
+              read: false,
+              action: { label: 'View Case' }
+            });
+          }
+        }
+      }
+
       await db.diagnosticCases.add({
         id: newCaseId,
         patientId: patient.id,
         patientName: patient.name,
         scanType: scanType,
-        status: 'In Progress',
+        status: status,
         time: 'Just now',
-        image: '',
-        totalSlices: 120,
-        confidence: 0,
+        image: image || '',
+        totalSlices: 1,
+        confidence: confidenceScore,
         modelName: modelName,
-        findings: [],
-        diagnosis: [],
+        findings: status === 'Critical' ? [{ severity: 'critical', title: 'Critical Anomaly Detected', description: finalSummary }] : [],
+        diagnosis: [{ label: 'Awaiting Review', val: 100, color: 'accent' }],
         annotations: [],
-        aiSummary: 'Processing incoming imaging data...',
-        progress: 10,
+        aiSummary: finalSummary,
+        progress: 100,
         timestamp: Date.now()
       });
+
       setIsProcessing(false);
       onClose();
+      setImage(null);
       navigate('/diagnostics');
     } catch (e) {
       console.error("Failed to start diagnosis:", e);
@@ -765,7 +819,7 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
             <X size={20} />
           </button>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-5">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             Select the scan type for <span className="font-bold text-primary dark:text-white">{patient.name}</span>. The {modelName} system will automatically queue and process the results.
           </p>
@@ -782,11 +836,34 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
               <option>Brain MRI (T1/T2)</option>
               <option>Abdominal CT Scan</option>
               <option>Echocardiogram</option>
+              <option>Chlamydia Screening</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              Upload Scan Image
+            </label>
+            <div className={`relative w-full h-32 rounded-xl flex items-center justify-center overflow-hidden transition-all text-gray-400 hover:text-cyan border-2 border-dashed ${image ? 'border-cyan bg-cyan/5' : 'border-gray-200 dark:border-white/10 hover:border-cyan'}`}>
+              {image ? (
+                <img src={image} alt="Scan Upload" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Camera size={24} />
+                  <span className="text-xs font-semibold">Click or drag image</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
           </div>
         </div>
         <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex gap-3 justify-end items-center">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+          <button onClick={() => { setImage(null); onClose(); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
           <button
             onClick={handleStart}
             disabled={isProcessing}
