@@ -138,10 +138,13 @@ export default function Settings() {
             email: authUser?.email || persistedSettings.profileEmail,
         };
 
-        // Enforce single-select: only keep one active model from persisted data
-        const mergedModels = { ...DEFAULT_USER_SETTINGS.activeModels, ...persistedSettings.activeModels };
-        const activeKeys = Object.keys(mergedModels).filter(k => mergedModels[k]);
-        const nextModels: Record<string, boolean> = activeKeys.length > 0 ? { [activeKeys[0]]: true } : { ...DEFAULT_USER_SETTINGS.activeModels };
+        // Use persisted activeModels directly — don't merge with defaults
+        // (merging would re-add the default model even if user deselected it)
+        const persistedModels = persistedSettings.activeModels || {};
+        const activeKeys = Object.keys(persistedModels).filter(k => persistedModels[k]);
+        const nextModels: Record<string, boolean> = activeKeys.length > 0
+            ? Object.fromEntries(activeKeys.map(k => [k, true]))
+            : { ...DEFAULT_USER_SETTINGS.activeModels };
         const nextModules = { ...DEFAULT_USER_SETTINGS.reasoningModules, ...persistedSettings.reasoningModules };
 
         setProfileName(nextProfile.name);
