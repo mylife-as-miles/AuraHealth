@@ -42,6 +42,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Patient } from '../lib/types';
 import { triageReferralNotes, streamPatientReasoning } from '../lib/dr7';
+import { useActiveModel } from '../lib/useActiveModel';
+import ReactMarkdown from 'react-markdown';
 import EmptyState from './EmptyState';
 
 // --- Types & Interfaces ---
@@ -70,6 +72,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; type: string; dataUrl: string }>>([]);
+  const { modelId: activeModelId, modelName: activeModelName } = useActiveModel();
 
   if (!isOpen) return null;
 
@@ -111,7 +114,7 @@ Allergies: ${formData.allergies}
       const dr7Res = await fetch('/api/dr7/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parsedContext, modelId: 'medgemma-4b-it' })
+        body: JSON.stringify({ parsedContext, modelId: activeModelId })
       });
       const dr7Data = await dr7Res.json();
       const dr7Evaluation = dr7Data.evaluation || 'Standard clinical review required.';
@@ -174,7 +177,7 @@ Allergies: ${formData.allergies}
       await db.aiDecisions.add({
         patientId: newId,
         type: 'TRIAGED',
-        model: 'medgemma-27b-it',
+        model: activeModelId,
         timestamp: Date.now()
       });
 
@@ -182,7 +185,7 @@ Allergies: ${formData.allergies}
         id: `n-${Date.now()}`,
         type: 'system',
         title: 'New Patient Monitored',
-        content: `Patient ${formData.name} (${newId}) has been added to MedGemma active surveillance.`,
+        content: `Patient ${formData.name} (${newId}) has been added to ${activeModelName} active surveillance.`,
         time: 'Just now',
         timestamp: Date.now(),
         read: false,
@@ -300,7 +303,7 @@ Allergies: ${formData.allergies}
             <div className="h-6 flex items-center justify-center overflow-hidden">
               <p key={loadingPhase} className="text-sm font-bold leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 text-gray-500 dark:text-gray-400">
                 {loadingPhase === 0 ? <span className="text-cyan">{Math.min(attachedFiles.length, 4)} parallel workers extracting clinical context...</span> :
-                  loadingPhase === 1 ? <span className="text-secondary">MedGemma assessing unified clinical risk...</span> :
+                  loadingPhase === 1 ? <span className="text-secondary">{activeModelName} assessing unified clinical risk...</span> :
                     loadingPhase === 2 ? <span className="text-accent">Structuring final database schema...</span> :
                       "Done."}
               </p>
@@ -313,7 +316,7 @@ Allergies: ${formData.allergies}
             <h3 className="text-xl font-bold text-primary dark:text-white flex items-center gap-2">
               Register Patient for Monitoring <Sparkles size={18} className="text-cyan fill-cyan/20" />
             </h3>
-            <p className="text-xs text-gray-500 font-medium mt-1">MedGemma will immediately begin background risk surveillance.</p>
+            <p className="text-xs text-gray-500 font-medium mt-1">{activeModelName} will immediately begin background risk surveillance.</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors shrink-0">
             <X size={20} className="text-gray-400" />
@@ -502,7 +505,7 @@ Allergies: ${formData.allergies}
             <span>Attach Medical Records (Labs, Imaging Reports, Vitals History)</span>
           </label>
           <p className="text-[11px] text-gray-500 font-medium mb-3">
-            MedGemma will auto-extract and analyze all attached documents.
+            {activeModelName} will auto-extract and analyze all attached documents.
           </p>
           <div className="w-full relative group cursor-pointer">
             <input
@@ -593,7 +596,7 @@ Allergies: ${formData.allergies}
   );
 };
 
-const DoctorReportModal = ({ isOpen, onClose, report }: { isOpen: boolean; onClose: () => void; report?: string }) => {
+const DoctorReportModal = ({ isOpen, onClose, report, modelName }: { isOpen: boolean; onClose: () => void; report?: string; modelName: string }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-sm p-4">
@@ -605,7 +608,7 @@ const DoctorReportModal = ({ isOpen, onClose, report }: { isOpen: boolean; onClo
             </div>
             <div>
               <h3 className="text-xl font-bold text-primary dark:text-white">Comprehensive Clinical Report</h3>
-              <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">MedGemma AI Synthesis</p>
+              <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">{modelName} AI Synthesis</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-full transition-colors text-gray-400">
@@ -613,8 +616,8 @@ const DoctorReportModal = ({ isOpen, onClose, report }: { isOpen: boolean; onClo
           </button>
         </div>
         <div className="p-8 overflow-y-auto custom-scrollbar flex-1 relative">
-          <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 marker:text-cyan prose-h3:text-primary dark:prose-h3:text-white prose-h4:text-secondary prose-strong:text-cyan whitespace-pre-wrap">
-            {report || "No detailed report available for this patient."}
+          <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 marker:text-cyan prose-headings:text-primary dark:prose-headings:text-white prose-strong:text-cyan prose-ul:list-disc prose-ol:list-decimal">
+            <ReactMarkdown>{report || 'No detailed report available for this patient.'}</ReactMarkdown>
           </div>
         </div>
         <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex justify-end shrink-0">
@@ -632,6 +635,7 @@ const DoctorReportModal = ({ isOpen, onClose, report }: { isOpen: boolean; onClo
 export default function PatientRecords() {
   const navigate = useNavigate();
   const patients = useLiveQuery(() => db.patients.toArray()) || [];
+  const { modelId: activeModelId, modelName: activeModelName } = useActiveModel();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeVital, setActiveVital] = useState<'hr' | 'bp' | 'temp' | 'weight'>('hr');
@@ -769,7 +773,7 @@ export default function PatientRecords() {
   return (
     <div className="flex flex-col h-full relative">
       <AddPatientModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
-      <DoctorReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} report={selectedPatient?.doctorReport} />
+      <DoctorReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} report={selectedPatient?.doctorReport} modelName={activeModelName} />
 
       {/* Delete Confirmation Modal */}
       {deleteTargetId && (
@@ -1122,7 +1126,7 @@ export default function PatientRecords() {
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-5 relative before:absolute before:left-1.5 before:top-2 before:bottom-0 before:w-[2px] before:bg-cyan/30">
                   <div className="flex items-center justify-between mb-1.5">
-                    <p>MedGemma reasoning:</p>
+                    <p>{activeModelName} reasoning:</p>
                     {reasoningDone.has(selectedPatient.id) && lastAnalyzed[selectedPatient.id] && (
                       <span className="text-[10px] text-gray-400 font-normal">
                         Updated {Math.floor((Date.now() - lastAnalyzed[selectedPatient.id]) / 1000)}s ago
@@ -1140,14 +1144,14 @@ export default function PatientRecords() {
                       {reasoningDone.has(selectedPatient.id) && (
                         <div className="flex items-center gap-2">
                           <div className="px-2 py-0.5 rounded bg-cyan/10 border border-cyan/20 text-[9px] font-bold text-cyan uppercase tracking-wider">
-                            medgemma-27b-it • Clinical reasoning
+                            {activeModelId} • Clinical reasoning
                           </div>
                         </div>
                       )}
                     </div>
                   ) : (
                     <div className="text-[11px] text-gray-400 dark:text-gray-500 italic">
-                      Click <strong className="text-cyan not-italic">Generate</strong> to stream live MedGemma clinical reasoning
+                      Click <strong className="text-cyan not-italic">Generate</strong> to stream live {activeModelName} clinical reasoning
                     </div>
                   )}
                 </div>
@@ -1162,7 +1166,7 @@ export default function PatientRecords() {
                       await db.aiDecisions.add({
                         patientId: selectedPatient.id,
                         type: 'ESCALATED',
-                        model: 'medgemma-27b-it',
+                        model: activeModelId,
                         timestamp: Date.now()
                       });
                       // Mark patient as active & add history entry
@@ -1213,7 +1217,7 @@ export default function PatientRecords() {
                   </div>
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">MedGemma Summary</span>
+                      <span className="text-xs font-bold text-primary dark:text-white uppercase tracking-wider">{activeModelName} Summary</span>
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan/20 text-cyan-700 dark:text-cyan border border-cyan/20">AI Generated</span>
                     </div>
                     <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
@@ -1369,7 +1373,7 @@ export default function PatientRecords() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-primary dark:text-white">AI Triage Active</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Select a patient from the queue to view MedGemma's reasoning and take action on the flagged symptoms.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Select a patient from the queue to view {activeModelName}'s reasoning and take action on the flagged symptoms.</p>
             </div>
           </div>
         )}

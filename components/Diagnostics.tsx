@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import {
   Search,
   MoreVertical,
@@ -47,6 +48,7 @@ const statusStyle = (s: DiagCase['status']) => {
 
 // --- Component ---
 export default function Diagnostics() {
+  const { modelName } = useActiveModel();
   const cases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
 
   // Selection & search
@@ -372,7 +374,7 @@ export default function Diagnostics() {
       <section className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-border-light dark:border-border-dark flex flex-col p-4 lg:p-6 overflow-y-auto bg-white/50 dark:bg-card-dark/50 backdrop-blur-xl flex-shrink-0 h-auto lg:h-full">
         <div className="flex items-center gap-2 mb-4 lg:mb-6">
           <Brain className="text-cyan w-5 h-5 lg:w-6 lg:h-6" />
-          <h2 className="text-base lg:text-lg font-bold text-primary dark:text-white">MedGemma Analysis</h2>
+          <h2 className="text-base lg:text-lg font-bold text-primary dark:text-white">{modelName} Analysis</h2>
         </div>
 
         {selectedCase.confidence > 0 ? (

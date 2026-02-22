@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import {
   SlidersHorizontal,
   Brain,
@@ -161,6 +162,7 @@ import { analyzePatientRisks, PredictionAlert } from '../lib/dr7';
 type SeriesKey = 'cardio' | 'resp' | 'viral' | 'neuro';
 
 export default function AIInsights() {
+  const { modelId: activeModelId, modelName } = useActiveModel();
   // AI Integration State
   const [aiAlerts, setAiAlerts] = useState<PredictionAlert[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -478,7 +480,7 @@ export default function AIInsights() {
                     </span>
                   </div>
                   <div className="px-2 py-0.5 rounded bg-white/10 border border-white/20 text-[8px] font-bold text-gray-200 uppercase tracking-wider">
-                    medgemma-27b-it
+                    {activeModelId}
                   </div>
                 </div>
               </div>
@@ -726,7 +728,7 @@ export default function AIInsights() {
             </button>
             <h3 className="text-xl font-bold text-primary dark:text-white mb-2 flex items-center gap-2">
               <Cpu size={24} className="text-secondary" />
-              MedGemma Logic Explorer
+              {modelName} Logic Explorer
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Understanding how the HAI-DEF model processes signals to ensure high accuracy.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -764,7 +766,7 @@ export default function AIInsights() {
                 <div>
                   <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100">Bias Mitigation Active</h4>
                   <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    MedGemma actively filters for demographic anomalies. The current prediction shows <span className="font-bold">0.02%</span> variance across diverse population sets, well below the 0.5% threshold.
+                    {modelName} actively filters for demographic anomalies. The current prediction shows <span className="font-bold">0.02%</span> variance across diverse population sets, well below the 0.5% threshold.
                   </p>
                 </div>
               </div>

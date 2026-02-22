@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import {
   Search,
   MoreHorizontal,
@@ -83,6 +84,7 @@ const priorityStyle = (p?: string) => {
 };
 
 export default function ClinicalWorkflow() {
+  const { modelName } = useActiveModel();
   const workflowCards = useLiveQuery(() => db.workflowCards.toArray()) || [];
   const patients = useLiveQuery(() => db.patients.toArray()) || [];
 
@@ -353,7 +355,7 @@ export default function ClinicalWorkflow() {
                             {card.column === 'analysis' && card.aiProgress !== undefined && (
                               <div className="bg-background-light dark:bg-background-dark rounded-xl p-2.5 mb-3">
                                 <div className="flex justify-between text-[10px] font-bold text-gray-500 mb-1.5">
-                                  <span className="flex items-center gap-1"><RefreshCw size={10} className="animate-spin" /> MedGemma Processing</span>
+                                  <span className="flex items-center gap-1"><RefreshCw size={10} className="animate-spin" /> {modelName} Processing</span>
                                   <span className="text-cyan-700 dark:text-cyan">{card.aiProgress}%</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">

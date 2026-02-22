@@ -269,7 +269,7 @@ export default function AuthPage() {
                             </span>
                         </h2>
                         <p className="text-gray-300 text-lg max-w-md leading-relaxed">
-                            Secure access to MedGemma and HAI-DEF models for next-generation diagnostics and workflow optimization.
+                            Secure access to HAI-DEF clinical AI models for next-generation diagnostics and workflow optimization.
                         </p>
                         <div className="flex items-center gap-4 mt-8">
                             <div className="flex -space-x-3">

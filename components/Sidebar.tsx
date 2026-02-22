@@ -12,6 +12,7 @@ import {
   Sparkles,
   Cpu
 } from 'lucide-react';
+import { useActiveModel } from '../lib/useActiveModel';
 
 interface NavItemProps {
   icon: any;
@@ -45,6 +46,7 @@ const NavItem = ({ icon: Icon, label, to, isNew = false }: NavItemProps) => (
 );
 
 export default function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }) {
+  const { modelName } = useActiveModel();
   return (
     <aside className="w-full md:w-64 flex-shrink-0 p-6 flex flex-col border-r border-border-light dark:border-border-dark bg-white dark:bg-card-dark">
       {/* Brand */}
@@ -90,9 +92,9 @@ export default function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void })
         <div className="relative z-10 text-white">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_8px_rgba(84,224,151,0.8)]"></span>
-            <span className="text-[10px] font-bold tracking-wider uppercase text-secondary">MedGemma Monitoring Active</span>
+            <span className="text-[10px] font-bold tracking-wider uppercase text-secondary">{modelName} Monitoring Active</span>
           </div>
-          <h3 className="font-bold text-sm mb-1">MedGemma v2.4</h3>
+          <h3 className="font-bold text-sm mb-1">{modelName}</h3>
           <p className="text-[11px] text-gray-300 mb-3">Running HAI-DEF models.</p>
           <button className="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-white/10">
             <Cpu size={14} /> System Status

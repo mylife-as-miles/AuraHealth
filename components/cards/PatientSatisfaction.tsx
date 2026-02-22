@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
+import { useActiveModel } from '../../lib/useActiveModel';
 
 export default function PatientSatisfaction() {
+  const { modelName } = useActiveModel();
   const patients = useLiveQuery(() => db.patients.toArray()) || [];
 
   const { highAcuity, moderateRisk, routineLow, total } = useMemo(() => {
@@ -32,7 +34,7 @@ export default function PatientSatisfaction() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="font-bold text-primary dark:text-white text-sm">Triage Risk Stratification</h3>
-          <p className="text-[10px] text-gray-500 mt-1 max-w-[150px] leading-tight">Automated intake analysis via MedGemma</p>
+          <p className="text-[10px] text-gray-500 mt-1 max-w-[150px] leading-tight">Automated intake analysis via {modelName}</p>
         </div>
         <div className="text-[10px] font-bold bg-background-light dark:bg-gray-800 rounded-lg py-1.5 px-3 text-gray-600 dark:text-gray-300 shadow-sm">
           {total} Active

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import { useNavigate } from 'react-router-dom';
 import {
     Search,
@@ -39,6 +40,7 @@ const ACTIONS = [
 ];
 
 export default function CommandPalette({ isOpen, onClose }: Props) {
+    const { modelName } = useActiveModel();
     const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -236,7 +238,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
                         <span className="flex items-center gap-1"><span>ESC</span> <span>to close</span></span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span>Powered by Dr7.ai MedGemma</span>
+                        <span>Powered by Dr7.ai {modelName}</span>
                         <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
                     </div>
                 </div>
