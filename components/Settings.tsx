@@ -44,36 +44,34 @@ interface ModelConfig {
     id: string;
     name: string;
     description: string;
-    status: 'available' | 'coming_soon';
+    status: 'available' | 'coming_soon' | 'always_active';
     icon: React.ElementType;
     iconColor: string;
     iconBg: string;
 }
 
-// --- Data ---
 const AVAILABLE_MODELS: ModelConfig[] = [
-    { id: 'medgemma-27b-it', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
-    { id: 'medgemma-4b-it', name: 'MedGemma 4B', description: 'Lightweight model optimized for rapid local edge deployment.', status: 'available', icon: Sparkles, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
-    { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'available', icon: Brain, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
-    { id: 'biogpt', name: 'BioGPT', description: 'Specialized transformer for biomedical literature mining and research analysis.', status: 'available', icon: FileText, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
+    { id: 'medgemma-4b-it', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
+    { id: 'biomedclip', name: 'BiomedCLIP', description: 'Contrastive vision-language model for retrieving medical images.', status: 'always_active', icon: ScanEye, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
+    { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'coming_soon', icon: Brain, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'biogpt', name: 'BioGPT', description: 'Specialized transformer for biomedical literature mining and research analysis.', status: 'coming_soon', icon: FileText, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'chexagent', name: 'CheXagent', description: 'Specialized vision model for interpretation and reporting of Chest X-rays.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'llava-med', name: 'LLaVA-Med', description: 'Multimodal assistant capable of discussing and analyzing medical imagery.', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'meditron', name: 'Meditron', description: 'Open-source medical LLM adapted for clinical guidelines and decision support.', status: 'available', icon: MessageSquare, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
-    { id: 'pmc-llama', name: 'PMC-LLaMA', description: 'Fine-tuned on biomedical academic papers for evidence-based responses.', status: 'available', icon: Stethoscope, iconColor: 'text-purple-500', iconBg: 'bg-purple-500/10' },
+    { id: 'meditron', name: 'Meditron', description: 'Open-source medical LLM adapted for clinical guidelines and decision support.', status: 'coming_soon', icon: MessageSquare, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'pmc-llama', name: 'PMC-LLaMA', description: 'Fine-tuned on biomedical academic papers for evidence-based responses.', status: 'coming_soon', icon: Stethoscope, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'med-flamingo', name: 'Med-Flamingo', description: 'Few-shot learner for medical visual question answering.', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'biomedlm', name: 'BioMedLM', description: 'Compact biomedical language model optimized for scientific text processing.', status: 'available', icon: BrainCircuit, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
-    { id: 'biomedclip', name: 'BiomedCLIP', description: 'Contrastive vision-language model for retrieving medical images.', status: 'available', icon: ScanEye, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
-    { id: 'clinical-camel', name: 'Clinical Camel', description: 'Fine-tuned model for simulating patient-doctor clinical dialogues.', status: 'available', icon: MessageSquare, iconColor: 'text-orange-500', iconBg: 'bg-orange-500/10' },
+    { id: 'biomedlm', name: 'BioMedLM', description: 'Compact biomedical language model optimized for scientific text processing.', status: 'coming_soon', icon: BrainCircuit, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'clinical-camel', name: 'Clinical Camel', description: 'Fine-tuned model for simulating patient-doctor clinical dialogues.', status: 'coming_soon', icon: MessageSquare, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'medsiglip-v1', name: 'MedSigLIP', description: 'High-fidelity medical image encoder for various diagnostic modalities.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'alphagenome', name: 'AlphaGenome', description: 'Deep learning system for genomic sequence analysis and variant interpretation.', status: 'coming_soon', icon: Dna, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'available', icon: Microscope, iconColor: 'text-blue-500', iconBg: 'bg-blue-500/10' },
+    { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'coming_soon', icon: Microscope, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
 ];
 
 const REASONING_MODULES = ['Oncology Cross-Ref', 'Drug Interaction API', 'Genetic Marker DB', 'Pediatric Dosage'];
 
 // --- Initial state snapshots ---
 const INITIAL_PROFILE = { name: '', title: '', email: '' };
-const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-27b-it': true };
+const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-4b-it': true };
 const INITIAL_MODULES: Record<string, boolean> = { 'Oncology Cross-Ref': true, 'Drug Interaction API': true, 'Genetic Marker DB': false, 'Pediatric Dosage': false };
 const INITIAL_MFA = false;
 
@@ -419,9 +417,11 @@ export default function Settings() {
                                 key={model.id}
                                 className={`flex items-center justify-between p-4 border rounded-2xl transition-all duration-200 ${model.status === 'coming_soon'
                                     ? 'border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20'
-                                    : activeModels[model.id]
-                                        ? 'border-secondary/30 bg-secondary/5 dark:bg-secondary/5'
-                                        : 'border-gray-100 dark:border-gray-700/50 hover:border-secondary/30 bg-white dark:bg-transparent'
+                                    : model.status === 'always_active'
+                                        ? 'border-cyan/30 bg-cyan/5 dark:bg-cyan/5'
+                                        : activeModels[model.id]
+                                            ? 'border-secondary/30 bg-secondary/5 dark:bg-secondary/5'
+                                            : 'border-gray-100 dark:border-gray-700/50 hover:border-secondary/30 bg-white dark:bg-transparent'
                                     }`}
                             >
                                 <div className="flex gap-4 items-center">
@@ -438,7 +438,12 @@ export default function Settings() {
                                                     COMING SOON
                                                 </span>
                                             )}
-                                            {activeModels[model.id] && model.status !== 'coming_soon' && (
+                                            {model.status === 'always_active' && (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan/10 text-cyan border border-cyan/20">
+                                                    ALWAYS ACTIVE
+                                                </span>
+                                            )}
+                                            {activeModels[model.id] && model.status === 'available' && (
                                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20">
                                                     ACTIVE
                                                 </span>
@@ -449,11 +454,18 @@ export default function Settings() {
                                         </p>
                                     </div>
                                 </div>
-                                <Toggle
-                                    checked={!!activeModels[model.id]}
-                                    onChange={() => toggleModel(model.id)}
-                                    disabled={model.status === 'coming_soon'}
-                                />
+                                {model.status === 'always_active' ? (
+                                    <div className="px-3 py-1.5 rounded-full bg-cyan/10 text-cyan text-[10px] font-bold border border-cyan/20 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse"></span>
+                                        ON
+                                    </div>
+                                ) : (
+                                    <Toggle
+                                        checked={!!activeModels[model.id]}
+                                        onChange={() => toggleModel(model.id)}
+                                        disabled={model.status === 'coming_soon'}
+                                    />
+                                )}
                             </div>
                         ))}
 
