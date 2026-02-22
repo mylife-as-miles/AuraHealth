@@ -35,7 +35,8 @@ import {
   UploadCloud,
   Database,
   Brain,
-  ClipboardList
+  ClipboardList,
+  RefreshCw
 } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SafeChart } from './SafeChart';
@@ -659,6 +660,147 @@ const DoctorReportModal = ({ isOpen, onClose, report, modelName }: { isOpen: boo
   );
 };
 
+// --- New Feature Modals ---
+
+const PatientHistoryModal = ({ isOpen, onClose, patient }: { isOpen: boolean; onClose: () => void; patient: Patient | undefined }) => {
+  if (!isOpen || !patient) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-card-dark rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200">
+        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 rounded-t-3xl shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary shadow-sm">
+              <History size={20} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-primary dark:text-white">Patient History</h3>
+              <p className="text-xs text-gray-500 font-medium tracking-wide">{patient.name} • {patient.id}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-full transition-colors text-gray-400">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 relative bg-white dark:bg-card-dark">
+          <div className="relative pl-4 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100 dark:before:bg-gray-800">
+            {patient.history.map((event, idx) => (
+              <div key={idx} className="relative">
+                <div className={`absolute -left-[16px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-card-dark ${idx === 0 ? 'bg-secondary ring-4 ring-secondary/20' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-sm font-bold text-primary dark:text-white flex items-center gap-2">
+                      {event.type === 'Diagnosis' ? <Stethoscope size={14} className="text-cyan" /> : event.type === 'Visit' ? <User size={14} className="text-blue-500" /> : <Activity size={14} className="text-gray-400" />}
+                      {event.title}
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-500 bg-white dark:bg-black/20 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-white/10 shadow-sm">{event.date}</span>
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{event.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex justify-end shrink-0">
+          <button onClick={onClose} className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors">
+            Close History
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: boolean; onClose: () => void; patient: Patient | undefined; modelName: string }) => {
+  const [scanType, setScanType] = useState('Chest X-Ray');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
+
+  if (!isOpen || !patient) return null;
+
+  const handleStart = async () => {
+    setIsProcessing(true);
+    try {
+      const newCaseId = `CASE-${Math.floor(Math.random() * 9000) + 1000}`;
+      await db.diagnosticCases.add({
+        id: newCaseId,
+        patientId: patient.id,
+        patientName: patient.name,
+        scanType: scanType,
+        status: 'In Progress',
+        time: 'Just now',
+        image: '',
+        totalSlices: 120,
+        confidence: 0,
+        modelName: modelName,
+        findings: [],
+        diagnosis: [],
+        annotations: [],
+        aiSummary: 'Processing incoming imaging data...',
+        progress: 10,
+        timestamp: Date.now()
+      });
+      setIsProcessing(false);
+      onClose();
+      navigate('/diagnostics');
+    } catch (e) {
+      console.error("Failed to start diagnosis:", e);
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-card-dark rounded-3xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200">
+        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 rounded-t-3xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-cyan/10 flex items-center justify-center text-cyan shadow-sm">
+              <Activity size={20} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-primary dark:text-white">Start Diagnosis</h3>
+              <p className="text-xs text-gray-500 font-medium">Initiate new imaging or lab</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-full transition-colors text-gray-400">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Select the scan type for <span className="font-bold text-primary dark:text-white">{patient.name}</span>. The {modelName} system will automatically queue and process the results.
+          </p>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              Scan / Test Type
+            </label>
+            <select
+              value={scanType}
+              onChange={e => setScanType(e.target.value)}
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-cyan outline-none text-sm dark:text-white font-semibold"
+            >
+              <option>Chest X-Ray</option>
+              <option>Brain MRI (T1/T2)</option>
+              <option>Abdominal CT Scan</option>
+              <option>Echocardiogram</option>
+            </select>
+          </div>
+        </div>
+        <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex gap-3 justify-end items-center">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+          <button
+            onClick={handleStart}
+            disabled={isProcessing}
+            className="px-6 py-2.5 bg-cyan text-primary rounded-xl text-sm font-bold shadow-lg shadow-cyan/20 hover:bg-cyan/90 transition-all flex items-center gap-2"
+          >
+            {isProcessing ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
+            {isProcessing ? 'Initializing...' : 'Queue Diagnosis'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Component ---
 
 export default function PatientRecords() {
@@ -670,6 +812,8 @@ export default function PatientRecords() {
   const [activeVital, setActiveVital] = useState<'hr' | 'bp' | 'temp' | 'weight'>('hr');
   const [contextMenuPatientId, setContextMenuPatientId] = useState<string | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isDiagModalOpen, setIsDiagModalOpen] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -1225,16 +1369,16 @@ export default function PatientRecords() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => navigate('/diagnostics')}
-                  className="flex-1 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 text-primary dark:text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-sm flex items-center justify-center gap-2"
+                  onClick={() => setIsDiagModalOpen(true)}
+                  className="flex-1 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 text-primary dark:text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-sm flex items-center justify-center gap-2 group/btn"
                 >
-                  <Play size={14} fill="currentColor" /> Start Diagnosis
+                  <Play size={14} className="group-hover/btn:text-cyan transition-colors" fill="currentColor" /> Start Diagnosis
                 </button>
                 <button
-                  onClick={() => timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className="flex-1 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 text-primary dark:text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                  onClick={() => setIsHistoryModalOpen(true)}
+                  className="flex-1 bg-white border border-gray-200 dark:bg-white/5 dark:border-white/10 text-primary dark:text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2 group/btn"
                 >
-                  <History size={14} /> View History
+                  <History size={14} className="group-hover/btn:text-secondary transition-colors" /> View History
                 </button>
               </div>
 
@@ -1594,6 +1738,20 @@ export default function PatientRecords() {
         )
         }
       </div >
+
+      {/* Feature Modals */}
+      <PatientHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        patient={selectedPatient}
+      />
+
+      <StartDiagnosisModal
+        isOpen={isDiagModalOpen}
+        onClose={() => setIsDiagModalOpen(false)}
+        patient={selectedPatient}
+        modelName={activeModelName}
+      />
     </div >
   );
 }
