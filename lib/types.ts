@@ -44,6 +44,7 @@ export interface Patient {
     baselineSummary?: string;    // AI-generated baseline summary for HAI-DEF
     currentPriority?: string;    // AI-assigned queue priority
     riskIfIgnored?: number;      // Numeric risk score if patient is ignored
+    priorityAccepted?: boolean;  // Clinician confirmed priority flag
     medicalHistoryNotes?: string;
     medicationsNotes?: string;
     familyHistoryNotes?: string;

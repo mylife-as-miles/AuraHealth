@@ -824,7 +824,6 @@ export default function PatientRecords() {
   const [reasoningLoading, setReasoningLoading] = useState<string | null>(null);
   const [reasoningDone, setReasoningDone] = useState<Set<string>>(new Set());
   const [lastAnalyzed, setLastAnalyzed] = useState<Record<string, number>>({});
-  const [acceptedPatients, setAcceptedPatients] = useState<Set<string>>(new Set());
 
   // Close context menu on outside click
   useEffect(() => {
@@ -1330,21 +1329,40 @@ export default function PatientRecords() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 flex-col sm:flex-row">
+              {/* Accept Context Button */}
+              <div className="flex gap-3">
                 <button
-                  disabled={acceptedPatients.has(selectedPatient.id)}
                   onClick={async () => {
+                    if (selectedPatient.priorityAccepted) return;
                     try {
+                      const timestamp = Date.now();
                       await db.aiDecisions.add({
                         patientId: selectedPatient.id,
                         type: 'ESCALATED',
                         model: activeModelId,
-                        timestamp: Date.now()
+                        timestamp
                       });
-                      // Mark patient as active & add history entry
+
+                      // Create workflow card for the next stage
+                      const cardId = `WF-${Math.floor(Math.random() * 9000) + 1000}`;
+                      await db.workflowCards.add({
+                        id: cardId,
+                        patientId: selectedPatient.id,
+                        patientName: selectedPatient.name,
+                        age: selectedPatient.age,
+                        gender: selectedPatient.gender,
+                        priority: selectedPatient.risk === 'High Risk' ? 'critical' : selectedPatient.risk === 'Moderate' ? 'urgent' : 'stable',
+                        scanType: selectedPatient.condition || 'General Consult',
+                        column: 'pending',
+                        time: 'Just now',
+                        aiProgress: 100,
+                        tags: selectedPatient.conditionInfo?.keyIndicators?.slice(0, 2) || []
+                      });
+
+                      // Mark patient as active, add history entry, and set priorityAccepted
                       await db.patients.update(selectedPatient.id, {
                         active: true,
+                        priorityAccepted: true,
                         history: [...selectedPatient.history, {
                           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                           title: 'AI Priority Accepted',
@@ -1352,18 +1370,17 @@ export default function PatientRecords() {
                           description: `Clinician accepted AI-assigned priority: ${selectedPatient.risk}. Patient moved to urgent workflow.`
                         }]
                       });
-                      setAcceptedPatients(prev => new Set([...prev, selectedPatient.id]));
                     } catch (e) {
-                      console.error('Failed to log AI decision:', e);
+                      console.error('Failed to log AI decision or create workflow card:', e);
                     }
                   }}
-                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 border border-white/10 ${acceptedPatients.has(selectedPatient.id)
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 border border-white/10 ${selectedPatient.priorityAccepted
                     ? 'bg-secondary text-primary cursor-default shadow-secondary/20'
                     : 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
                     }`}
                 >
                   <CheckCircle2 size={16} />
-                  {acceptedPatients.has(selectedPatient.id) ? 'Priority Accepted ✓' : 'Accept AI Priority'}
+                  {selectedPatient.priorityAccepted ? 'Priority Accepted ✓' : 'Accept AI Priority'}
                 </button>
               </div>
 
