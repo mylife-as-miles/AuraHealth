@@ -52,7 +52,8 @@ interface ModelConfig {
 
 // --- Data ---
 const AVAILABLE_MODELS: ModelConfig[] = [
-    { id: 'medgemma-27b', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
+    { id: 'medgemma-27b-it', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
+    { id: 'medgemma-4b-it', name: 'MedGemma 4B', description: 'Lightweight model optimized for rapid local edge deployment.', status: 'available', icon: Sparkles, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
     { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'available', icon: Brain, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
     { id: 'biogpt', name: 'BioGPT', description: 'Specialized transformer for biomedical literature mining and research analysis.', status: 'available', icon: FileText, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
     { id: 'chexagent', name: 'CheXagent', description: 'Specialized vision model for interpretation and reporting of Chest X-rays.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
@@ -63,7 +64,7 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     { id: 'biomedlm', name: 'BioMedLM', description: 'Compact biomedical language model optimized for scientific text processing.', status: 'available', icon: BrainCircuit, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
     { id: 'biomedclip', name: 'BiomedCLIP', description: 'Contrastive vision-language model for retrieving medical images.', status: 'available', icon: ScanEye, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
     { id: 'clinical-camel', name: 'Clinical Camel', description: 'Fine-tuned model for simulating patient-doctor clinical dialogues.', status: 'available', icon: MessageSquare, iconColor: 'text-orange-500', iconBg: 'bg-orange-500/10' },
-    { id: 'medsiglip', name: 'MedSigLIP', description: 'High-fidelity medical image encoder for various diagnostic modalities.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'medsiglip-v1', name: 'MedSigLIP', description: 'High-fidelity medical image encoder for various diagnostic modalities.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'alphagenome', name: 'AlphaGenome', description: 'Deep learning system for genomic sequence analysis and variant interpretation.', status: 'coming_soon', icon: Dna, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'available', icon: Microscope, iconColor: 'text-blue-500', iconBg: 'bg-blue-500/10' },
 ];
@@ -72,7 +73,7 @@ const REASONING_MODULES = ['Oncology Cross-Ref', 'Drug Interaction API', 'Geneti
 
 // --- Initial state snapshots ---
 const INITIAL_PROFILE = { name: '', title: '', email: '' };
-const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-27b': true, 'med-palm-2': true };
+const INITIAL_MODELS: Record<string, boolean> = { 'medgemma-27b-it': true };
 const INITIAL_MODULES: Record<string, boolean> = { 'Oncology Cross-Ref': true, 'Drug Interaction API': true, 'Genetic Marker DB': false, 'Pediatric Dosage': false };
 const INITIAL_MFA = false;
 
@@ -106,6 +107,7 @@ export default function Settings() {
     // --- Model state ---
     const [activeModels, setActiveModels] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.activeModels });
     const [reasoningModules, setReasoningModules] = useState<Record<string, boolean>>({ ...DEFAULT_USER_SETTINGS.reasoningModules });
+    const [apiModels, setApiModels] = useState<ModelConfig[]>(AVAILABLE_MODELS);
 
     // --- UI state ---
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -168,6 +170,39 @@ export default function Settings() {
         }).then(() => setIsHydrated(true));
     }, [userSettingsRows, persistedSettings]);
 
+    // Fetch models from Dr7.ai Medical API
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const response = await fetch('https://dr7.ai/api/v1/models', {
+                    headers: { 'Authorization': 'Bearer sk-dr7-your-api-key' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.data && Array.isArray(data.data)) {
+                        const fetchedModels = data.data;
+                        // Merge fetched models with our local config to preserve icons/colors
+                        const mergedModels = AVAILABLE_MODELS.map(localModel => {
+                            const apiModel = fetchedModels.find((m: any) => m.id === localModel.id);
+                            if (apiModel) {
+                                return {
+                                    ...localModel,
+                                    description: apiModel.description || localModel.description,
+                                    status: 'available' as const
+                                };
+                            }
+                            return localModel;
+                        });
+                        setApiModels(mergedModels);
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to fetch from Dr7.ai API, falling back to local models.', error);
+            }
+        };
+        fetchModels();
+    }, []);
+
     // --- Dirty detection ---
     const isDirty = useMemo(() => {
         if (profileName !== savedProfile.name || profileTitle !== savedProfile.title || profileEmail !== savedProfile.email) return true;
@@ -182,7 +217,7 @@ export default function Settings() {
 
     // --- Handlers ---
     const toggleModel = useCallback((id: string) => {
-        setActiveModels(prev => ({ ...prev, [id]: !prev[id] }));
+        setActiveModels(prev => (prev[id] ? {} : { [id]: true }));
     }, []);
 
     const toggleModule = useCallback((label: string) => {
@@ -379,7 +414,7 @@ export default function Settings() {
                     </div>
 
                     <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                        {AVAILABLE_MODELS.map((model) => (
+                        {apiModels.map((model) => (
                             <div
                                 key={model.id}
                                 className={`flex items-center justify-between p-4 border rounded-2xl transition-all duration-200 ${model.status === 'coming_soon'
