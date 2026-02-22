@@ -2,6 +2,11 @@ import { GoogleGenAI } from '@google/genai';
 
 export const config = {
     maxDuration: 120, // 2 minutes for 4-agent pipeline
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+    },
 };
 
 export default async function handler(req, res) {

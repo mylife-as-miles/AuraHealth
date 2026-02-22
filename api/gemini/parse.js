@@ -3,6 +3,11 @@ import { buildParsePrompt, MODEL_CONFIG } from '../lib/prompts.js';
 
 export const config = {
     maxDuration: 120,
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+    },
 };
 
 export default async function handler(req, res) {
