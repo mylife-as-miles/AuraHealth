@@ -27,7 +27,8 @@ import {
   AlertTriangle,
   X,
   Send,
-  Activity
+  Activity,
+  Trash2
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
@@ -43,6 +44,7 @@ const statusStyle = (s: DiagCase['status']) => {
     case 'Ready': return { dot: 'bg-secondary', text: 'text-secondary' };
     case 'In Progress': return { dot: '', text: 'text-cyan' };
     case 'Pending': return { dot: 'bg-gray-400', text: 'text-gray-500' };
+    case 'Completed': return { dot: 'bg-green-500', text: 'text-green-500' };
   }
 };
 
@@ -190,12 +192,25 @@ export default function Diagnostics() {
               <div
                 key={c.id}
                 onClick={() => setSelectedCaseId(c.id)}
-                className={`p-2.5 lg:p-3 border rounded-xl cursor-pointer transition-all ${isSelected
+                className={`group relative p-2.5 lg:p-3 border rounded-xl cursor-pointer transition-all ${isSelected
                   ? 'bg-primary/5 dark:bg-primary/20 border-primary/10 dark:border-primary/30 shadow-sm'
                   : 'bg-white dark:bg-card-dark border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   } ${c.status === 'Pending' ? 'opacity-60' : ''}`}
               >
-                <div className="flex justify-between items-start mb-2">
+                {/* Delete Handle */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    db.diagnosticCases.delete(c.id);
+                    if (selectedCaseId === c.id) setSelectedCaseId(null);
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 dark:hover:bg-red-900/50"
+                  title="Delete Case"
+                >
+                  <Trash2 size={14} />
+                </button>
+
+                <div className="flex justify-between items-start mb-2 pr-6">
                   <div className="flex items-center gap-2">
                     {style.dot && <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>}
                     <span className={`text-[10px] lg:text-xs font-bold uppercase tracking-wider ${style.text}`}>{c.status}</span>
@@ -495,7 +510,6 @@ export default function Diagnostics() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="mt-auto space-y-3">
               {confirmed ? (
                 <div className="w-full py-2.5 lg:py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full flex items-center justify-center gap-2 text-xs lg:text-sm text-green-600 dark:text-green-400 font-bold">
@@ -503,7 +517,36 @@ export default function Diagnostics() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setConfirmed(true)}
+                  onClick={async () => {
+                    setConfirmed(true);
+                    try {
+                      // 1. Mark Diagnostics Case as completed
+                      await db.diagnosticCases.update(selectedCase.id, { status: 'Completed' });
+
+                      // 2. Add to Patient History
+                      const patient = await db.patients.get(selectedCase.patientId);
+                      if (patient) {
+                        await db.patients.update(patient.id, {
+                          history: [{
+                            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            title: `${selectedCase.scanType} Results Verified`,
+                            type: 'Diagnosis',
+                            description: `Dr. AI Findings Confirmed: ${selectedCase.aiSummary}`
+                          }, ...patient.history]
+                        });
+                      }
+
+                      // 3. Move Clinical Workflow Card to 'Treatment'
+                      const workflowCards = await db.workflowCards.where('patientId').equals(selectedCase.patientId).toArray();
+                      if (workflowCards.length > 0) {
+                        for (const card of workflowCards) {
+                          await db.workflowCards.update(card.id, { column: 'treatment', aiProgress: 100 });
+                        }
+                      }
+                    } catch (err) {
+                      console.error('Failed to confirm findings:', err);
+                    }
+                  }}
                   className="w-full py-2.5 lg:py-3 bg-secondary text-primary font-bold rounded-full shadow-lg shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-xs lg:text-sm"
                 >
                   <CheckCircle size={16} className="lg:w-[18px] lg:h-[18px]" />
@@ -556,19 +599,39 @@ export default function Diagnostics() {
               ].map((doc) => (
                 <button
                   key={doc.name}
-                  onClick={() => {
+                  onClick={async () => {
                     setShowConsultModal(false);
                     setConsultSent(true);
-                    db.notifications.add({
-                      id: `n-${Date.now()}`,
-                      type: 'consult',
-                      title: 'Consult Requested',
-                      content: `Requested consult from ${doc.name} for patient ${selectedCase.patientName}.`,
-                      time: 'Just now',
-                      timestamp: Date.now(),
-                      read: false,
-                      dismissible: true
-                    });
+                    try {
+                      // 1. Send Notification
+                      await db.notifications.add({
+                        id: `n-${Date.now()}`,
+                        type: 'consult',
+                        title: 'Consult Requested',
+                        content: `Requested consult from ${doc.name} for patient ${selectedCase.patientName}.`,
+                        time: 'Just now',
+                        timestamp: Date.now(),
+                        read: false,
+                        dismissible: true
+                      });
+
+                      // 2. Move Clinical Workflow Card to 'Consultation' and assign doctor
+                      const workflowCards = await db.workflowCards.where('patientId').equals(selectedCase.patientId).toArray();
+                      if (workflowCards.length > 0) {
+                        for (const card of workflowCards) {
+                          await db.workflowCards.update(card.id, {
+                            column: 'consultation',
+                            doctor: doc.name
+                          });
+                        }
+                      }
+
+                      // 3. Update Diagnostics Case tracking status
+                      await db.diagnosticCases.update(selectedCase.id, { status: 'Pending' });
+
+                    } catch (err) {
+                      console.error('Failed to request consult:', err);
+                    }
                   }}
                   className="w-full flex items-center gap-3 p-3 border border-gray-100 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left"
                 >

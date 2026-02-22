@@ -24,7 +24,8 @@ import {
   User,
   Send,
   MessageSquare,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
@@ -308,9 +309,22 @@ export default function ClinicalWorkflow() {
                             {/* Left accent bar */}
                             <div className={`absolute left-0 top-0 bottom-0 ${card.priority === 'urgent' ? 'w-1.5' : 'w-1'} ${ps.bar}`}></div>
 
-                            {/* Drag handle */}
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-40 transition-opacity">
-                              <GripVertical size={14} className="text-gray-400" />
+                            {/* Drag and Delete handle */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  db.workflowCards.delete(card.id);
+                                  if (selectedCardId === card.id) setSelectedCardId(null);
+                                }}
+                                className="p-1 bg-white dark:bg-card-dark shadow-sm hover:bg-red-50 hover:text-red-500 rounded-md text-gray-400 transition-colors"
+                                title="Delete Card"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <div className="p-1 cursor-grab opacity-40 hover:opacity-100 transition-opacity">
+                                <GripVertical size={14} className="text-gray-400" />
+                              </div>
                             </div>
 
                             <div className="flex justify-between items-start mb-3 pl-2">
