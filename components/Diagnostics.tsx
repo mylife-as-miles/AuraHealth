@@ -287,7 +287,7 @@ export default function Diagnostics() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold font-serif">{selectedCase.scanType}</h2>
-                      <p className="text-sm text-gray-400">Dr7 Triage Text Analysis Engine</p>
+                      <p className="text-sm text-gray-400">BiomedCLIP</p>
                     </div>
                   </div>
 

@@ -105,7 +105,7 @@ export interface DiagCase {
     patientId: string; // Link to Patient.id
     patientName: string; // Denormalized for easy display
     scanType: string;
-    status: 'Critical' | 'Ready' | 'In Progress' | 'Pending';
+    status: 'Critical' | 'Ready' | 'In Progress' | 'Pending' | 'Completed';
     time: string;
     image: string;
     totalSlices: number;
