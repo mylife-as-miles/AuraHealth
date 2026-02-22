@@ -34,7 +34,8 @@ import {
   Check,
   UploadCloud,
   Database,
-  Brain
+  Brain,
+  ClipboardList
 } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SafeChart } from './SafeChart';
@@ -73,6 +74,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; type: string; dataUrl: string }>>([]);
   const { modelId: activeModelId, modelName: activeModelName } = useActiveModel();
+  const [workerResults, setWorkerResults] = useState<Array<{ fileName: string; status: string }>>([]);
 
   if (!isOpen) return null;
 
@@ -108,6 +110,7 @@ Allergies: ${formData.allergies}
       });
       const parseData = await parseRes.json();
       const parsedContext = parseData.parsedContext || combinedNotes;
+      setWorkerResults(parseData.workerResults || attachedFiles.map(f => ({ fileName: f.name, status: 'success' })));
 
       // Phase 1: AI Triage (Dr7)
       setLoadingPhase(1);
@@ -133,6 +136,13 @@ Allergies: ${formData.allergies}
       } catch (e) {
         console.warn('Failed to parse unstructured response, using fallback.');
       }
+
+      // Extract differential diagnosis, clinical plan, safety net from doctorReport
+      const reportText = aiData.doctorReport || '';
+      const diffDiagSection = reportText.match(/## Differential Diagnosis[\s\S]*?(?=\n## |$)/i)?.[0] || '';
+      const diffDiagItems = (diffDiagSection.match(/\*\*(.+?)\*\*/g) || []).map((s: string) => s.replace(/\*\*/g, '').trim()).filter(Boolean);
+      const clinicalPlanSection = reportText.match(/## Plan[\s\S]*?(?=\n## |$)/i)?.[0] || '';
+      const safetyNetSection = reportText.match(/## Safety Net[\s\S]*?(?=\n## |$)/i)?.[0] || '';
 
       // Phase 3: DB Save
       const priorityTitle = aiData.conditionInfo?.severity === 'High' ? 'High Risk' :
@@ -166,6 +176,10 @@ Allergies: ${formData.allergies}
         doctorReport: aiData.doctorReport,
         aiDiagnostics: aiData.diagnostics,
         recommendedActions: aiData.recommendedActions,
+        differentialDiagnosis: diffDiagItems.length > 0 ? diffDiagItems : undefined,
+        clinicalPlan: clinicalPlanSection || undefined,
+        safetyNet: safetyNetSection || undefined,
+        workerResults: workerResults.length > 0 ? workerResults : undefined,
         image: formData.image || undefined,
         medicalHistoryNotes: formData.medicalHistoryNotes,
         medicationsNotes: formData.medicationsNotes,
@@ -216,42 +230,57 @@ Allergies: ${formData.allergies}
         {isSubmitting && (
           <div className="absolute inset-0 z-20 bg-white dark:bg-card-dark flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-3xl">
 
-            {/* Phase 0: Parallel Workers UI */}
+            {/* Phase 0: Parallel Workers UI — per-document results */}
             {loadingPhase === 0 && (
-              <div className="flex flex-col items-center animate-in fade-in duration-300">
-                {/* 4 Worker Nodes */}
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  {[0, 1, 2, 3].map((i) => {
-                    const workerFile = attachedFiles[i];
-                    const isActive = !!workerFile;
+              <div className="flex flex-col items-center animate-in fade-in duration-300 w-full max-w-sm px-4">
+                <div className="w-full space-y-2 mb-4">
+                  {attachedFiles.slice(0, 4).map((f, i) => {
+                    const result = workerResults[i];
+                    const isDone = result?.status === 'success';
                     return (
-                      <div key={i} className={`flex flex-col items-center transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-30 scale-90'}`}>
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2 shadow-lg transition-all duration-500 ${isActive
-                          ? 'bg-cyan text-white shadow-[0_0_15px_rgba(20,245,214,0.5)] animate-pulse'
-                          : 'bg-gray-100 dark:bg-white/5 text-gray-300 border border-dashed border-gray-200 dark:border-white/10'
+                      <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-500 ${isDone
+                        ? 'bg-cyan/5 border-cyan/20'
+                        : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/10'
+                        } animate-in slide-in-from-left-2 fade-in`} style={{ animationDelay: `${i * 150}ms` }}>
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${isDone
+                          ? 'bg-cyan/10 text-cyan'
+                          : 'bg-cyan text-white shadow-[0_0_10px_rgba(20,245,214,0.5)] animate-pulse'
                           }`}>
-                          {workerFile?.type === 'application/pdf' ? <FileText size={18} /> : <Camera size={18} />}
+                          {isDone ? <Check size={16} /> : (f.type === 'application/pdf' ? <FileText size={16} /> : <Camera size={16} />)}
                         </div>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">W{i + 1}</span>
-                        {isActive && (
-                          <span className="text-[8px] text-cyan font-semibold max-w-[60px] truncate mt-0.5">{workerFile.name.split('.')[0]}</span>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-primary dark:text-white truncate">{f.name}</p>
+                          <p className={`text-[10px] font-semibold ${isDone ? 'text-cyan' : 'text-gray-400 animate-pulse'}`}>
+                            {isDone ? '✓ Parsed successfully' : 'Extracting clinical context...'}
+                          </p>
+                        </div>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isDone
+                          ? 'bg-cyan/10 text-cyan border border-cyan/20'
+                          : 'bg-gray-100 dark:bg-white/10 text-gray-400'
+                          }`}>W{i + 1}</span>
                       </div>
                     );
                   })}
-                </div>
-                {/* Converging lines → merge node */}
-                <div className="flex items-center gap-1 mb-3">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className={`h-1 w-8 rounded-full transition-all duration-700 ${attachedFiles[i] ? 'bg-cyan animate-pulse' : 'bg-gray-100 dark:bg-white/10'
-                      }`} style={{ animationDelay: `${i * 150}ms` }} />
-                  ))}
+                  {attachedFiles.length === 0 && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 animate-pulse">
+                      <div className="w-9 h-9 rounded-lg bg-cyan text-white flex items-center justify-center shadow-[0_0_10px_rgba(20,245,214,0.5)]">
+                        <FileText size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-primary dark:text-white">Clinical notes</p>
+                        <p className="text-[10px] text-gray-400 font-semibold">Parsing referral context...</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {/* Merge Node */}
-                <div className="w-10 h-10 rounded-full bg-cyan/20 border-2 border-cyan flex items-center justify-center text-cyan shadow-[0_0_20px_rgba(20,245,214,0.4)] animate-pulse mb-2">
-                  <Zap size={16} />
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-4 bg-cyan/30 mb-2" />
+                  <div className="w-10 h-10 rounded-full bg-cyan/20 border-2 border-cyan flex items-center justify-center text-cyan shadow-[0_0_20px_rgba(20,245,214,0.4)] animate-pulse mb-1">
+                    <Zap size={16} />
+                  </div>
+                  <span className="text-[9px] font-bold text-cyan uppercase tracking-wider">Unifying Context</span>
                 </div>
-                <span className="text-[9px] font-bold text-cyan uppercase tracking-wider">Merging</span>
               </div>
             )}
 
@@ -1235,6 +1264,158 @@ export default function PatientRecords() {
                         Check Patient Report
                       </button>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ CONDITION INFO CARD ═══ */}
+              {selectedPatient.conditionInfo && (
+                <div className="rounded-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+                  <div className={`px-4 py-3 flex items-center justify-between ${selectedPatient.conditionInfo.severity === 'High' ? 'bg-accent/10 border-b border-accent/20' :
+                    selectedPatient.conditionInfo.severity === 'Moderate' ? 'bg-amber-50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800/30' :
+                      'bg-secondary/5 border-b border-secondary/20'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={14} className={
+                        selectedPatient.conditionInfo.severity === 'High' ? 'text-accent' :
+                          selectedPatient.conditionInfo.severity === 'Moderate' ? 'text-amber-500' : 'text-secondary'
+                      } />
+                      <h4 className="text-sm font-bold text-primary dark:text-white">{selectedPatient.conditionInfo.title}</h4>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${selectedPatient.conditionInfo.severity === 'High' ? 'bg-accent/20 text-accent border border-accent/30' :
+                      selectedPatient.conditionInfo.severity === 'Moderate' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
+                        'bg-secondary/10 text-secondary border border-secondary/20'
+                      }`}>{selectedPatient.conditionInfo.severity}</span>
+                  </div>
+                  <div className="p-4 bg-white dark:bg-white/5 space-y-3">
+                    {/* Confidence Bar */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">AI Confidence</span>
+                        <span className="text-sm font-bold text-primary dark:text-white">{selectedPatient.conditionInfo.confidence}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-1000 ${selectedPatient.conditionInfo.confidence >= 90 ? 'bg-secondary' :
+                            selectedPatient.conditionInfo.confidence >= 70 ? 'bg-amber-400' : 'bg-accent'
+                            }`}
+                          style={{ width: `${selectedPatient.conditionInfo.confidence}%` }}
+                        />
+                      </div>
+                    </div>
+                    {/* Key Indicators */}
+                    {selectedPatient.conditionInfo.keyIndicators?.length > 0 && (
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Key Indicators</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedPatient.conditionInfo.keyIndicators.map((ind, i) => (
+                            <span key={i} className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg bg-primary/5 dark:bg-white/5 text-gray-700 dark:text-gray-300 border border-primary/10 dark:border-white/10 leading-tight">
+                              {ind}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ AI DIAGNOSTICS — Lab / Imaging Findings ═══ */}
+              {selectedPatient.aiDiagnostics && selectedPatient.aiDiagnostics.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <Activity size={14} className="text-cyan" /> AI Diagnostics
+                  </h4>
+                  {selectedPatient.aiDiagnostics.map((diag, i) => (
+                    <div key={i} className={`rounded-xl border p-3 ${diag.status === 'critical' ? 'border-accent/30 bg-accent/5' :
+                      diag.status === 'warning' ? 'border-amber-200 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/5' :
+                        'border-secondary/20 bg-secondary/5'
+                      }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-2 h-2 rounded-full ${diag.status === 'critical' ? 'bg-accent shadow-[0_0_6px_rgba(254,87,150,0.6)]' :
+                          diag.status === 'warning' ? 'bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.5)]' :
+                            'bg-secondary'
+                          }`} />
+                        <span className="text-xs font-bold text-primary dark:text-white">{diag.category}</span>
+                        <span className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${diag.status === 'critical' ? 'bg-accent/10 text-accent' :
+                          diag.status === 'warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' :
+                            'bg-secondary/10 text-secondary'
+                          }`}>{diag.status}</span>
+                      </div>
+                      <ul className="space-y-1 pl-4">
+                        {diag.findings.map((f, j) => (
+                          <li key={j} className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed flex items-start gap-2">
+                            <span className="text-gray-300 dark:text-gray-600 mt-1">•</span>
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ═══ DIFFERENTIAL DIAGNOSIS ═══ */}
+              {selectedPatient.differentialDiagnosis && selectedPatient.differentialDiagnosis.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Brain size={14} className="text-secondary" /> Differential Diagnosis
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedPatient.differentialDiagnosis.map((dx, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary dark:text-white text-[10px] font-bold shrink-0 mt-0.5">
+                          {i + 1}
+                        </div>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{dx}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ RECOMMENDED ACTIONS / CLINICAL PLAN ═══ */}
+              {selectedPatient.recommendedActions && selectedPatient.recommendedActions.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <ClipboardList size={14} className="text-accent" /> Clinical Plan & Recommended Actions
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedPatient.recommendedActions.map((action, i) => {
+                      const typeColorMap: Record<string, { bg: string; text: string; border: string }> = {
+                        'Medication': { bg: 'bg-purple-50 dark:bg-purple-900/10', text: 'text-purple-600 dark:text-purple-400', border: 'border-l-purple-500' },
+                        'Lab': { bg: 'bg-blue-50 dark:bg-blue-900/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-l-blue-500' },
+                        'Lifestyle': { bg: 'bg-secondary/5', text: 'text-secondary', border: 'border-l-secondary' },
+                        'Referral': { bg: 'bg-amber-50 dark:bg-amber-900/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-l-amber-500' },
+                        'Monitoring': { bg: 'bg-cyan/5', text: 'text-cyan', border: 'border-l-cyan' },
+                      };
+                      const colors = typeColorMap[action.type] || { bg: 'bg-gray-50 dark:bg-white/5', text: 'text-gray-600 dark:text-gray-400', border: 'border-l-gray-400' };
+                      return (
+                        <div key={i} className={`rounded-xl border border-gray-100 dark:border-white/10 border-l-[3px] ${colors.border} ${colors.bg} p-3`}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>{action.type}</span>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${action.priority === 'high' ? 'bg-accent/10 text-accent border border-accent/20' :
+                              action.priority === 'medium' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
+                                'bg-gray-100 dark:bg-white/10 text-gray-500 border border-gray-200 dark:border-white/10'
+                              }`}>{action.priority}</span>
+                          </div>
+                          <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">{action.description}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ SAFETY NET ═══ */}
+              {selectedPatient.safetyNet && (
+                <div className="rounded-2xl border border-amber-200 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/5 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle size={14} className="text-amber-500" />
+                    <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Safety Net & Interpretation</h4>
+                  </div>
+                  <div className="prose prose-xs dark:prose-invert max-w-none text-[11px] text-amber-800 dark:text-amber-200/80 leading-relaxed prose-strong:text-amber-900 dark:prose-strong:text-amber-100">
+                    <ReactMarkdown>{selectedPatient.safetyNet}</ReactMarkdown>
                   </div>
                 </div>
               )}

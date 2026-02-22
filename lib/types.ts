@@ -67,6 +67,10 @@ export interface Patient {
         description: string;
         priority: 'high' | 'medium' | 'low' | string;
     }>;
+    differentialDiagnosis?: string[];
+    clinicalPlan?: string;
+    safetyNet?: string;
+    workerResults?: Array<{ fileName: string; status: string }>;
 }
 
 // Diagnostics
