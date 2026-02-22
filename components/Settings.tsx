@@ -53,18 +53,18 @@ interface ModelConfig {
 const AVAILABLE_MODELS: ModelConfig[] = [
     { id: 'medgemma-4b-it', name: 'MedGemma 27B', description: 'Advanced large-scale medical reasoning model providing high-accuracy clinical analysis.', status: 'available', icon: Sparkles, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
     { id: 'biomedclip', name: 'BiomedCLIP', description: 'Contrastive vision-language model for retrieving medical images.', status: 'always_active', icon: ScanEye, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
-    { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'coming_soon', icon: Brain, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'biogpt', name: 'BioGPT', description: 'Specialized transformer for biomedical literature mining and research analysis.', status: 'coming_soon', icon: FileText, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'med-palm-2', name: 'Med-PaLM 2', description: 'Expert-level medical question answering and clinical reasoning capabilities.', status: 'available', icon: Brain, iconColor: 'text-secondary', iconBg: 'bg-secondary/10' },
+    { id: 'biogpt', name: 'BioGPT', description: 'Specialized transformer for biomedical literature mining and research analysis.', status: 'available', icon: FileText, iconColor: 'text-accent', iconBg: 'bg-accent/10' },
     { id: 'chexagent', name: 'CheXagent', description: 'Specialized vision model for interpretation and reporting of Chest X-rays.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'llava-med', name: 'LLaVA-Med', description: 'Multimodal assistant capable of discussing and analyzing medical imagery.', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'meditron', name: 'Meditron', description: 'Open-source medical LLM adapted for clinical guidelines and decision support.', status: 'coming_soon', icon: MessageSquare, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'pmc-llama', name: 'PMC-LLaMA', description: 'Fine-tuned on biomedical academic papers for evidence-based responses.', status: 'coming_soon', icon: Stethoscope, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'meditron', name: 'Meditron', description: 'Open-source medical LLM adapted for clinical guidelines and decision support.', status: 'available', icon: MessageSquare, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
+    { id: 'pmc-llama', name: 'PMC-LLaMA', description: 'Fine-tuned on biomedical academic papers for evidence-based responses.', status: 'available', icon: Stethoscope, iconColor: 'text-purple-500', iconBg: 'bg-purple-500/10' },
     { id: 'med-flamingo', name: 'Med-Flamingo', description: 'Few-shot learner for medical visual question answering.', status: 'coming_soon', icon: Image, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'biomedlm', name: 'BioMedLM', description: 'Compact biomedical language model optimized for scientific text processing.', status: 'coming_soon', icon: BrainCircuit, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'clinical-camel', name: 'Clinical Camel', description: 'Fine-tuned model for simulating patient-doctor clinical dialogues.', status: 'coming_soon', icon: MessageSquare, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'biomedlm', name: 'BioMedLM', description: 'Compact biomedical language model optimized for scientific text processing.', status: 'available', icon: BrainCircuit, iconColor: 'text-cyan', iconBg: 'bg-cyan/10' },
+    { id: 'clinical-camel', name: 'Clinical Camel', description: 'Fine-tuned model for simulating patient-doctor clinical dialogues.', status: 'available', icon: MessageSquare, iconColor: 'text-orange-500', iconBg: 'bg-orange-500/10' },
     { id: 'medsiglip-v1', name: 'MedSigLIP', description: 'High-fidelity medical image encoder for various diagnostic modalities.', status: 'coming_soon', icon: ScanEye, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
     { id: 'alphagenome', name: 'AlphaGenome', description: 'Deep learning system for genomic sequence analysis and variant interpretation.', status: 'coming_soon', icon: Dna, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
-    { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'coming_soon', icon: Microscope, iconColor: 'text-gray-400', iconBg: 'bg-gray-100 dark:bg-gray-800' },
+    { id: 'baichuan-m3', name: 'Baichuan-M3', description: 'Multilingual model with strong performance on general health benchmarks.', status: 'available', icon: Microscope, iconColor: 'text-blue-500', iconBg: 'bg-blue-500/10' },
 ];
 
 const REASONING_MODULES = ['Oncology Cross-Ref', 'Drug Interaction API', 'Genetic Marker DB', 'Pediatric Dosage'];
