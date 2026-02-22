@@ -103,6 +103,17 @@ const Layout = () => {
 };
 
 export default function App() {
+  useEffect(() => {
+    if (localStorage.getItem('aura_cleared_seed_v2') !== 'true') {
+      db.patients.clear();
+      db.diagnosticCases.clear();
+      db.workflowCards.clear();
+      db.notifications.clear();
+      db.aiDecisions.clear();
+      localStorage.setItem('aura_cleared_seed_v2', 'true');
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
