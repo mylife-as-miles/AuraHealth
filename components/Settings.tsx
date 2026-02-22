@@ -179,14 +179,13 @@ export default function Settings() {
                     const data = await response.json();
                     if (data && data.data && Array.isArray(data.data)) {
                         const fetchedModels = data.data;
-                        // Merge fetched models with our local config to preserve icons/colors
+                        // Merge fetched models with our local config to preserve icons/colors/status
                         const mergedModels = AVAILABLE_MODELS.map(localModel => {
                             const apiModel = fetchedModels.find((m: any) => m.id === localModel.id);
                             if (apiModel) {
                                 return {
                                     ...localModel,
                                     description: apiModel.description || localModel.description,
-                                    status: 'available' as const
                                 };
                             }
                             return localModel;
