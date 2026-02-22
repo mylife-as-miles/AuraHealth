@@ -1,7 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
+import { buildStructurePrompt, STRUCTURE_SCHEMA } from '../lib/prompts.js';
 
 export const config = {
-    maxDuration: 60,
+    maxDuration: 120,
 };
 
 export default async function handler(req, res) {
@@ -16,65 +17,44 @@ export default async function handler(req, res) {
             apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY,
         });
 
-        const schema = {
-            type: "object",
-            properties: {
-                conditionInfo: {
-                    type: "object",
-                    properties: {
-                        title: { type: "string" },
-                        severity: { type: "string" },
-                        confidence: { type: "number" },
-                        keyIndicators: { type: "array", items: { type: "string" } }
-                    }
-                },
-                doctorReport: { type: "string" },
-                diagnostics: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            category: { type: "string" },
-                            findings: { type: "array", items: { type: "string" } },
-                            status: { type: "string", enum: ["critical", "warning", "normal"] }
-                        }
-                    }
-                },
-                recommendedActions: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            type: { type: "string" },
-                            description: { type: "string" },
-                            priority: { type: "string", enum: ["high", "medium", "low"] }
-                        }
-                    }
-                }
+        const model = 'gemini-3.1-pro-preview';
+        const tools = [{ googleSearch: {} }];
+        const genConfig = {
+            thinkingConfig: {
+                thinkingLevel: 'HIGH',
             },
-            required: ["conditionInfo", "doctorReport", "diagnostics", "recommendedActions"]
+            tools,
+            responseMimeType: 'application/json',
+            responseSchema: STRUCTURE_SCHEMA,
+            temperature: 0.1,
         };
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: `You are an expert clinical structurer.
-      Take the original patient context and the Dr7 Medical AI evaluation and output a structured JSON object matching the provided schema.
-      
-      Original Context:
-      ${originalContext}
-      
-      Dr7 Evaluation:
-      ${dr7Evaluation}
-      
-      Ensure the doctorReport field contains a comprehensive Markdown-formatted report suitable for clinical review, synthesizing the findings and the AI evaluation.`,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: schema,
-                temperature: 0.1,
-            }
+        const contents = [
+            {
+                role: 'user',
+                parts: [
+                    {
+                        text: buildStructurePrompt(originalContext, dr7Evaluation),
+                    },
+                ],
+            },
+        ];
+
+        // Use streaming for robustness against timeouts
+        const response = await ai.models.generateContentStream({
+            model,
+            config: genConfig,
+            contents,
         });
 
-        res.status(200).json({ structuredData: JSON.parse(response.text) });
+        let fullText = '';
+        for await (const chunk of response) {
+            if (chunk.text) {
+                fullText += chunk.text;
+            }
+        }
+
+        res.status(200).json({ structuredData: JSON.parse(fullText) });
     } catch (error) {
         console.error('Gemini Structure Error:', error);
         res.status(500).json({ error: 'Failed to structure output', message: error.message });

@@ -1,3 +1,5 @@
+import { buildDr7SystemPrompt } from '../lib/prompts.js';
+
 export const config = {
     maxDuration: 60,
 };
@@ -10,7 +12,6 @@ export default async function handler(req, res) {
     try {
         const { parsedContext, modelId = 'medgemma-4b-it' } = req.body;
 
-        // Use Dr7 API format exactly as requested
         const response = await fetch('https://dr7.ai/api/v1/medical/chat/completions', {
             method: 'POST',
             headers: {
@@ -21,12 +22,16 @@ export default async function handler(req, res) {
                 model: modelId,
                 messages: [
                     {
+                        role: "system",
+                        content: buildDr7SystemPrompt()
+                    },
+                    {
                         role: "user",
                         content: parsedContext
                     }
                 ],
-                max_tokens: 1000,
-                temperature: 0.7
+                max_tokens: 2000,
+                temperature: 0.4
             })
         });
 

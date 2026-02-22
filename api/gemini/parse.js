@@ -1,7 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
+import { buildParsePrompt } from '../lib/prompts.js';
 
 export const config = {
-    maxDuration: 60, // 60 seconds max duration for the serverless function
+    maxDuration: 120,
 };
 
 export default async function handler(req, res) {
@@ -40,19 +41,33 @@ export default async function handler(req, res) {
         }
 
         parts.push({
-            text: `Analyze the provided medical inputs (image, PDF, and notes). 
-      Extract a comprehensive and structured clinical summary. 
-      Raw Clinical Notes: ${notes || 'None provided.'}
-      
-      Output ONLY a raw string representing the unified clinical context. No markdown formatting.`,
+            text: buildParsePrompt(notes),
         });
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+        const model = 'gemini-3.1-pro-preview';
+        const tools = [{ googleSearch: {} }];
+        const genConfig = {
+            thinkingConfig: {
+                thinkingLevel: 'HIGH',
+            },
+            tools,
+        };
+
+        // Use streaming for robustness against timeouts
+        const response = await ai.models.generateContentStream({
+            model,
+            config: genConfig,
             contents: [{ role: 'user', parts }],
         });
 
-        res.status(200).json({ parsedContext: response.text });
+        let fullText = '';
+        for await (const chunk of response) {
+            if (chunk.text) {
+                fullText += chunk.text;
+            }
+        }
+
+        res.status(200).json({ parsedContext: fullText });
     } catch (error) {
         console.error('Gemini Parse Error:', error);
         res.status(500).json({ error: 'Failed to parse inputs', message: error.message });
