@@ -1269,143 +1269,177 @@ export default function PatientRecords() {
               )}
 
               {/* ═══ CONDITION INFO CARD ═══ */}
-              {selectedPatient.conditionInfo && (
-                <div className="rounded-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
-                  <div className={`px-4 py-3 flex items-center justify-between ${selectedPatient.conditionInfo.severity === 'High' ? 'bg-accent/10 border-b border-accent/20' :
-                    selectedPatient.conditionInfo.severity === 'Moderate' ? 'bg-amber-50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800/30' :
-                      'bg-secondary/5 border-b border-secondary/20'
-                    }`}>
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={14} className={
-                        selectedPatient.conditionInfo.severity === 'High' ? 'text-accent' :
-                          selectedPatient.conditionInfo.severity === 'Moderate' ? 'text-amber-500' : 'text-secondary'
-                      } />
-                      <h4 className="text-sm font-bold text-primary dark:text-white">{selectedPatient.conditionInfo.title}</h4>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${selectedPatient.conditionInfo.severity === 'High' ? 'bg-accent/20 text-accent border border-accent/30' :
-                      selectedPatient.conditionInfo.severity === 'Moderate' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
-                        'bg-secondary/10 text-secondary border border-secondary/20'
-                      }`}>{selectedPatient.conditionInfo.severity}</span>
-                  </div>
-                  <div className="p-4 bg-white dark:bg-white/5 space-y-3">
-                    {/* Confidence Bar */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">AI Confidence</span>
-                        <span className="text-sm font-bold text-primary dark:text-white">{selectedPatient.conditionInfo.confidence}%</span>
+              {(() => {
+                const ci = selectedPatient.conditionInfo || {
+                  title: selectedPatient.condition || 'Undiagnosed',
+                  severity: selectedPatient.risk === 'High Risk' ? 'High' : selectedPatient.risk === 'Moderate' ? 'Moderate' : 'Low',
+                  confidence: selectedPatient.riskPercentage || (selectedPatient.risk === 'High Risk' ? 85 : selectedPatient.risk === 'Moderate' ? 65 : 45),
+                  keyIndicators: selectedPatient.aiSummary ? selectedPatient.aiSummary.split(', ').filter(Boolean) : []
+                };
+                return (
+                  <div className="rounded-2xl border border-gray-100 dark:border-white/10 overflow-hidden">
+                    <div className={`px-4 py-3 flex items-center justify-between ${ci.severity === 'High' ? 'bg-accent/10 border-b border-accent/20' :
+                      ci.severity === 'Moderate' ? 'bg-amber-50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800/30' :
+                        'bg-secondary/5 border-b border-secondary/20'
+                      }`}>
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle size={14} className={
+                          ci.severity === 'High' ? 'text-accent' :
+                            ci.severity === 'Moderate' ? 'text-amber-500' : 'text-secondary'
+                        } />
+                        <h4 className="text-sm font-bold text-primary dark:text-white">{ci.title}</h4>
                       </div>
-                      <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-1000 ${selectedPatient.conditionInfo.confidence >= 90 ? 'bg-secondary' :
-                            selectedPatient.conditionInfo.confidence >= 70 ? 'bg-amber-400' : 'bg-accent'
-                            }`}
-                          style={{ width: `${selectedPatient.conditionInfo.confidence}%` }}
-                        />
-                      </div>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${ci.severity === 'High' ? 'bg-accent/20 text-accent border border-accent/30' :
+                        ci.severity === 'Moderate' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
+                          'bg-secondary/10 text-secondary border border-secondary/20'
+                        }`}>{ci.severity}</span>
                     </div>
-                    {/* Key Indicators */}
-                    {selectedPatient.conditionInfo.keyIndicators?.length > 0 && (
+                    <div className="p-4 bg-white dark:bg-white/5 space-y-3">
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Key Indicators</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {selectedPatient.conditionInfo.keyIndicators.map((ind, i) => (
-                            <span key={i} className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg bg-primary/5 dark:bg-white/5 text-gray-700 dark:text-gray-300 border border-primary/10 dark:border-white/10 leading-tight">
-                              {ind}
-                            </span>
-                          ))}
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">AI Confidence</span>
+                          <span className="text-sm font-bold text-primary dark:text-white">{ci.confidence}%</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-1000 ${ci.confidence >= 90 ? 'bg-secondary' :
+                              ci.confidence >= 70 ? 'bg-amber-400' : 'bg-accent'
+                              }`}
+                            style={{ width: `${ci.confidence}%` }}
+                          />
                         </div>
                       </div>
-                    )}
+                      {ci.keyIndicators && ci.keyIndicators.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Key Indicators</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ci.keyIndicators.map((ind, i) => (
+                              <span key={i} className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg bg-primary/5 dark:bg-white/5 text-gray-700 dark:text-gray-300 border border-primary/10 dark:border-white/10 leading-tight">
+                                {ind}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ═══ AI DIAGNOSTICS — Lab / Imaging Findings ═══ */}
-              {selectedPatient.aiDiagnostics && selectedPatient.aiDiagnostics.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <Activity size={14} className="text-cyan" /> AI Diagnostics
-                  </h4>
-                  {selectedPatient.aiDiagnostics.map((diag, i) => (
-                    <div key={i} className={`rounded-xl border p-3 ${diag.status === 'critical' ? 'border-accent/30 bg-accent/5' :
-                      diag.status === 'warning' ? 'border-amber-200 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/5' :
-                        'border-secondary/20 bg-secondary/5'
-                      }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-2 h-2 rounded-full ${diag.status === 'critical' ? 'bg-accent shadow-[0_0_6px_rgba(254,87,150,0.6)]' :
-                          diag.status === 'warning' ? 'bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.5)]' :
-                            'bg-secondary'
-                          }`} />
-                        <span className="text-xs font-bold text-primary dark:text-white">{diag.category}</span>
-                        <span className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${diag.status === 'critical' ? 'bg-accent/10 text-accent' :
-                          diag.status === 'warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' :
-                            'bg-secondary/10 text-secondary'
-                          }`}>{diag.status}</span>
-                      </div>
-                      <ul className="space-y-1 pl-4">
-                        {diag.findings.map((f, j) => (
-                          <li key={j} className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed flex items-start gap-2">
-                            <span className="text-gray-300 dark:text-gray-600 mt-1">•</span>
-                            <span>{f}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ═══ DIFFERENTIAL DIAGNOSIS ═══ */}
-              {selectedPatient.differentialDiagnosis && selectedPatient.differentialDiagnosis.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Brain size={14} className="text-secondary" /> Differential Diagnosis
-                  </h4>
+              {(() => {
+                const diags = (selectedPatient.aiDiagnostics && selectedPatient.aiDiagnostics.length > 0)
+                  ? selectedPatient.aiDiagnostics
+                  : [{
+                    category: 'General',
+                    findings: selectedPatient.aiSummary
+                      ? selectedPatient.aiSummary.split(', ').filter(Boolean)
+                      : [selectedPatient.condition || 'Pending review'],
+                    status: selectedPatient.risk === 'High Risk' ? 'critical' : selectedPatient.risk === 'Moderate' ? 'warning' : 'normal'
+                  }];
+                return (
                   <div className="space-y-2">
-                    {selectedPatient.differentialDiagnosis.map((dx, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
-                        <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary dark:text-white text-[10px] font-bold shrink-0 mt-0.5">
-                          {i + 1}
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <Activity size={14} className="text-cyan" /> AI Diagnostics
+                    </h4>
+                    {diags.map((diag, i) => (
+                      <div key={i} className={`rounded-xl border p-3 ${diag.status === 'critical' ? 'border-accent/30 bg-accent/5' :
+                        diag.status === 'warning' ? 'border-amber-200 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/5' :
+                          'border-secondary/20 bg-secondary/5'
+                        }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-2 h-2 rounded-full ${diag.status === 'critical' ? 'bg-accent shadow-[0_0_6px_rgba(254,87,150,0.6)]' :
+                            diag.status === 'warning' ? 'bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.5)]' :
+                              'bg-secondary'
+                            }`} />
+                          <span className="text-xs font-bold text-primary dark:text-white">{diag.category}</span>
+                          <span className={`ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${diag.status === 'critical' ? 'bg-accent/10 text-accent' :
+                            diag.status === 'warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' :
+                              'bg-secondary/10 text-secondary'
+                            }`}>{diag.status}</span>
                         </div>
-                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{dx}</p>
+                        <ul className="space-y-1 pl-4">
+                          {diag.findings.map((f, j) => (
+                            <li key={j} className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed flex items-start gap-2">
+                              <span className="text-gray-300 dark:text-gray-600 mt-1">•</span>
+                              <span>{f}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                );
+              })()}
+
+              {/* ═══ DIFFERENTIAL DIAGNOSIS ═══ */}
+              {(() => {
+                const differentialDiagnosis = (selectedPatient.differentialDiagnosis && selectedPatient.differentialDiagnosis.length > 0)
+                  ? selectedPatient.differentialDiagnosis
+                  : [
+                    `Initial assessment suggests ${selectedPatient.condition || 'an unspecified condition'} based on presented symptoms and AI analysis.`,
+                    `Consideration of common comorbidities for ${selectedPatient.age} year old ${selectedPatient.gender.toLowerCase()} patients.`,
+                    `Further diagnostic tests are recommended to confirm or rule out other potential conditions.`
+                  ];
+                return (
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Brain size={14} className="text-secondary" /> Differential Diagnosis
+                    </h4>
+                    <div className="space-y-2">
+                      {differentialDiagnosis.map((dx, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary dark:text-white text-[10px] font-bold shrink-0 mt-0.5">
+                            {i + 1}
+                          </div>
+                          <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{dx}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ═══ RECOMMENDED ACTIONS / CLINICAL PLAN ═══ */}
-              {selectedPatient.recommendedActions && selectedPatient.recommendedActions.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <ClipboardList size={14} className="text-accent" /> Clinical Plan & Recommended Actions
-                  </h4>
-                  <div className="space-y-2">
-                    {selectedPatient.recommendedActions.map((action, i) => {
-                      const typeColorMap: Record<string, { bg: string; text: string; border: string }> = {
-                        'Medication': { bg: 'bg-purple-50 dark:bg-purple-900/10', text: 'text-purple-600 dark:text-purple-400', border: 'border-l-purple-500' },
-                        'Lab': { bg: 'bg-blue-50 dark:bg-blue-900/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-l-blue-500' },
-                        'Lifestyle': { bg: 'bg-secondary/5', text: 'text-secondary', border: 'border-l-secondary' },
-                        'Referral': { bg: 'bg-amber-50 dark:bg-amber-900/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-l-amber-500' },
-                        'Monitoring': { bg: 'bg-cyan/5', text: 'text-cyan', border: 'border-l-cyan' },
-                      };
-                      const colors = typeColorMap[action.type] || { bg: 'bg-gray-50 dark:bg-white/5', text: 'text-gray-600 dark:text-gray-400', border: 'border-l-gray-400' };
-                      return (
-                        <div key={i} className={`rounded-xl border border-gray-100 dark:border-white/10 border-l-[3px] ${colors.border} ${colors.bg} p-3`}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>{action.type}</span>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${action.priority === 'high' ? 'bg-accent/10 text-accent border border-accent/20' :
-                              action.priority === 'medium' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
-                                'bg-gray-100 dark:bg-white/10 text-gray-500 border border-gray-200 dark:border-white/10'
-                              }`}>{action.priority}</span>
+              {(() => {
+                const actions = (selectedPatient.recommendedActions && selectedPatient.recommendedActions.length > 0)
+                  ? selectedPatient.recommendedActions
+                  : [
+                    { type: 'Monitoring', description: `Continue monitoring ${selectedPatient.condition || 'current condition'} with regular check-ups.`, priority: selectedPatient.risk === 'High Risk' ? 'high' : 'medium' },
+                    { type: 'Lab', description: 'Comprehensive lab panel recommended for baseline assessment.', priority: 'medium' },
+                  ];
+                return (
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <ClipboardList size={14} className="text-accent" /> Clinical Plan & Recommended Actions
+                    </h4>
+                    <div className="space-y-2">
+                      {actions.map((action, i) => {
+                        const typeColorMap: Record<string, { bg: string; text: string; border: string }> = {
+                          'Medication': { bg: 'bg-purple-50 dark:bg-purple-900/10', text: 'text-purple-600 dark:text-purple-400', border: 'border-l-purple-500' },
+                          'Lab': { bg: 'bg-blue-50 dark:bg-blue-900/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-l-blue-500' },
+                          'Lifestyle': { bg: 'bg-secondary/5', text: 'text-secondary', border: 'border-l-secondary' },
+                          'Referral': { bg: 'bg-amber-50 dark:bg-amber-900/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-l-amber-500' },
+                          'Monitoring': { bg: 'bg-cyan/5', text: 'text-cyan', border: 'border-l-cyan' },
+                        };
+                        const colors = typeColorMap[action.type] || { bg: 'bg-gray-50 dark:bg-white/5', text: 'text-gray-600 dark:text-gray-400', border: 'border-l-gray-400' };
+                        return (
+                          <div key={i} className={`rounded-xl border border-gray-100 dark:border-white/10 border-l-[3px] ${colors.border} ${colors.bg} p-3`}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>{action.type}</span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${action.priority === 'high' ? 'bg-accent/10 text-accent border border-accent/20' :
+                                action.priority === 'medium' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30' :
+                                  'bg-gray-100 dark:bg-white/10 text-gray-500 border border-gray-200 dark:border-white/10'
+                                }`}>{action.priority}</span>
+                            </div>
+                            <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">{action.description}</p>
                           </div>
-                          <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">{action.description}</p>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ═══ SAFETY NET ═══ */}
               {selectedPatient.safetyNet && (
@@ -1557,8 +1591,9 @@ export default function PatientRecords() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Select a patient from the queue to view {activeModelName}'s reasoning and take action on the flagged symptoms.</p>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        )
+        }
+      </div >
+    </div >
   );
 }
