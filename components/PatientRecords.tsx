@@ -77,8 +77,9 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   const { modelId: activeModelId, modelName: activeModelName } = useActiveModel();
   const [workerResults, setWorkerResults] = useState<Array<{ fileName: string; status: string }>>([]);
 
-  const totalSizeMB = parseFloat((attachedFiles.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2));
-  const isOverLimit = totalSizeMB > 4;
+  const totalPayloadMB = parseFloat((attachedFiles.reduce((acc, f) => acc + f.dataUrl.length, 0) / (1024 * 1024)).toFixed(2));
+  const MAX_PAYLOAD_MB = 4;
+  const isOverLimit = totalPayloadMB > MAX_PAYLOAD_MB;
 
   if (!isOpen) return null;
 
@@ -228,7 +229,7 @@ Allergies: ${formData.allergies}
 
   const handleBatchSubmit = () => {
     if (isOverLimit) {
-      alert("Total attached file size exceeds the 4MB limit. Please remove some files before proceeding.");
+      alert(`Total payload size (${totalPayloadMB} MB) exceeds the ${MAX_PAYLOAD_MB} MB limit. Please remove some files before proceeding.`);
       return;
     }
     handleSubmit();
@@ -579,7 +580,7 @@ Allergies: ${formData.allergies}
                       {isOverLimit ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />} {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
                     </span>
                     <span className={`text-[10px] font-bold ${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
-                      {totalSizeMB} MB / 4 MB limit
+                      {totalPayloadMB} MB / {MAX_PAYLOAD_MB} MB limit
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -726,19 +727,17 @@ const PatientHistoryModal = ({ isOpen, onClose, patient }: { isOpen: boolean; on
 const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: boolean; onClose: () => void; patient: Patient | undefined; modelName: string }) => {
   const [scanType, setScanType] = useState('Chest X-Ray');
   const [image, setImage] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
-  const sizeMB = parseFloat((fileSize / (1024 * 1024)).toFixed(2));
-  const isOverLimit = sizeMB > 4;
+  const payloadMB = image ? parseFloat((image.length / (1024 * 1024)).toFixed(2)) : 0;
+  const isOverLimit = payloadMB > 4;
 
   if (!isOpen || !patient) return null;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFileSize(file.size);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result as string);
@@ -863,7 +862,7 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
               <span>Upload Scan Image</span>
               {image && (
                 <span className={`${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
-                  {sizeMB} MB / 4 MB limit
+                  {payloadMB} MB / 4 MB limit
                 </span>
               )}
             </label>
@@ -886,7 +885,7 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
           </div>
         </div>
         <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex gap-3 justify-end items-center">
-          <button onClick={() => { setImage(null); setFileSize(0); onClose(); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+          <button onClick={() => { setImage(null); onClose(); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
           <button
             onClick={handleStart}
             disabled={isProcessing || isOverLimit || !image}
