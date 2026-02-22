@@ -78,7 +78,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   const [workerResults, setWorkerResults] = useState<Array<{ fileName: string; status: string }>>([]);
 
   const totalSizeMB = parseFloat((attachedFiles.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2));
-  const isOverLimit = totalSizeMB > 10;
+  const isOverLimit = totalSizeMB > 4;
 
   if (!isOpen) return null;
 
@@ -228,7 +228,7 @@ Allergies: ${formData.allergies}
 
   const handleBatchSubmit = () => {
     if (isOverLimit) {
-      alert("Total attached file size exceeds the 10MB limit. Please remove some files before proceeding.");
+      alert("Total attached file size exceeds the 4MB limit. Please remove some files before proceeding.");
       return;
     }
     handleSubmit();
@@ -579,7 +579,7 @@ Allergies: ${formData.allergies}
                       {isOverLimit ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />} {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
                     </span>
                     <span className={`text-[10px] font-bold ${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
-                      {totalSizeMB} MB / 10 MB limit
+                      {totalSizeMB} MB / 4 MB limit
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -731,7 +731,7 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
   const navigate = useNavigate();
 
   const sizeMB = parseFloat((fileSize / (1024 * 1024)).toFixed(2));
-  const isOverLimit = sizeMB > 10;
+  const isOverLimit = sizeMB > 4;
 
   if (!isOpen || !patient) return null;
 
@@ -863,7 +863,7 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
               <span>Upload Scan Image</span>
               {image && (
                 <span className={`${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
-                  {sizeMB} MB / 10 MB limit
+                  {sizeMB} MB / 4 MB limit
                 </span>
               )}
             </label>
