@@ -73,9 +73,12 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
-  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; type: string; dataUrl: string }>>([]);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; type: string; dataUrl: string; size: number }>>([]);
   const { modelId: activeModelId, modelName: activeModelName } = useActiveModel();
   const [workerResults, setWorkerResults] = useState<Array<{ fileName: string; status: string }>>([]);
+
+  const totalSizeMB = parseFloat((attachedFiles.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2));
+  const isOverLimit = totalSizeMB > 10;
 
   if (!isOpen) return null;
 
@@ -221,6 +224,14 @@ Allergies: ${formData.allergies}
       setIsSubmitting(false);
       setLoadingPhase(0);
     }
+  };
+
+  const handleBatchSubmit = () => {
+    if (isOverLimit) {
+      alert("Total attached file size exceeds the 10MB limit. Please remove some files before proceeding.");
+      return;
+    }
+    handleSubmit();
   };
 
   return (
@@ -550,30 +561,32 @@ Allergies: ${formData.allergies}
                   const reader = new FileReader();
                   reader.onloadend = () => {
                     const dataUrl = reader.result as string;
-                    setAttachedFiles(prev => [...prev, { name: file.name, type: file.type, dataUrl }]);
+                    setAttachedFiles(prev => [...prev, { name: file.name, type: file.type, dataUrl, size: file.size }]);
                   };
                   reader.readAsDataURL(file);
                 });
                 e.target.value = '';
               }}
             />
-            <div className={`w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden relative ${attachedFiles.length > 0
+            <div className={`w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden relative ${isOverLimit ? 'border-red-400 bg-red-50 dark:bg-red-900/10' : attachedFiles.length > 0
               ? 'border-cyan bg-cyan/5'
               : 'border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 group-hover:border-cyan group-hover:bg-cyan/5'
               }`}>
               {attachedFiles.length > 0 ? (
                 <div className="p-4 space-y-2">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold text-cyan uppercase tracking-wider flex items-center gap-1.5">
-                      <CheckCircle2 size={12} /> {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
+                    <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
+                      {isOverLimit ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />} {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
                     </span>
-                    <span className="text-[10px] text-cyan/60 font-medium">Ready for Agentic Extraction</span>
+                    <span className={`text-[10px] font-bold ${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
+                      {totalSizeMB} MB / 10 MB limit
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {attachedFiles.map((f, i) => (
                       <div
                         key={`${f.name}-${i}`}
-                        className="flex items-center gap-2 bg-white dark:bg-card-dark rounded-xl px-3 py-2 border border-cyan/20 shadow-sm animate-in zoom-in duration-200 group/pill"
+                        className={`flex items-center gap-2 bg-white dark:bg-card-dark rounded-xl px-3 py-2 border shadow-sm animate-in zoom-in duration-200 group/pill ${isOverLimit ? 'border-red-200' : 'border-cyan/20'}`}
                       >
                         <div className="w-7 h-7 rounded-lg bg-cyan/10 flex items-center justify-center text-cyan shrink-0">
                           {f.type === 'application/pdf' ? <FileText size={14} /> : <Camera size={14} />}
@@ -713,14 +726,19 @@ const PatientHistoryModal = ({ isOpen, onClose, patient }: { isOpen: boolean; on
 const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: boolean; onClose: () => void; patient: Patient | undefined; modelName: string }) => {
   const [scanType, setScanType] = useState('Chest X-Ray');
   const [image, setImage] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+
+  const sizeMB = parseFloat((fileSize / (1024 * 1024)).toFixed(2));
+  const isOverLimit = sizeMB > 10;
 
   if (!isOpen || !patient) return null;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setFileSize(file.size);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result as string);
@@ -841,10 +859,15 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              Upload Scan Image
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex justify-between items-center">
+              <span>Upload Scan Image</span>
+              {image && (
+                <span className={`${isOverLimit ? 'text-red-500' : 'text-cyan'}`}>
+                  {sizeMB} MB / 10 MB limit
+                </span>
+              )}
             </label>
-            <div className={`relative w-full h-32 rounded-xl flex items-center justify-center overflow-hidden transition-all text-gray-400 hover:text-cyan border-2 border-dashed ${image ? 'border-cyan bg-cyan/5' : 'border-gray-200 dark:border-white/10 hover:border-cyan'}`}>
+            <div className={`relative w-full h-32 rounded-xl flex items-center justify-center overflow-hidden transition-all text-gray-400 hover:text-cyan border-2 border-dashed ${isOverLimit ? 'border-red-400 bg-red-50 dark:bg-red-900/10' : image ? 'border-cyan bg-cyan/5' : 'border-gray-200 dark:border-white/10 hover:border-cyan'}`}>
               {image ? (
                 <img src={image} alt="Scan Upload" className="w-full h-full object-cover" />
               ) : (
@@ -863,11 +886,11 @@ const StartDiagnosisModal = ({ isOpen, onClose, patient, modelName }: { isOpen: 
           </div>
         </div>
         <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex gap-3 justify-end items-center">
-          <button onClick={() => { setImage(null); onClose(); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+          <button onClick={() => { setImage(null); setFileSize(0); onClose(); }} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
           <button
             onClick={handleStart}
-            disabled={isProcessing}
-            className="px-6 py-2.5 bg-cyan text-primary rounded-xl text-sm font-bold shadow-lg shadow-cyan/20 hover:bg-cyan/90 transition-all flex items-center gap-2"
+            disabled={isProcessing || isOverLimit || !image}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 ${isProcessing || isOverLimit || !image ? 'bg-gray-200 text-gray-400' : 'bg-cyan text-primary shadow-cyan/20 hover:bg-cyan/90'}`}
           >
             {isProcessing ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
             {isProcessing ? 'Initializing...' : 'Queue Diagnosis'}
