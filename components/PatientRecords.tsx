@@ -81,7 +81,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     setIsSubmitting(true);
 
     try {
-      // Phase 0: Gemini Parsing
+      // Phase 0: Parallel 4-Worker Gemini Parsing
       setLoadingPhase(0);
       const combinedNotes = `
 Referral Notes/Presenting Symptoms: ${formData.referralNotes}
@@ -91,14 +91,17 @@ Family History: ${formData.familyHistoryNotes}
 Allergies: ${formData.allergies}
       `.trim();
 
-      // Collect first image and first PDF from attachedFiles for the API
-      const firstImage = attachedFiles.find(f => f.type.startsWith('image/'));
-      const firstPdf = attachedFiles.find(f => f.type === 'application/pdf');
+      // Send up to 4 files to the batch parse endpoint
+      const filesToSend = attachedFiles.slice(0, 4).map(f => ({
+        dataUrl: f.dataUrl,
+        type: f.type,
+        name: f.name,
+      }));
 
-      const parseRes = await fetch('/api/gemini/parse', {
+      const parseRes = await fetch('/api/gemini/parse-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: firstImage?.dataUrl || formData.image, pdfBase64: firstPdf?.dataUrl || formData.pdfBase64, notes: combinedNotes })
+        body: JSON.stringify({ files: filesToSend, notes: combinedNotes })
       });
       const parseData = await parseRes.json();
       const parsedContext = parseData.parsedContext || combinedNotes;
@@ -206,51 +209,98 @@ Allergies: ${formData.allergies}
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-md p-4">
       <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200 relative overflow-y-auto max-h-[90vh] custom-scrollbar">
 
-        {/* Loading Overlay with Agentic Animation */}
+        {/* Loading Overlay with Parallel 4-Worker Animation */}
         {isSubmitting && (
-          <div className="absolute inset-0 z-20 bg-white/95 dark:bg-card-dark/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-3xl">
-            {/* SVG Agent Workers Animation */}
-            <div className="relative w-72 h-32 flex items-center justify-between mb-8">
-              {/* Agent 1: Gemini Parser */}
-              <div className={`flex flex-col items-center transition-all duration-500 z-10 ${loadingPhase >= 0 ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}>
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-lg transition-colors duration-500 ${loadingPhase === 0 ? 'bg-cyan text-white shadow-[0_0_20px_rgba(20,245,214,0.6)] animate-pulse' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
-                  <FileText size={24} />
+          <div className="absolute inset-0 z-20 bg-white dark:bg-card-dark flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-3xl">
+
+            {/* Phase 0: Parallel Workers UI */}
+            {loadingPhase === 0 && (
+              <div className="flex flex-col items-center animate-in fade-in duration-300">
+                {/* 4 Worker Nodes */}
+                <div className="grid grid-cols-4 gap-3 mb-4">
+                  {[0, 1, 2, 3].map((i) => {
+                    const workerFile = attachedFiles[i];
+                    const isActive = !!workerFile;
+                    return (
+                      <div key={i} className={`flex flex-col items-center transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-30 scale-90'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2 shadow-lg transition-all duration-500 ${isActive
+                          ? 'bg-cyan text-white shadow-[0_0_15px_rgba(20,245,214,0.5)] animate-pulse'
+                          : 'bg-gray-100 dark:bg-white/5 text-gray-300 border border-dashed border-gray-200 dark:border-white/10'
+                          }`}>
+                          {workerFile?.type === 'application/pdf' ? <FileText size={18} /> : <Camera size={18} />}
+                        </div>
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">W{i + 1}</span>
+                        {isActive && (
+                          <span className="text-[8px] text-cyan font-semibold max-w-[60px] truncate mt-0.5">{workerFile.name.split('.')[0]}</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Vision/Parse</span>
-              </div>
-
-              {/* Path 1 */}
-              <div className="flex-1 h-1 bg-gray-100 dark:bg-white/10 mx-2 relative overflow-hidden rounded-full">
-                <div className={`absolute top-0 bottom-0 left-0 bg-cyan transition-all duration-1000 ${loadingPhase >= 1 ? 'w-full' : 'w-0'}`}></div>
-              </div>
-
-              {/* Agent 2: Dr7 Clinical Engine */}
-              <div className={`flex flex-col items-center transition-all duration-500 z-10 ${loadingPhase >= 1 ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}>
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-3 shadow-lg transition-colors duration-500 ${loadingPhase === 1 ? 'bg-secondary text-white shadow-[0_0_20px_rgba(111,107,247,0.6)] animate-bounce' : loadingPhase > 1 ? 'bg-gray-100 dark:bg-white/5 text-gray-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
-                  <Brain size={24} />
+                {/* Converging lines → merge node */}
+                <div className="flex items-center gap-1 mb-3">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className={`h-1 w-8 rounded-full transition-all duration-700 ${attachedFiles[i] ? 'bg-cyan animate-pulse' : 'bg-gray-100 dark:bg-white/10'
+                      }`} style={{ animationDelay: `${i * 150}ms` }} />
+                  ))}
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dr7 AI</span>
-              </div>
-
-              {/* Path 2 */}
-              <div className="flex-1 h-1 bg-gray-100 dark:bg-white/10 mx-2 relative overflow-hidden rounded-full">
-                <div className={`absolute top-0 bottom-0 left-0 bg-secondary transition-all duration-1000 ${loadingPhase >= 2 ? 'w-full' : 'w-0'}`}></div>
-              </div>
-
-              {/* Agent 3: Structure Schema */}
-              <div className={`flex flex-col items-center transition-all duration-500 z-10 ${loadingPhase >= 2 ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}>
-                <div className={`w-14 h-14 rounded-full border-2 border-dashed flex items-center justify-center mb-3 shadow-lg transition-colors duration-500 ${loadingPhase === 2 ? 'border-accent bg-accent/10 text-accent shadow-[0_0_20px_rgba(255,107,107,0.4)] animate-spin-slow' : 'border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
-                  <Database size={24} />
+                {/* Merge Node */}
+                <div className="w-10 h-10 rounded-full bg-cyan/20 border-2 border-cyan flex items-center justify-center text-cyan shadow-[0_0_20px_rgba(20,245,214,0.4)] animate-pulse mb-2">
+                  <Zap size={16} />
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Schema DB</span>
+                <span className="text-[9px] font-bold text-cyan uppercase tracking-wider">Merging</span>
               </div>
-            </div>
+            )}
+
+            {/* Phase 1: Dr7 Active */}
+            {loadingPhase === 1 && (
+              <div className="flex flex-col items-center mb-6 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2 mb-4">
+                  {attachedFiles.slice(0, 4).map((f, i) => (
+                    <div key={i} className="w-8 h-8 rounded-lg bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+                      <Check size={14} />
+                    </div>
+                  ))}
+                  <div className="h-px w-4 bg-cyan/30" />
+                  <div className="w-8 h-8 rounded-full bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+                    <Zap size={12} />
+                  </div>
+                </div>
+                <div className="w-1 h-4 bg-secondary/30 rounded-full mb-3" />
+                <div className="w-16 h-16 rounded-xl bg-secondary text-white flex items-center justify-center shadow-lg shadow-secondary/40 animate-bounce mb-2">
+                  <Brain size={28} />
+                </div>
+                <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">Dr7 AI</span>
+              </div>
+            )}
+
+            {/* Phase 2: Schema Active */}
+            {loadingPhase === 2 && (
+              <div className="flex flex-col items-center mb-6 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2 mb-4">
+                  {attachedFiles.slice(0, 4).map((f, i) => (
+                    <div key={i} className="w-7 h-7 rounded-lg bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan">
+                      <Check size={12} />
+                    </div>
+                  ))}
+                  <div className="h-px w-3 bg-gray-200" />
+                  <div className="w-7 h-7 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center text-secondary">
+                    <Check size={12} />
+                  </div>
+                </div>
+                <div className="w-1 h-4 bg-accent/30 rounded-full mb-3" />
+                <div className="w-16 h-16 rounded-full border-2 border-dashed border-accent bg-accent/10 text-accent flex items-center justify-center shadow-lg shadow-accent/30 animate-spin-slow mb-2">
+                  <Database size={28} />
+                </div>
+                <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Schema DB</span>
+              </div>
+            )}
 
             <h3 className="text-xl font-bold text-primary dark:text-white mb-2">Multi-Agent Ingestion Pipeline</h3>
             <div className="h-6 flex items-center justify-center overflow-hidden">
               <p key={loadingPhase} className="text-sm font-bold leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 text-gray-500 dark:text-gray-400">
-                {loadingPhase === 0 ? <span className="text-cyan">Gemini extracting clinical context...</span> :
-                  loadingPhase === 1 ? <span className="text-secondary">MedGemma assessing clinical risk...</span> :
+                {loadingPhase === 0 ? <span className="text-cyan">{Math.min(attachedFiles.length, 4)} parallel workers extracting clinical context...</span> :
+                  loadingPhase === 1 ? <span className="text-secondary">MedGemma assessing unified clinical risk...</span> :
                     loadingPhase === 2 ? <span className="text-accent">Structuring final database schema...</span> :
                       "Done."}
               </p>
@@ -475,8 +525,8 @@ Allergies: ${formData.allergies}
               }}
             />
             <div className={`w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden relative ${attachedFiles.length > 0
-                ? 'border-cyan bg-cyan/5'
-                : 'border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 group-hover:border-cyan group-hover:bg-cyan/5'
+              ? 'border-cyan bg-cyan/5'
+              : 'border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 group-hover:border-cyan group-hover:bg-cyan/5'
               }`}>
               {attachedFiles.length > 0 ? (
                 <div className="p-4 space-y-2">
