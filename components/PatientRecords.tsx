@@ -56,7 +56,12 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     insurance: '',
     referralNotes: '',
     context: 'Routine',
-    continuousMonitoring: true
+    continuousMonitoring: true,
+    image: '',
+    medicalHistoryNotes: 'Not provided',
+    medicationsNotes: 'Not provided',
+    familyHistoryNotes: 'Not provided',
+    allergies: 'Not provided'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
@@ -77,9 +82,18 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     // Phase 2: AI Triage (real Dr7.ai call if notes provided)
     setLoadingPhase(1);
     let triageData: { priority: 'High Risk' | 'Moderate' | 'Low Risk'; aiReason: string; riskPercentage: number; condition: string } = { priority: 'Low Risk', aiReason: 'Follow-up required', riskPercentage: 5, condition: 'Undiagnosed' };
-    if (formData.referralNotes.trim()) {
+
+    const combinedNotes = `
+Referral Notes/Presenting Symptoms: ${formData.referralNotes}
+Medical History: ${formData.medicalHistoryNotes}
+Medications: ${formData.medicationsNotes}
+Family History: ${formData.familyHistoryNotes}
+Allergies: ${formData.allergies}
+    `.trim();
+
+    if (combinedNotes.length > 100 || formData.referralNotes.trim()) {
       try {
-        triageData = await triageReferralNotes(formData.referralNotes, formData.context, age, formData.gender);
+        triageData = await triageReferralNotes(combinedNotes, formData.context, age, formData.gender);
       } catch (e) {
         console.warn('AI triage failed, using defaults:', e);
       }
@@ -120,7 +134,12 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
         riskPercentage: triageData.riskPercentage,
         baselineSummary: `Baseline established for ${triageData.condition}. Risk profile: ${triageData.priority}.`,
         currentPriority: triageData.priority,
-        riskIfIgnored: triageData.riskPercentage
+        riskIfIgnored: triageData.riskPercentage,
+        image: formData.image || undefined,
+        medicalHistoryNotes: formData.medicalHistoryNotes,
+        medicationsNotes: formData.medicationsNotes,
+        familyHistoryNotes: formData.familyHistoryNotes,
+        allergies: formData.allergies
       });
 
       // Log AI Event: TRIAGED
@@ -146,7 +165,10 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
       setIsSubmitting(false);
       setLoadingPhase(0);
       onClose();
-      setFormData({ name: '', dob: '', gender: 'Male', insurance: '', referralNotes: '', context: 'Routine', continuousMonitoring: true });
+      setFormData({
+        name: '', dob: '', gender: 'Male', insurance: '', referralNotes: '', context: 'Routine', continuousMonitoring: true, image: '',
+        medicalHistoryNotes: 'Not provided', medicationsNotes: 'Not provided', familyHistoryNotes: 'Not provided', allergies: 'Not provided'
+      });
     } catch (error) {
       console.error("Failed to add patient:", error);
       setIsSubmitting(false);
@@ -200,9 +222,27 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
           <div className="space-y-4">
             <div className="flex flex-col items-start gap-2 mb-2">
               <label className="relative cursor-pointer group">
-                <input type="file" accept="image/*" className="hidden" />
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all">
-                  <Camera size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setFormData({ ...formData, image: reader.result as string });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all overflow-hidden relative">
+                  {formData.image ? (
+                    <img src={formData.image} alt="Profile preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                  )}
                 </div>
                 <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
                   <Plus size={12} className="text-white" />
@@ -275,7 +315,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
               />
             </div>
 
-            <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent cursor-pointer group hover:border-cyan/30 transition-colors">
+            <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent cursor-pointer group hover:border-cyan/30 transition-colors mt-2">
               <div className="relative flex items-center justify-center w-5 h-5 rounded-[6px] border border-cyan/50 bg-cyan/10">
                 <input
                   type="checkbox"
@@ -292,8 +332,56 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
         </div>
 
+        {/* Additional Clinical Data */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 dark:border-white/5 pt-6">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Medical History</span>
+              <span className="text-cyan lowercase font-semibold flex items-center gap-1"><Sparkles size={10} /></span>
+            </label>
+            <textarea
+              value={formData.medicalHistoryNotes}
+              onChange={e => setFormData({ ...formData, medicalHistoryNotes: e.target.value })}
+              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Medications</span>
+              <span className="text-cyan lowercase font-semibold flex items-center gap-1"><Sparkles size={10} /></span>
+            </label>
+            <textarea
+              value={formData.medicationsNotes}
+              onChange={e => setFormData({ ...formData, medicationsNotes: e.target.value })}
+              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Family History</span>
+              <span className="text-cyan lowercase font-semibold flex items-center gap-1"><Sparkles size={10} /></span>
+            </label>
+            <textarea
+              value={formData.familyHistoryNotes}
+              onChange={e => setFormData({ ...formData, familyHistoryNotes: e.target.value })}
+              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Allergies</span>
+              <span className="text-cyan lowercase font-semibold flex items-center gap-1"><Sparkles size={10} /></span>
+            </label>
+            <textarea
+              value={formData.allergies}
+              onChange={e => setFormData({ ...formData, allergies: e.target.value })}
+              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+            />
+          </div>
+        </div>
+
         {/* Full Width Row: Unstructured Data Ingestion (Drag-and-Drop) */}
-        <div className="mt-6">
+        <div className="mt-6 border-t border-gray-100 dark:border-white/5 pt-6">
           <label className="block text-[10px] font-bold text-primary dark:text-white uppercase tracking-wider mb-1.5 flex justify-between items-center">
             <span>Attach Medical Records (Labs, Imaging Reports, Vitals History)</span>
           </label>
@@ -301,7 +389,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
             MedGemma will auto-extract and analyze all attached documents.
           </p>
           <div className="w-full relative group cursor-pointer">
-            <input type="file" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            <input type="file" accept="image/*,.pdf,application/pdf" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
             <div className="w-full h-[120px] rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 flex flex-col items-center justify-center transition-all group-hover:border-cyan group-hover:bg-cyan/5">
               <div className="w-12 h-12 rounded-full bg-white dark:bg-card-dark shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                 <UploadCloud size={20} className="text-gray-400 group-hover:text-cyan transition-colors" />
