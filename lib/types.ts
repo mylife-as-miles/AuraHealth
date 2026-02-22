@@ -48,6 +48,25 @@ export interface Patient {
     medicationsNotes?: string;
     familyHistoryNotes?: string;
     allergies?: string;
+
+    // AI Structured Output Elements
+    conditionInfo?: {
+        title: string;
+        severity: string;
+        confidence: number;
+        keyIndicators: string[];
+    };
+    doctorReport?: string;
+    aiDiagnostics?: Array<{ // changed to avoid name conflict with the other Diagnosis interface
+        category: string;
+        findings: string[];
+        status: 'critical' | 'warning' | 'normal' | string;
+    }>;
+    recommendedActions?: Array<{
+        type: string;
+        description: string;
+        priority: 'high' | 'medium' | 'low' | string;
+    }>;
 }
 
 // Diagnostics

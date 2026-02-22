@@ -32,7 +32,9 @@ import {
   Users,
   Zap,
   Check,
-  UploadCloud
+  UploadCloud,
+  Database,
+  Brain
 } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SafeChart } from './SafeChart';
@@ -58,6 +60,8 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     context: 'Routine',
     continuousMonitoring: true,
     image: '',
+    pdfBase64: '',
+    pdfName: '',
     medicalHistoryNotes: 'Not provided',
     medicationsNotes: 'Not provided',
     familyHistoryNotes: 'Not provided',
@@ -75,40 +79,57 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
     setIsSubmitting(true);
 
-    // Phase 1: Parsing
-    setLoadingPhase(0);
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    // Phase 2: AI Triage (real Dr7.ai call if notes provided)
-    setLoadingPhase(1);
-    let triageData: { priority: 'High Risk' | 'Moderate' | 'Low Risk'; aiReason: string; riskPercentage: number; condition: string } = { priority: 'Low Risk', aiReason: 'Follow-up required', riskPercentage: 5, condition: 'Undiagnosed' };
-
-    const combinedNotes = `
+    try {
+      // Phase 0: Gemini Parsing
+      setLoadingPhase(0);
+      const combinedNotes = `
 Referral Notes/Presenting Symptoms: ${formData.referralNotes}
 Medical History: ${formData.medicalHistoryNotes}
 Medications: ${formData.medicationsNotes}
 Family History: ${formData.familyHistoryNotes}
 Allergies: ${formData.allergies}
-    `.trim();
+      `.trim();
 
-    if (combinedNotes.length > 100 || formData.referralNotes.trim()) {
+      const parseRes = await fetch('/api/gemini/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: formData.image, pdfBase64: formData.pdfBase64, notes: combinedNotes })
+      });
+      const parseData = await parseRes.json();
+      const parsedContext = parseData.parsedContext || combinedNotes;
+
+      // Phase 1: AI Triage (Dr7)
+      setLoadingPhase(1);
+      const dr7Res = await fetch('/api/dr7/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parsedContext, modelId: 'medgemma-4b-it' })
+      });
+      const dr7Data = await dr7Res.json();
+      const dr7Evaluation = dr7Data.evaluation || 'Standard clinical review required.';
+
+      // Phase 2: Structuring
+      setLoadingPhase(2);
+      const structRes = await fetch('/api/gemini/structure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ originalContext: parsedContext, dr7Evaluation })
+      });
+      let aiData: any = {};
       try {
-        triageData = await triageReferralNotes(combinedNotes, formData.context, age, formData.gender);
+        const structData = await structRes.json();
+        aiData = structData.structuredData || {};
       } catch (e) {
-        console.warn('AI triage failed, using defaults:', e);
+        console.warn('Failed to parse unstructured response, using fallback.');
       }
-    }
 
-    // Phase 3: Done
-    setLoadingPhase(2);
-    await new Promise(resolve => setTimeout(resolve, 400));
+      // Phase 3: DB Save
+      const priorityTitle = aiData.conditionInfo?.severity === 'High' ? 'High Risk' :
+        aiData.conditionInfo?.severity === 'Moderate' ? 'Moderate' : 'Low Risk';
+      const riskColorMap: Record<string, 'accent' | 'yellow' | 'secondary'> = {
+        'High Risk': 'accent', 'Moderate': 'yellow', 'Low Risk': 'secondary'
+      };
 
-    // Map priority to riskColor
-    const riskColorMap: Record<string, 'accent' | 'yellow' | 'secondary'> = {
-      'High Risk': 'accent', 'Moderate': 'yellow', 'Low Risk': 'secondary'
-    };
-
-    try {
       const newId = `#AH-${Math.floor(Math.random() * 9000) + 1000}`;
       await db.patients.add({
         id: newId,
@@ -116,25 +137,24 @@ Allergies: ${formData.allergies}
         age: age > 0 ? age : 0,
         gender: formData.gender,
         lastVisit: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        condition: triageData.condition,
-        risk: triageData.priority,
-        riskColor: riskColorMap[triageData.priority] || 'secondary',
-        active: triageData.priority === 'High Risk',
+        condition: aiData.conditionInfo?.title || 'Undiagnosed',
+        risk: priorityTitle,
+        riskColor: riskColorMap[priorityTitle] || 'secondary',
+        active: priorityTitle === 'High Risk',
         vitals: [],
         medications: [],
         history: [{
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           title: 'Patient Registered',
           type: 'Routine',
-          description: `AI Triage: ${triageData.aiReason}. Risk: ${triageData.riskPercentage}%.`
+          description: `AI Ingestion complete. Confidence: ${aiData.conditionInfo?.confidence || 0}%.`
         }],
         insurance: { provider: formData.insurance || 'Unknown', policy: 'Pending' },
-        aiSummary: `AI Triage Result: ${triageData.condition} — ${triageData.aiReason}. Complication risk if ignored: ${triageData.riskPercentage}%.`,
-        aiReason: triageData.aiReason,
-        riskPercentage: triageData.riskPercentage,
-        baselineSummary: `Baseline established for ${triageData.condition}. Risk profile: ${triageData.priority}.`,
-        currentPriority: triageData.priority,
-        riskIfIgnored: triageData.riskPercentage,
+        aiSummary: aiData.conditionInfo?.keyIndicators?.join(', ') || 'No specific indicators flagged.',
+        conditionInfo: aiData.conditionInfo,
+        doctorReport: aiData.doctorReport,
+        aiDiagnostics: aiData.diagnostics,
+        recommendedActions: aiData.recommendedActions,
         image: formData.image || undefined,
         medicalHistoryNotes: formData.medicalHistoryNotes,
         medicationsNotes: formData.medicationsNotes,
@@ -166,7 +186,7 @@ Allergies: ${formData.allergies}
       setLoadingPhase(0);
       onClose();
       setFormData({
-        name: '', dob: '', gender: 'Male', insurance: '', referralNotes: '', context: 'Routine', continuousMonitoring: true, image: '',
+        name: '', dob: '', gender: 'Male', insurance: '', referralNotes: '', context: 'Routine', continuousMonitoring: true, image: '', pdfBase64: '', pdfName: '',
         medicalHistoryNotes: 'Not provided', medicationsNotes: 'Not provided', familyHistoryNotes: 'Not provided', allergies: 'Not provided'
       });
     } catch (error) {
@@ -180,26 +200,54 @@ Allergies: ${formData.allergies}
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-md p-4">
       <div className="bg-white dark:bg-card-dark rounded-3xl p-6 w-full max-w-2xl shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200 relative overflow-y-auto max-h-[90vh] custom-scrollbar">
 
-        {/* Loading Overlay */}
+        {/* Loading Overlay with Agentic Animation */}
         {isSubmitting && (
-          <div className="absolute inset-0 z-20 bg-white/90 dark:bg-card-dark/95 backdrop-blur-sm flex items-center justify-center flex-col animate-in fade-in duration-300">
-            <div className="w-16 h-16 rounded-full bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan shadow-[0_0_20px_rgba(20,245,214,0.4)] animate-pulse mb-6">
-              <Sparkles size={32} />
+          <div className="absolute inset-0 z-20 bg-white/95 dark:bg-card-dark/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-3xl">
+            {/* SVG Agent Workers Animation */}
+            <div className="relative w-72 h-32 flex items-center justify-between mb-8">
+              {/* Agent 1: Gemini Parser */}
+              <div className={`flex flex-col items-center transition-all duration-500 z-10 ${loadingPhase >= 0 ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-lg transition-colors duration-500 ${loadingPhase === 0 ? 'bg-cyan text-white shadow-[0_0_20px_rgba(20,245,214,0.6)] animate-pulse' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
+                  <FileText size={24} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Vision/Parse</span>
+              </div>
+
+              {/* Path 1 */}
+              <div className="flex-1 h-1 bg-gray-100 dark:bg-white/10 mx-2 relative overflow-hidden rounded-full">
+                <div className={`absolute top-0 bottom-0 left-0 bg-cyan transition-all duration-1000 ${loadingPhase >= 1 ? 'w-full' : 'w-0'}`}></div>
+              </div>
+
+              {/* Agent 2: Dr7 Clinical Engine */}
+              <div className={`flex flex-col items-center transition-all duration-500 z-10 ${loadingPhase >= 1 ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}>
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-3 shadow-lg transition-colors duration-500 ${loadingPhase === 1 ? 'bg-secondary text-white shadow-[0_0_20px_rgba(111,107,247,0.6)] animate-bounce' : loadingPhase > 1 ? 'bg-gray-100 dark:bg-white/5 text-gray-400' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
+                  <Brain size={24} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dr7 AI</span>
+              </div>
+
+              {/* Path 2 */}
+              <div className="flex-1 h-1 bg-gray-100 dark:bg-white/10 mx-2 relative overflow-hidden rounded-full">
+                <div className={`absolute top-0 bottom-0 left-0 bg-secondary transition-all duration-1000 ${loadingPhase >= 2 ? 'w-full' : 'w-0'}`}></div>
+              </div>
+
+              {/* Agent 3: Structure Schema */}
+              <div className={`flex flex-col items-center transition-all duration-500 z-10 ${loadingPhase >= 2 ? 'opacity-100 scale-100' : 'opacity-50 scale-90'}`}>
+                <div className={`w-14 h-14 rounded-full border-2 border-dashed flex items-center justify-center mb-3 shadow-lg transition-colors duration-500 ${loadingPhase === 2 ? 'border-accent bg-accent/10 text-accent shadow-[0_0_20px_rgba(255,107,107,0.4)] animate-spin-slow' : 'border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
+                  <Database size={24} />
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Schema DB</span>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-primary dark:text-white mb-2">MedGemma Agent Logic</h3>
+
+            <h3 className="text-xl font-bold text-primary dark:text-white mb-2">Multi-Agent Ingestion Pipeline</h3>
             <div className="h-6 flex items-center justify-center overflow-hidden">
-              <p key={loadingPhase} className="text-sm text-cyan font-bold leading-none animate-in slide-in-from-bottom-2 fade-in duration-300">
-                {loadingPhase === 0 ? "Parsing clinical history..." :
-                  loadingPhase === 1 ? "Establishing risk baseline..." :
-                    "Patient successfully added to Clinical Attention Queue."}
+              <p key={loadingPhase} className="text-sm font-bold leading-none animate-in slide-in-from-bottom-2 fade-in duration-300 text-gray-500 dark:text-gray-400">
+                {loadingPhase === 0 ? <span className="text-cyan">Gemini extracting clinical context...</span> :
+                  loadingPhase === 1 ? <span className="text-secondary">MedGemma assessing clinical risk...</span> :
+                    loadingPhase === 2 ? <span className="text-accent">Structuring final database schema...</span> :
+                      "Done."}
               </p>
-            </div>
-            {/* Progress Bar */}
-            <div className="w-48 h-1 bg-gray-100 dark:bg-white/10 rounded-full mt-6 overflow-hidden">
-              <div
-                className="h-full bg-cyan transition-all duration-[800ms] shadow-[0_0_10px_#14F5D6]"
-                style={{ width: `${(loadingPhase + 1) * 33.3}%` }}
-              ></div>
             </div>
           </div>
         )}
@@ -221,30 +269,42 @@ Allergies: ${formData.allergies}
           {/* Left Column: Core Inputs */}
           <div className="space-y-4">
             <div className="flex flex-col items-start gap-2 mb-2">
-              <label className="relative cursor-pointer group">
+              <label className="relative cursor-pointer group flex gap-4">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       const reader = new FileReader();
                       reader.onloadend = () => {
-                        setFormData({ ...formData, image: reader.result as string });
+                        const result = reader.result as string;
+                        if (file.type === 'application/pdf') {
+                          setFormData({ ...formData, pdfBase64: result, pdfName: file.name, image: '' });
+                        } else {
+                          setFormData({ ...formData, image: result, pdfBase64: '', pdfName: '' });
+                        }
                       };
                       reader.readAsDataURL(file);
                     }
                   }}
                 />
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all overflow-hidden relative">
-                  {formData.image ? (
-                    <img src={formData.image} alt="Profile preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <Camera size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all overflow-hidden relative shadow-sm">
+                    {formData.image ? (
+                      <img src={formData.image} alt="Profile preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <UploadCloud size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                    )}
+                  </div>
+                  {(formData.pdfName || formData.image) && (
+                    <div className="text-xs font-bold text-secondary flex items-center gap-1 bg-secondary/10 px-2 py-1 rounded-lg">
+                      <Check size={12} /> {formData.pdfName ? formData.pdfName : 'Image Attached'}
+                    </div>
                   )}
                 </div>
-                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
+                <div className="absolute -bottom-2 left-10 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
                   <Plus size={12} className="text-white" />
                 </div>
               </label>
@@ -419,6 +479,40 @@ Allergies: ${formData.allergies}
   );
 };
 
+const DoctorReportModal = ({ isOpen, onClose, report }: { isOpen: boolean; onClose: () => void; report?: string }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/80 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-card-dark rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 dark:border-white/10 animate-in fade-in zoom-in duration-200">
+        <div className="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-white/5 rounded-t-3xl shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-cyan/10 flex items-center justify-center text-cyan shadow-sm">
+              <FileText size={20} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-primary dark:text-white">Comprehensive Clinical Report</h3>
+              <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">MedGemma AI Synthesis</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-white/10 rounded-full transition-colors text-gray-400">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 relative">
+          <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 marker:text-cyan prose-h3:text-primary dark:prose-h3:text-white prose-h4:text-secondary prose-strong:text-cyan whitespace-pre-wrap">
+            {report || "No detailed report available for this patient."}
+          </div>
+        </div>
+        <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 rounded-b-3xl flex justify-end shrink-0">
+          <button onClick={onClose} className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors">
+            Close Report
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Component ---
 
 export default function PatientRecords() {
@@ -428,6 +522,7 @@ export default function PatientRecords() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeVital, setActiveVital] = useState<'hr' | 'bp' | 'temp' | 'weight'>('hr');
   const [contextMenuPatientId, setContextMenuPatientId] = useState<string | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -551,6 +646,7 @@ export default function PatientRecords() {
   return (
     <div className="flex flex-col h-full relative">
       <AddPatientModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+      <DoctorReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} report={selectedPatient?.doctorReport} />
 
       {/* Action Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-end mb-6 gap-4 flex-shrink-0">
@@ -972,6 +1068,15 @@ export default function PatientRecords() {
                     <div className="flex items-center gap-2 text-[10px] text-gray-400">
                       <Clock size={12} /> Updated 2 mins ago
                     </div>
+                    {selectedPatient.doctorReport && (
+                      <button
+                        onClick={() => setIsReportOpen(true)}
+                        className="w-full mt-4 bg-cyan/10 hover:bg-cyan/20 text-cyan dark:text-cyan py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border border-cyan/20 group/btn"
+                      >
+                        <FileText size={14} className="group-hover/btn:scale-110 transition-transform" />
+                        Check Patient Report
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
