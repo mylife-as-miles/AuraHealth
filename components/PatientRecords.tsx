@@ -864,7 +864,7 @@ export default function PatientRecords() {
       {/* Main Content Split View */}
       <div className="flex flex-1 gap-6 overflow-hidden h-full">
         {/* Left List Panel */}
-        <div className={`flex-1 bg-white/60 dark:bg-card-dark/60 backdrop-blur-md rounded-3xl border border-white/20 dark:border-white/5 shadow-soft dark:shadow-none dark:border-border-dark overflow-hidden flex flex-col transition-all ${selectedPatientId ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`flex-1 bg-white/60 dark:bg-card-dark/60 backdrop-blur-md rounded-3xl border border-white/20 dark:border-white/5 shadow-soft dark:shadow-none dark:border-border-dark flex flex-col transition-all ${selectedPatientId ? 'hidden lg:flex' : 'flex'}`}>
           {/* Toolbar */}
           <div className="p-5 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -908,7 +908,7 @@ export default function PatientRecords() {
                   <tr
                     key={patient.id}
                     onClick={() => setSelectedPatientId(patient.id)}
-                    className={`group bg-white dark:bg-card-dark hover:bg-primary/5 dark:hover:bg-white/5 transition-all cursor-pointer shadow-sm relative z-0 ${selectedPatientId === patient.id ? 'ring-2 ring-primary/10 dark:ring-white/10 transform scale-[1.01]' : ''}`}
+                    className={`group bg-white dark:bg-card-dark hover:bg-primary/5 dark:hover:bg-white/5 transition-all cursor-pointer shadow-sm relative ${contextMenuPatientId === patient.id ? 'z-50' : 'z-0'} ${selectedPatientId === patient.id ? 'ring-2 ring-primary/10 dark:ring-white/10 transform scale-[1.01]' : ''}`}
                   >
                     <td className={`px-4 py-3 rounded-l-xl border-l-4 transition-colors ${selectedPatientId === patient.id ? 'border-secondary' : 'border-transparent hover:border-accent/50'}`}>
                       <div className="flex items-center gap-3">

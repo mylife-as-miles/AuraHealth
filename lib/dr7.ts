@@ -12,7 +12,7 @@ export interface PredictionAlert {
 }
 
 export async function analyzePatientRisks(patients: Patient[], cases: DiagCase[]): Promise<PredictionAlert[]> {
-    const apiKey = import.meta.env.VITE_DR7_API_KEY;
+    const apiKey = process.env.DR7_API_KEY;
 
     if (!apiKey) {
         const err = new Error("DR7_API_KEY is not configured. Add your API key to the .env file.");
@@ -110,7 +110,7 @@ Return EXACTLY a JSON array of 3 objects with this structure (do not include mar
 
 // ─── Shared API helper ────────────────────────────────────────────────
 async function callDr7Api(systemPrompt: string, userPrompt: string, maxTokens = 1000): Promise<string> {
-    const apiKey = import.meta.env.VITE_DR7_API_KEY;
+    const apiKey = process.env.DR7_API_KEY;
 
     if (!apiKey) {
         const err = new Error("DR7_API_KEY is not configured. Add your API key to the .env file.");
@@ -203,7 +203,7 @@ export async function streamPatientReasoning(
     patient: Patient,
     onToken: (token: string) => void
 ): Promise<string> {
-    const apiKey = import.meta.env.VITE_DR7_API_KEY;
+    const apiKey = process.env.DR7_API_KEY;
 
     if (!apiKey) {
         const err = new Error("DR7_API_KEY is not configured.");
