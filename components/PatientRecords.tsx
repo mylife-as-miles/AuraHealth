@@ -449,15 +449,58 @@ Allergies: ${formData.allergies}
             MedGemma will auto-extract and analyze all attached documents.
           </p>
           <div className="w-full relative group cursor-pointer">
-            <input type="file" accept="image/*,.pdf,application/pdf" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-            <div className="w-full h-[120px] rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 flex flex-col items-center justify-center transition-all group-hover:border-cyan group-hover:bg-cyan/5">
-              <div className="w-12 h-12 rounded-full bg-white dark:bg-card-dark shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <UploadCloud size={20} className="text-gray-400 group-hover:text-cyan transition-colors" />
-              </div>
-              <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-cyan transition-colors">
-                Drop Lab Results / Clinical Notes Here
-              </span>
-              <span className="text-xs text-gray-400 mt-1">or click to browse files</span>
+            <input
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+              multiple
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    const result = reader.result as string;
+                    if (file.type === 'application/pdf') {
+                      setFormData({ ...formData, pdfBase64: result, pdfName: file.name, image: '' });
+                    } else {
+                      setFormData({ ...formData, image: result, pdfBase64: '', pdfName: file.name });
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            <div className={`w-full h-[120px] rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center overflow-hidden relative ${(formData.pdfBase64 || formData.image)
+                ? 'border-cyan bg-cyan/5'
+                : 'border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 group-hover:border-cyan group-hover:bg-cyan/5'
+              }`}>
+              {(formData.pdfBase64 || formData.image) ? (
+                <div className="flex flex-col items-center justify-center animate-in zoom-in duration-300">
+                  <div className="relative mb-3 flex items-center justify-center">
+                    {/* SVG background glow */}
+                    <div className="absolute inset-0 bg-cyan blur-md opacity-30 rounded-full animate-pulse"></div>
+                    <div className="w-14 h-14 rounded-full bg-cyan/10 border border-cyan/30 flex items-center justify-center text-cyan shadow-[0_0_15px_rgba(20,245,214,0.3)] relative z-10">
+                      {formData.pdfBase64 ? <FileText size={24} /> : <Camera size={24} />}
+                      {/* Scanning line animation overlay */}
+                      <div className="absolute inset-0 rounded-full overflow-hidden border-t-2 border-cyan animate-spin-slow"></div>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-cyan flex items-center gap-2">
+                    <CheckCircle2 size={16} /> Attached: {formData.pdfName || 'Secure Image'}
+                  </span>
+                  <span className="text-xs text-cyan/70 mt-1">Ready for Agentic Extraction</span>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-white dark:bg-card-dark shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform relative">
+                    <UploadCloud size={20} className="text-gray-400 group-hover:text-cyan transition-colors relative z-10" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-cyan transition-colors">
+                    Drop Lab Results / Clinical Notes Here
+                  </span>
+                  <span className="text-xs text-gray-400 mt-1">or click to browse files (PDF, Images)</span>
+                </>
+              )}
             </div>
           </div>
         </div>
