@@ -174,7 +174,7 @@ export default function Settings() {
     useEffect(() => {
         const fetchModels = async () => {
             try {
-                const response = await fetch('https://dr7.ai/api/v1/models', {
+                const response = await fetch('/api/v1/models', {
                     headers: { 'Authorization': 'Bearer sk-dr7-your-api-key' }
                 });
                 if (response.ok) {
