@@ -640,6 +640,7 @@ export default function PatientRecords() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // --- Flow B: Streaming reasoning ---
   const [streamingText, setStreamingText] = useState<Record<string, string>>({});
@@ -769,6 +770,40 @@ export default function PatientRecords() {
     <div className="flex flex-col h-full relative">
       <AddPatientModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
       <DoctorReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} report={selectedPatient?.doctorReport} />
+
+      {/* Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-card-dark rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                <AlertTriangle size={28} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-primary dark:text-white mb-1">Delete Patient</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Are you sure you want to delete this patient?</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-6">This action cannot be undone. All records, vitals, and AI reports associated with this patient will be permanently removed.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await db.patients.delete(deleteTargetId);
+                  if (selectedPatientId === deleteTargetId) setSelectedPatientId(null);
+                  setDeleteTargetId(null);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+              >
+                <Trash2 size={16} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-end mb-6 gap-4 flex-shrink-0">
@@ -926,10 +961,7 @@ export default function PatientRecords() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setContextMenuPatientId(null);
-                              if (window.confirm('Are you sure you want to delete this patient?')) {
-                                db.patients.delete(patient.id);
-                                if (selectedPatientId === patient.id) setSelectedPatientId(null);
-                              }
+                              setDeleteTargetId(patient.id);
                             }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                           >
