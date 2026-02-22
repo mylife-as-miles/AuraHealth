@@ -256,9 +256,9 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                 onChange={e => setFormData({ ...formData, context: e.target.value })}
                 className="w-full p-2.5 rounded-xl bg-secondary/5 text-secondary font-bold border border-secondary/20 focus:border-secondary outline-none text-sm"
               >
-                <option>Routine</option>
-                <option>Emergency</option>
-                <option>Post-operative</option>
+                <option className="bg-white dark:bg-card-dark text-primary dark:text-white">Routine</option>
+                <option className="bg-white dark:bg-card-dark text-primary dark:text-white">Emergency</option>
+                <option className="bg-white dark:bg-card-dark text-primary dark:text-white">Post-operative</option>
               </select>
             </div>
 
