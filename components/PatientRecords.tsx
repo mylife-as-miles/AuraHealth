@@ -58,10 +58,10 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     context: 'Routine',
     continuousMonitoring: true,
     image: '',
-    medicalHistoryNotes: 'Not provided',
-    medicationsNotes: 'Not provided',
-    familyHistoryNotes: 'Not provided',
-    allergies: 'Not provided'
+    medicalHistoryNotes: '',
+    medicationsNotes: '',
+    familyHistoryNotes: '',
+    allergies: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
@@ -84,11 +84,11 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
     let triageData: { priority: 'High Risk' | 'Moderate' | 'Low Risk'; aiReason: string; riskPercentage: number; condition: string } = { priority: 'Low Risk', aiReason: 'Follow-up required', riskPercentage: 5, condition: 'Undiagnosed' };
 
     const combinedNotes = `
-Referral Notes/Presenting Symptoms: ${formData.referralNotes}
-Medical History: ${formData.medicalHistoryNotes}
-Medications: ${formData.medicationsNotes}
-Family History: ${formData.familyHistoryNotes}
-Allergies: ${formData.allergies}
+Referral Notes/Presenting Symptoms: ${formData.referralNotes || 'Not provided'}
+Medical History: ${formData.medicalHistoryNotes || 'Not provided'}
+Medications: ${formData.medicationsNotes || 'Not provided'}
+Family History: ${formData.familyHistoryNotes || 'Not provided'}
+Allergies: ${formData.allergies || 'Not provided'}
     `.trim();
 
     if (combinedNotes.length > 100 || formData.referralNotes.trim()) {
@@ -136,10 +136,10 @@ Allergies: ${formData.allergies}
         currentPriority: triageData.priority,
         riskIfIgnored: triageData.riskPercentage,
         image: formData.image || undefined,
-        medicalHistoryNotes: formData.medicalHistoryNotes,
-        medicationsNotes: formData.medicationsNotes,
-        familyHistoryNotes: formData.familyHistoryNotes,
-        allergies: formData.allergies
+        medicalHistoryNotes: formData.medicalHistoryNotes || 'Not provided',
+        medicationsNotes: formData.medicationsNotes || 'Not provided',
+        familyHistoryNotes: formData.familyHistoryNotes || 'Not provided',
+        allergies: formData.allergies || 'Not provided'
       });
 
       // Log AI Event: TRIAGED
@@ -204,7 +204,7 @@ Allergies: ${formData.allergies}
           </div>
         )}
 
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex justify-between items-start mb-6 shrink-0">
           <div>
             <h3 className="text-xl font-bold text-primary dark:text-white flex items-center gap-2">
               Register Patient for Monitoring <Sparkles size={18} className="text-cyan fill-cyan/20" />
@@ -216,71 +216,73 @@ Allergies: ${formData.allergies}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-6">
+        <div className="overflow-y-auto custom-scrollbar pr-2 -mr-2 max-h-[70vh]">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-6">
 
-          {/* Left Column: Core Inputs */}
-          <div className="space-y-4">
-            <div className="flex flex-col items-start gap-2 mb-2">
-              <label className="relative cursor-pointer group">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setFormData({ ...formData, image: reader.result as string });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all overflow-hidden relative">
-                  {formData.image ? (
-                    <img src={formData.image} alt="Profile preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <Camera size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
-                  )}
-                </div>
-                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
-                  <Plus size={12} className="text-white" />
-                </div>
-              </label>
-            </div>
+            {/* Left Column: Core Inputs */}
+            <div className="space-y-4">
+              <div className="flex flex-col items-start gap-2 mb-2">
+                <label className="relative cursor-pointer group">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setFormData({ ...formData, image: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center group-hover:border-secondary group-hover:bg-secondary/5 transition-all overflow-hidden relative">
+                    {formData.image ? (
+                      <img src={formData.image} alt="Profile preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera size={20} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-card-dark shadow-sm">
+                    <Plus size={12} className="text-white" />
+                  </div>
+                </label>
+              </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
-                placeholder="e.g. John Doe"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date of Birth</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
                 <input
-                  type="date"
-                  value={formData.dob}
-                  onChange={e => setFormData({ ...formData, dob: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-300"
+                  type="text"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white"
+                  placeholder="e.g. John Doe"
                 />
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Gender</label>
-                <select
-                  value={formData.gender}
-                  onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-300"
-                >
-                  <option>Male</option>
-                  <option>Female</option>
-                  <option>Other</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={formData.dob}
+                    onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-gray-300"
+                  >
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -342,7 +344,8 @@ Allergies: ${formData.allergies}
             <textarea
               value={formData.medicalHistoryNotes}
               onChange={e => setFormData({ ...formData, medicalHistoryNotes: e.target.value })}
-              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white h-[90px] resize-none leading-relaxed font-mono text-[11px]"
+              placeholder="Not provided"
             />
           </div>
           <div>
@@ -353,7 +356,8 @@ Allergies: ${formData.allergies}
             <textarea
               value={formData.medicationsNotes}
               onChange={e => setFormData({ ...formData, medicationsNotes: e.target.value })}
-              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white h-[90px] resize-none leading-relaxed font-mono text-[11px]"
+              placeholder="Not provided"
             />
           </div>
           <div>
@@ -364,7 +368,8 @@ Allergies: ${formData.allergies}
             <textarea
               value={formData.familyHistoryNotes}
               onChange={e => setFormData({ ...formData, familyHistoryNotes: e.target.value })}
-              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white h-[90px] resize-none leading-relaxed font-mono text-[11px]"
+              placeholder="Not provided"
             />
           </div>
           <div>
@@ -375,7 +380,8 @@ Allergies: ${formData.allergies}
             <textarea
               value={formData.allergies}
               onChange={e => setFormData({ ...formData, allergies: e.target.value })}
-              className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white resize-none text-[11px] font-mono h-[60px]"
+              className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-secondary outline-none text-sm dark:text-white h-[90px] resize-none leading-relaxed font-mono text-[11px]"
+              placeholder="Not provided"
             />
           </div>
         </div>
@@ -401,19 +407,19 @@ Allergies: ${formData.allergies}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Footer Actions */}
-        <div className="mt-8 pt-4 border-t border-gray-100 dark:border-white/5 flex gap-3 justify-end items-center">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold text-primary bg-cyan hover:bg-cyan/90 transition-all shadow-lg shadow-cyan/20 flex items-center gap-2 group"
-          >
-            <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
-            Activate Monitoring
-          </button>
-        </div>
+      {/* Footer Actions */}
+      <div className="mt-8 pt-4 border-t border-gray-100 dark:border-white/5 flex gap-3 justify-end items-center shrink-0">
+        <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="px-6 py-2.5 rounded-xl text-sm font-bold text-primary bg-cyan hover:bg-cyan/90 transition-all shadow-lg shadow-cyan/20 flex items-center gap-2 group"
+        >
+          <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+          Activate Monitoring
+        </button>
       </div>
     </div>
   );
@@ -975,131 +981,131 @@ export default function PatientRecords() {
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Interactive Vitals Trends */}
-              <div className="bg-white/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Recent Vitals</h4>
+            {/* Interactive Vitals Trends */}
+            <div className="bg-white/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Recent Vitals</h4>
+                <button
+                  onClick={downloadVitalsCSV}
+                  className="text-gray-400 hover:text-primary dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg"
+                  title="Export CSV"
+                >
+                  <Download size={14} />
+                </button>
+              </div>
+
+              {/* Vitals Selectors */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {[
+                  { id: 'hr', label: 'Heart Rate', unit: 'bpm', icon: Activity },
+                  { id: 'bp', label: 'BP', unit: '', icon: Activity },
+                  { id: 'temp', label: 'Temp', unit: '°F', icon: Thermometer },
+                  { id: 'weight', label: 'Weight', unit: 'lbs', icon: Weight },
+                ].map((v) => (
                   <button
-                    onClick={downloadVitalsCSV}
-                    className="text-gray-400 hover:text-primary dark:hover:text-white transition-colors p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg"
-                    title="Export CSV"
+                    key={v.id}
+                    onClick={() => setActiveVital(v.id as any)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${activeVital === v.id
+                      ? 'bg-white dark:bg-card-dark border-secondary shadow-sm ring-1 ring-secondary/20'
+                      : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5 text-gray-400'
+                      }`}
                   >
-                    <Download size={14} />
+                    <v.icon size={16} className={`mb-1 ${activeVital === v.id ? 'text-secondary' : 'text-current'}`} />
+                    <span className={`text-[10px] font-bold ${activeVital === v.id ? 'text-primary dark:text-white' : 'text-gray-500'}`}>{v.label}</span>
                   </button>
-                </div>
-
-                {/* Vitals Selectors */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  {[
-                    { id: 'hr', label: 'Heart Rate', unit: 'bpm', icon: Activity },
-                    { id: 'bp', label: 'BP', unit: '', icon: Activity },
-                    { id: 'temp', label: 'Temp', unit: '°F', icon: Thermometer },
-                    { id: 'weight', label: 'Weight', unit: 'lbs', icon: Weight },
-                  ].map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setActiveVital(v.id as any)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${activeVital === v.id
-                        ? 'bg-white dark:bg-card-dark border-secondary shadow-sm ring-1 ring-secondary/20'
-                        : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5 text-gray-400'
-                        }`}
-                    >
-                      <v.icon size={16} className={`mb-1 ${activeVital === v.id ? 'text-secondary' : 'text-current'}`} />
-                      <span className={`text-[10px] font-bold ${activeVital === v.id ? 'text-primary dark:text-white' : 'text-gray-500'}`}>{v.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Chart Area */}
-                <div className="h-32 w-full min-w-0">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
-                    <SafeChart>
-                      <LineChart data={selectedPatient.vitals}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                        <XAxis
-                          dataKey="time"
-                          tick={{ fontSize: 10, fill: '#9ca3af' }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                          itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
-                        />
-                        {activeVital === 'bp' ? (
-                          <>
-                            <Line type="monotone" dataKey="sys" stroke="#FE5796" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                            <Line type="monotone" dataKey="dia" stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                          </>
-                        ) : (
-                          <Line type="monotone" dataKey={activeVital} stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                        )}
-                      </LineChart>
-                    </SafeChart>
-                  </ResponsiveContainer>
-                </div>
+                ))}
               </div>
 
-              {/* Current Medications */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Current Medications</h4>
-                <div className="space-y-2">
-                  {selectedPatient.medications.length > 0 ? selectedPatient.medications.map((med, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 hover:border-primary/20 transition-colors">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${med.type === 'pill' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                        {med.type === 'pill' ? <Pill size={14} /> : <Syringe size={14} />}
+              {/* Chart Area */}
+              <div className="h-32 w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+                  <SafeChart>
+                    <LineChart data={selectedPatient.vitals}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                      <XAxis
+                        dataKey="time"
+                        tick={{ fontSize: 10, fill: '#9ca3af' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#160527' }}
+                      />
+                      {activeVital === 'bp' ? (
+                        <>
+                          <Line type="monotone" dataKey="sys" stroke="#FE5796" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                          <Line type="monotone" dataKey="dia" stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                        </>
+                      ) : (
+                        <Line type="monotone" dataKey={activeVital} stroke="#54E097" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      )}
+                    </LineChart>
+                  </SafeChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Current Medications */}
+            <div>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Current Medications</h4>
+              <div className="space-y-2">
+                {selectedPatient.medications.length > 0 ? selectedPatient.medications.map((med, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 hover:border-primary/20 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${med.type === 'pill' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                      {med.type === 'pill' ? <Pill size={14} /> : <Syringe size={14} />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm font-bold text-primary dark:text-white">{med.name}</div>
+                        <div className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full">{med.time}</div>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <div className="text-sm font-bold text-primary dark:text-white">{med.name}</div>
-                          <div className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full">{med.time}</div>
-                        </div>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex gap-2">
-                          <span>{med.dosage}</span>
-                          <span>•</span>
-                          <span>{med.freq}</span>
-                        </div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex gap-2">
+                        <span>{med.dosage}</span>
+                        <span>•</span>
+                        <span>{med.freq}</span>
                       </div>
                     </div>
-                  )) : (
-                    <div className="text-xs text-gray-400 text-center py-2 italic">No active medications</div>
-                  )}
-                </div>
+                  </div>
+                )) : (
+                  <div className="text-xs text-gray-400 text-center py-2 italic">No active medications</div>
+                )}
               </div>
+            </div>
 
-              {/* Medical History Timeline */}
-              <div ref={timelineRef}>
-                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Medical Timeline</h4>
-                <div className="relative pl-4 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100 dark:before:bg-gray-800">
-                  {selectedPatient.history.map((event, idx) => (
-                    <div key={idx} className="relative">
-                      <div className={`absolute -left-[16px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-card-dark ${idx === 0 ? 'bg-secondary ring-4 ring-secondary/20' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="text-xs font-bold text-primary dark:text-white">{event.title}</div>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 max-w-[200px]">{event.description}</div>
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-1 rounded-md">{event.date}</span>
+            {/* Medical History Timeline */}
+            <div ref={timelineRef}>
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Medical Timeline</h4>
+              <div className="relative pl-4 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100 dark:before:bg-gray-800">
+                {selectedPatient.history.map((event, idx) => (
+                  <div key={idx} className="relative">
+                    <div className={`absolute -left-[16px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-card-dark ${idx === 0 ? 'bg-secondary ring-4 ring-secondary/20' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-xs font-bold text-primary dark:text-white">{event.title}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 max-w-[200px]">{event.description}</div>
                       </div>
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-1 rounded-md">{event.date}</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              {/* Insurance Card */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors cursor-pointer group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ShieldPlus size={16} />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-primary dark:text-white">{selectedPatient.insurance.provider}</div>
-                    <div className="text-[10px] text-gray-400">Policy: {selectedPatient.insurance.policy}</div>
-                  </div>
+            {/* Insurance Card */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ShieldPlus size={16} />
                 </div>
-                <ChevronRight size={16} className="text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" />
+                <div>
+                  <div className="text-xs font-bold text-primary dark:text-white">{selectedPatient.insurance.provider}</div>
+                  <div className="text-[10px] text-gray-400">Policy: {selectedPatient.insurance.policy}</div>
+                </div>
               </div>
+              <ChevronRight size={16} className="text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" />
             </div>
           </div>
         ) : (
