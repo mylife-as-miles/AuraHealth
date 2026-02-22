@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { buildParsePrompt } from '../lib/prompts.js';
+import { buildParsePrompt, MODEL_CONFIG } from '../lib/prompts.js';
 
 export const config = {
     maxDuration: 120,
@@ -44,11 +44,10 @@ export default async function handler(req, res) {
             text: buildParsePrompt(notes),
         });
 
-        const model = 'gemini-3.1-pro-preview';
-        const tools = [{ googleSearch: {} }];
+        const { model, thinkingLevel, tools } = MODEL_CONFIG.parse;
         const genConfig = {
             thinkingConfig: {
-                thinkingLevel: 'HIGH',
+                thinkingLevel,
             },
             tools,
         };

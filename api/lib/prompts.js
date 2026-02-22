@@ -4,6 +4,10 @@
 //
 //  All prompts, ontologies, schemas, and guardrails for the 3-stage
 //  clinical ingestion workflow live here. Edit prompts HERE, never inline.
+//
+//  Pipeline:  MedExtract (gemini-3.1-pro-preview)
+//          → AuraDx     (dr7.ai / medgemma-4b-it)
+//          → AuraSchema (gemini-3.1-pro-preview)
 // ══════════════════════════════════════════════════════════════════════════════
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,8 +28,35 @@ export const ONTOLOGY = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  STAGE 1 — Gemini Vision / Parse
-//  Model: gemini-2.5-flash
+//  MODEL CONFIGURATION
+//  Single source of truth for model IDs and generation settings.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MODEL_CONFIG = {
+    parse: {
+        model: 'gemini-3.1-pro-preview',
+        thinkingLevel: 'HIGH',
+        tools: [{ googleSearch: {} }],
+        streaming: true,
+    },
+    dr7: {
+        model: 'medgemma-4b-it',       // or user-selected via Settings
+        maxTokens: 2000,
+        temperature: 0.4,
+    },
+    structure: {
+        model: 'gemini-3.1-pro-preview',
+        thinkingLevel: 'HIGH',
+        tools: [{ googleSearch: {} }],
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+        streaming: true,
+    },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  STAGE 1 — Gemini Vision / Parse  (MedExtract Agent)
+//  Model: gemini-3.1-pro-preview  |  Thinking: HIGH  |  Tools: googleSearch
 //  Purpose: Multi-modal clinical data extraction
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -87,8 +118,9 @@ Produce a single cohesive narrative organised under EXACTLY these headings. If a
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  STAGE 2 — Dr7.ai Medical Chat (MedGemma)
-//  Model: medgemma-4b-it (or user-selected)
+//  STAGE 2 — Dr7.ai Medical Chat  (AuraDx Agent)
+//  Model: medgemma-4b-it (or user-selected via Settings)
+//  Endpoint: dr7.ai/api/v1/medical/chat/completions
 //  Purpose: Clinical reasoning & differential diagnosis
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -144,8 +176,8 @@ Structure your response with EXACTLY these headings:
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  STAGE 3 — Gemini Structure
-//  Model: gemini-2.5-pro
+//  STAGE 3 — Gemini Structure  (AuraSchema Agent)
+//  Model: gemini-3.1-pro-preview  |  Thinking: HIGH  |  Tools: googleSearch
 //  Purpose: Final JSON structuring for the AuraHealth database
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { buildStructurePrompt, STRUCTURE_SCHEMA } from '../lib/prompts.js';
+import { buildStructurePrompt, STRUCTURE_SCHEMA, MODEL_CONFIG } from '../lib/prompts.js';
 
 export const config = {
     maxDuration: 120,
@@ -17,16 +17,15 @@ export default async function handler(req, res) {
             apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY,
         });
 
-        const model = 'gemini-3.1-pro-preview';
-        const tools = [{ googleSearch: {} }];
+        const { model, thinkingLevel, tools, responseMimeType, temperature } = MODEL_CONFIG.structure;
         const genConfig = {
             thinkingConfig: {
-                thinkingLevel: 'HIGH',
+                thinkingLevel,
             },
             tools,
-            responseMimeType: 'application/json',
+            responseMimeType,
             responseSchema: STRUCTURE_SCHEMA,
-            temperature: 0.1,
+            temperature,
         };
 
         const contents = [

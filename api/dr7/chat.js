@@ -1,4 +1,4 @@
-import { buildDr7SystemPrompt } from '../lib/prompts.js';
+import { buildDr7SystemPrompt, MODEL_CONFIG } from '../lib/prompts.js';
 
 export const config = {
     maxDuration: 60,
@@ -30,8 +30,8 @@ export default async function handler(req, res) {
                         content: parsedContext
                     }
                 ],
-                max_tokens: 2000,
-                temperature: 0.4
+                max_tokens: MODEL_CONFIG.dr7.maxTokens,
+                temperature: MODEL_CONFIG.dr7.temperature
             })
         });
 
