@@ -69,6 +69,7 @@ const AddPatientModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; type: string; dataUrl: string }>>([]);
 
   if (!isOpen) return null;
 
@@ -90,10 +91,14 @@ Family History: ${formData.familyHistoryNotes}
 Allergies: ${formData.allergies}
       `.trim();
 
+      // Collect first image and first PDF from attachedFiles for the API
+      const firstImage = attachedFiles.find(f => f.type.startsWith('image/'));
+      const firstPdf = attachedFiles.find(f => f.type === 'application/pdf');
+
       const parseRes = await fetch('/api/gemini/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: formData.image, pdfBase64: formData.pdfBase64, notes: combinedNotes })
+        body: JSON.stringify({ image: firstImage?.dataUrl || formData.image, pdfBase64: firstPdf?.dataUrl || formData.pdfBase64, notes: combinedNotes })
       });
       const parseData = await parseRes.json();
       const parsedContext = parseData.parsedContext || combinedNotes;
@@ -189,6 +194,7 @@ Allergies: ${formData.allergies}
         name: '', dob: '', gender: 'Male', insurance: '', referralNotes: '', context: 'Routine', continuousMonitoring: true, image: '', pdfBase64: '', pdfName: '',
         medicalHistoryNotes: 'Not provided', medicationsNotes: 'Not provided', familyHistoryNotes: 'Not provided', allergies: 'Not provided'
       });
+      setAttachedFiles([]);
     } catch (error) {
       console.error("Failed to add patient:", error);
       setIsSubmitting(false);
@@ -455,43 +461,58 @@ Allergies: ${formData.allergies}
               multiple
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
+                const files = e.target.files;
+                if (!files) return;
+                Array.from(files).forEach(file => {
                   const reader = new FileReader();
                   reader.onloadend = () => {
-                    const result = reader.result as string;
-                    if (file.type === 'application/pdf') {
-                      setFormData({ ...formData, pdfBase64: result, pdfName: file.name, image: '' });
-                    } else {
-                      setFormData({ ...formData, image: result, pdfBase64: '', pdfName: file.name });
-                    }
+                    const dataUrl = reader.result as string;
+                    setAttachedFiles(prev => [...prev, { name: file.name, type: file.type, dataUrl }]);
                   };
                   reader.readAsDataURL(file);
-                }
+                });
+                e.target.value = '';
               }}
             />
-            <div className={`w-full h-[120px] rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center overflow-hidden relative ${(formData.pdfBase64 || formData.image)
+            <div className={`w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden relative ${attachedFiles.length > 0
                 ? 'border-cyan bg-cyan/5'
                 : 'border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 group-hover:border-cyan group-hover:bg-cyan/5'
               }`}>
-              {(formData.pdfBase64 || formData.image) ? (
-                <div className="flex flex-col items-center justify-center animate-in zoom-in duration-300">
-                  <div className="relative mb-3 flex items-center justify-center">
-                    {/* SVG background glow */}
-                    <div className="absolute inset-0 bg-cyan blur-md opacity-30 rounded-full animate-pulse"></div>
-                    <div className="w-14 h-14 rounded-full bg-cyan/10 border border-cyan/30 flex items-center justify-center text-cyan shadow-[0_0_15px_rgba(20,245,214,0.3)] relative z-10">
-                      {formData.pdfBase64 ? <FileText size={24} /> : <Camera size={24} />}
-                      {/* Scanning line animation overlay */}
-                      <div className="absolute inset-0 rounded-full overflow-hidden border-t-2 border-cyan animate-spin-slow"></div>
-                    </div>
+              {attachedFiles.length > 0 ? (
+                <div className="p-4 space-y-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-cyan uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
+                    </span>
+                    <span className="text-[10px] text-cyan/60 font-medium">Ready for Agentic Extraction</span>
                   </div>
-                  <span className="text-sm font-bold text-cyan flex items-center gap-2">
-                    <CheckCircle2 size={16} /> Attached: {formData.pdfName || 'Secure Image'}
-                  </span>
-                  <span className="text-xs text-cyan/70 mt-1">Ready for Agentic Extraction</span>
+                  <div className="flex flex-wrap gap-2">
+                    {attachedFiles.map((f, i) => (
+                      <div
+                        key={`${f.name}-${i}`}
+                        className="flex items-center gap-2 bg-white dark:bg-card-dark rounded-xl px-3 py-2 border border-cyan/20 shadow-sm animate-in zoom-in duration-200 group/pill"
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-cyan/10 flex items-center justify-center text-cyan shrink-0">
+                          {f.type === 'application/pdf' ? <FileText size={14} /> : <Camera size={14} />}
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 max-w-[140px] truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setAttachedFiles(prev => prev.filter((_, idx) => idx !== i));
+                          }}
+                          className="w-5 h-5 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-400 hover:bg-accent/10 hover:text-accent transition-colors opacity-0 group-hover/pill:opacity-100 relative z-20 shrink-0"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
-                <>
+                <div className="h-[120px] flex flex-col items-center justify-center">
                   <div className="w-12 h-12 rounded-full bg-white dark:bg-card-dark shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform relative">
                     <UploadCloud size={20} className="text-gray-400 group-hover:text-cyan transition-colors relative z-10" />
                   </div>
@@ -499,7 +520,7 @@ Allergies: ${formData.allergies}
                     Drop Lab Results / Clinical Notes Here
                   </span>
                   <span className="text-xs text-gray-400 mt-1">or click to browse files (PDF, Images)</span>
-                </>
+                </div>
               )}
             </div>
           </div>
