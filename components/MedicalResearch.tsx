@@ -108,15 +108,15 @@ export default function MedicalResearch() {
 
       // Basic validation/transformation fallback
       const transformedData = {
-          ...newData,
-          riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data.map((d: any, i: number) => ({
-             ...d,
-             x: d.value,
-             y: i + 1,
-             // Calculate error bars if min/max are provided
-             error: [d.value - d.min, d.max - d.value]
-          })) || [],
-          weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
+        ...newData,
+        riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data.map((d: any, i: number) => ({
+          ...d,
+          x: d.value,
+          y: i + 1,
+          // Calculate error bars if min/max are provided
+          error: [d.value - d.min, d.max - d.value]
+        })) || [],
+        weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
       };
 
       setData(transformedData);
@@ -179,10 +179,10 @@ export default function MedicalResearch() {
                 Latest evidence on GLP-1 agonists for cardiovascular health in non-diabetic patients
               </p>
             </div>
-             <div className="ml-3 flex-shrink-0">
-               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/20 to-cyan/20 flex items-center justify-center text-primary font-bold border border-white dark:border-card-dark shadow-sm">
-                  <span className="text-xs">MK</span>
-               </div>
+            <div className="ml-3 flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/20 to-cyan/20 flex items-center justify-center text-primary font-bold border border-white dark:border-card-dark shadow-sm">
+                <span className="text-xs">MK</span>
+              </div>
             </div>
           </div>
 
@@ -204,9 +204,12 @@ export default function MedicalResearch() {
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase font-bold text-gray-400">Confidence</span>
                     <div className="flex gap-0.5">
-                      {[...Array(4)].map((_, i) => (
-                        <div key={i} className={`w-1.5 h-3 rounded-full ${i < 3 ? 'bg-secondary' : 'bg-secondary/30'}`} />
-                      ))}
+                      {[...Array(4)].map((_, i) => {
+                        const activeBars = Math.round((data.confidence || 0) * 4);
+                        return (
+                          <div key={i} className={`w-1.5 h-3 rounded-full ${i < activeBars ? 'bg-secondary' : 'bg-secondary/30'}`} />
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -214,14 +217,14 @@ export default function MedicalResearch() {
                 <div className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
                   <ReactMarkdown
                     components={{
-                      li: ({node, ...props}) => (
+                      li: ({ node, ...props }) => (
                         <li className="flex gap-3 text-sm mb-3">
-                           <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
-                           <span>{props.children}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
+                          <span>{props.children}</span>
                         </li>
                       ),
-                      strong: ({node, ...props}) => <strong className="text-primary dark:text-white font-bold">{props.children}</strong>,
-                      a: ({node, ...props}) => <a className="text-cyan text-xs font-bold hover:underline ml-1" {...props}>{props.children}</a>
+                      strong: ({ node, ...props }) => <strong className="text-primary dark:text-white font-bold">{props.children}</strong>,
+                      a: ({ node, ...props }) => <a className="text-cyan text-xs font-bold hover:underline ml-1" {...props}>{props.children}</a>
                     }}
                   >
                     {data.synthesis}
@@ -238,34 +241,34 @@ export default function MedicalResearch() {
           </div>
           {/* Input Area (Bottom) */}
           <div className="p-6 pt-2 bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent z-30 absolute bottom-0 left-0 w-full">
-             <div className="relative bg-white dark:bg-card-dark rounded-2xl shadow-lg border border-border-light dark:border-border-dark p-2 flex items-end gap-2 max-w-4xl">
-                <button className="p-2 text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
-                   <Paperclip className="w-5 h-5" />
-                </button>
-                <textarea
-                   value={query}
-                   onChange={(e) => setQuery(e.target.value)}
-                   onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                         e.preventDefault();
-                         handleSearch();
-                      }
-                   }}
-                   className="w-full bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 resize-none py-2.5 max-h-32 custom-scroll"
-                   placeholder="Ask a follow-up question or refine criteria..."
-                   rows={1}
-                />
-                <button
-                   onClick={handleSearch}
-                   disabled={loading || !query.trim()}
-                   className={`p-2 rounded-xl shadow-md transition-all flex items-center justify-center ${loading || !query.trim() ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
-                >
-                   {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowUp className="w-5 h-5" />}
-                </button>
-             </div>
-             <div className="text-center mt-2 max-w-4xl">
-                <p className="text-[10px] text-gray-400">MedGemma can make mistakes. Verify important clinical information.</p>
-             </div>
+            <div className="relative bg-white dark:bg-card-dark rounded-2xl shadow-lg border border-border-light dark:border-border-dark p-2 flex items-end gap-2 max-w-4xl">
+              <button className="p-2 text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+                className="w-full bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 resize-none py-2.5 max-h-32 custom-scroll"
+                placeholder="Ask a follow-up question or refine criteria..."
+                rows={1}
+              />
+              <button
+                onClick={handleSearch}
+                disabled={loading || !query.trim()}
+                className={`p-2 rounded-xl shadow-md transition-all flex items-center justify-center ${loading || !query.trim() ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowUp className="w-5 h-5" />}
+              </button>
+            </div>
+            <div className="text-center mt-2 max-w-4xl">
+              <p className="text-[10px] text-gray-400">MedGemma can make mistakes. Verify important clinical information.</p>
+            </div>
           </div>
         </div>
 
@@ -283,23 +286,23 @@ export default function MedicalResearch() {
                 </button>
               </div>
               <div className="h-40 w-full relative">
-                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                    <div className="w-px h-full border-l border-dashed border-gray-300 dark:border-gray-700 absolute left-1/2" />
-                 </div>
-                 <ResponsiveContainer width="100%" height="100%">
-                   <SafeChart>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                  <div className="w-px h-full border-l border-dashed border-gray-300 dark:border-gray-700 absolute left-1/2" />
+                </div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <SafeChart>
                     <ScatterChart
                       layout="vertical"
                       margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(0,0,0,0.05)" />
-                      <XAxis type="number" dataKey="x" domain={[0.4, 1.6]} tick={{fontSize: 9}} tickCount={5} stroke="#9CA3AF" />
+                      <XAxis type="number" dataKey="x" domain={[0.4, 1.6]} tick={{ fontSize: 9 }} tickCount={5} stroke="#9CA3AF" />
                       <YAxis
                         type="number"
                         dataKey="y"
                         domain={[0, 4]}
                         ticks={[1, 2, 3]}
-                        tick={({x, y, payload}) => {
+                        tick={({ x, y, payload }) => {
                           const item = data.riskChart.find(d => d.y === payload.value);
                           if (!item) return null;
                           return (
@@ -315,17 +318,17 @@ export default function MedicalResearch() {
                       <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                       <Scatter data={data.riskChart} fill="#8884d8" shape={<ForestPoint />}>
                         {data.riskChart.map((entry, index) => (
-                           <Cell key={`cell-\${index}`} fill={entry.color} />
+                          <Cell key={`cell-\${index}`} fill={entry.color} />
                         ))}
-                         <ErrorBar dataKey="error" width={0} strokeWidth={2} direction="x" stroke="#374151" />
+                        <ErrorBar dataKey="error" width={0} strokeWidth={2} direction="x" stroke="#374151" />
                       </Scatter>
                     </ScatterChart>
-                   </SafeChart>
-                  </ResponsiveContainer>
+                  </SafeChart>
+                </ResponsiveContainer>
 
                 <div className="absolute bottom-0 left-0 right-0 flex justify-between px-8 text-[9px] text-gray-400 pointer-events-none">
-                    <span>Favors Treatment</span>
-                    <span>Favors Placebo</span>
+                  <span>Favors Treatment</span>
+                  <span>Favors Placebo</span>
                 </div>
               </div>
             </div>
@@ -340,9 +343,9 @@ export default function MedicalResearch() {
                   <SafeChart>
                     <BarChart data={data.weightChart} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                      <XAxis dataKey="name" tick={{fontSize: 9}} stroke="#9CA3AF" axisLine={false} tickLine={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} stroke="#9CA3AF" axisLine={false} tickLine={false} />
                       <Tooltip
-                        cursor={{fill: 'transparent'}}
+                        cursor={{ fill: 'transparent' }}
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             return (
@@ -367,26 +370,26 @@ export default function MedicalResearch() {
 
             {/* Sources List */}
             <div className="bg-white dark:bg-card-dark border-t border-border-light dark:border-border-dark flex flex-col shadow-[-4px_-4px_20px_rgba(0,0,0,0.05)] rounded-tl-2xl -mx-5 -mb-5 mt-auto">
-               <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Library className="w-4 h-4 text-gray-400" />
-                    <h3 className="text-xs font-bold text-primary dark:text-white">Sources</h3>
-                  </div>
-                  <span className="text-[10px] text-gray-400">{data.sources.length} citations</span>
-               </div>
-               <div className="max-h-48 overflow-y-auto custom-scroll p-2">
-                  {data.sources.map((source) => (
-                    <a key={source.id} href={source.url} className="block p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
-                       <div className="flex items-start gap-2">
-                          <span className="text-[10px] font-bold text-cyan mt-0.5">[{source.id}]</span>
-                          <div>
-                             <p className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors line-clamp-1">{source.title}</p>
-                             <p className="text-[10px] text-gray-400">{source.journal}, {source.year}</p>
-                          </div>
-                       </div>
-                    </a>
-                  ))}
-               </div>
+              <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Library className="w-4 h-4 text-gray-400" />
+                  <h3 className="text-xs font-bold text-primary dark:text-white">Sources</h3>
+                </div>
+                <span className="text-[10px] text-gray-400">{data.sources.length} citations</span>
+              </div>
+              <div className="max-h-48 overflow-y-auto custom-scroll p-2">
+                {data.sources.map((source) => (
+                  <a key={source.id} href={source.url} className="block p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+                    <div className="flex items-start gap-2">
+                      <span className="text-[10px] font-bold text-cyan mt-0.5">[{source.id}]</span>
+                      <div>
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors line-clamp-1">{source.title}</p>
+                        <p className="text-[10px] text-gray-400">{source.journal}, {source.year}</p>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </aside>
