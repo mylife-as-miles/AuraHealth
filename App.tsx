@@ -65,7 +65,7 @@ const Layout = () => {
       case '/diagnostics':
         return { title: "Diagnostics Center", subtitle: "Real-time diagnostic analysis" };
       case '/ai-insights':
-        return { title: "Population Analytics", subtitle: `AI-driven insights powered by ${modelName} & HAI-DEF` };
+        return { title: "AI Insight", subtitle: `AI-driven insights powered by ${modelName} & HAI-DEF` };
       case '/research':
         return { title: "Medical Research", subtitle: `Real-time evidence synthesis powered by ${modelName}` };
       case '/workflow':

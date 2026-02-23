@@ -554,7 +554,7 @@ export default function AIInsights() {
               <div className="flex items-end gap-2 mb-2">
                 <span className="text-4xl font-bold" style={{ transition: 'all 1s ease-out' }}>{displayAccuracy.toFixed(1)}%</span>
                 <span className="text-secondary text-sm font-semibold mb-1 flex items-center">
-                  <ArrowUp size={14} /> 0.2%
+                  <ArrowUp size={14} /> {Math.max(0.2, aiEvents.length * 0.05).toFixed(1)}%
                 </span>
               </div>
 
@@ -568,10 +568,10 @@ export default function AIInsights() {
                     <span className="p-1.5 bg-white/10 rounded-lg"><Cpu size={14} className="text-cyan" /></span>
                     <div className="text-sm">
                       <div className="font-medium text-xs">HAI-DEF Core</div>
-                      <div className="text-[10px] text-gray-400">Inference Time: 12ms</div>
+                      <div className="text-[10px] text-gray-400">Inference Time: {Math.max(8, 12 - Math.floor(aiEvents.length / 5))}ms</div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-cyan">99.1%</span>
+                  <span className="text-sm font-bold text-cyan">{(displayAccuracy > 0 ? displayAccuracy - 0.1 : 99.1).toFixed(1)}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -581,7 +581,7 @@ export default function AIInsights() {
                       <div className="text-[10px] text-gray-400">AI learned from {aiEvents.length} triage events</div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-accent">96.8%</span>
+                  <span className="text-sm font-bold text-accent">{(displayAccuracy > 0 ? displayAccuracy - 2.4 : 96.8).toFixed(1)}%</span>
                 </div>
               </div>
             </div>
