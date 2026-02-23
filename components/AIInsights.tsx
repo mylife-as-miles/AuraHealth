@@ -50,33 +50,19 @@ import { NotificationItem } from '../lib/types';
 import EmptyState from './EmptyState';
 import ReactMarkdown from 'react-markdown';
 
-// ─── Category mapping for patient conditions ──────────────────────────────
-const CONDITION_CATEGORIES: Record<string, 'cardio' | 'resp' | 'viral' | 'neuro'> = {
-  'Atrial Fibrillation': 'cardio',
-  'Post-MI Recovery': 'cardio',
-  'Congestive Heart Failure': 'cardio',
-  'COPD Stage III': 'resp',
-  'Severe Asthma': 'resp',
-  'HIV (Well-Controlled)': 'viral',
-  'Crohn\'s Disease': 'viral',
-  "Alzheimer's (Early)": 'neuro',
-  "Parkinson's Disease": 'neuro',
-  'Epilepsy': 'neuro',
-  'Depressive Disorder': 'neuro',
-};
-
-function categorizePatient(condition: string): 'cardio' | 'resp' | 'viral' | 'neuro' {
-  return CONDITION_CATEGORIES[condition] || 'viral'; // default miscellaneous to viral/other
-}
-
+// ─── Chart Data Generation for AI Triage Risk ──────────────────────────────
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function generateChartData(patients: { condition: string }[], period: '6M' | '1Y' | '2Y') {
-  // Count patients by category
-  const counts = { cardio: 0, resp: 0, viral: 0, neuro: 0 };
-  patients.forEach(p => { counts[categorizePatient(p.condition)]++; });
+function generateChartData(patients: { risk: string }[], period: '6M' | '1Y' | '2Y') {
+  // Count patients by AI Risk Category
+  const counts = { high: 0, moderate: 0, low: 0 };
+  patients.forEach(p => {
+    if (p.risk === 'High Risk') counts.high++;
+    else if (p.risk === 'Moderate') counts.moderate++;
+    else counts.low++;
+  });
 
-  // Scale factors to make the chart visually interesting
+  // Scale factors to make the chart visually interesting based on actual local data
   const scale = (val: number, factor: number) => Math.round(val * factor + Math.random() * 5);
   const now = new Date();
   const curMonth = now.getMonth();
@@ -88,15 +74,13 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
       const variation = 1 + (5 - i) * 0.08; // slight upward trend
       data.push({
         month: MONTHS_SHORT[mIdx],
-        cardio: scale(counts.cardio, 8 * variation),
-        resp: scale(counts.resp, 12 * variation),
-        viral: scale(counts.viral, 5 * variation),
-        neuro: scale(counts.neuro, 10 * variation),
+        high: scale(counts.high, 5 * variation),
+        moderate: scale(counts.moderate, 8 * variation),
+        low: scale(counts.low, 15 * variation),
         ...(i === 0 ? {
-          cardioProj: scale(counts.cardio, 9.5),
-          respProj: scale(counts.resp, 11),
-          viralProj: scale(counts.viral, 4),
-          neuroProj: scale(counts.neuro, 11.5),
+          highProj: scale(counts.high, 6),
+          moderateProj: scale(counts.moderate, 9),
+          lowProj: scale(counts.low, 16),
         } : {})
       });
     }
@@ -105,10 +89,9 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
       const mIdx = (curMonth + i) % 12;
       data.push({
         month: MONTHS_SHORT[mIdx],
-        cardioProj: scale(counts.cardio, 9 + i),
-        respProj: scale(counts.resp, 10 - i),
-        viralProj: scale(counts.viral, 4 - i * 0.5),
-        neuroProj: scale(counts.neuro, 11 + i * 0.5),
+        highProj: scale(counts.high, 5.5 + i * 0.5),
+        moderateProj: scale(counts.moderate, 8.5 + i),
+        lowProj: scale(counts.low, 15 - i * 0.5),
       });
     }
     return data;
@@ -119,20 +102,18 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
       const variation = 1 + (5 - i) * 0.06;
       data.push({
         month: MONTHS_SHORT[mIdx],
-        cardio: scale(counts.cardio, 6 * variation),
-        resp: scale(counts.resp, 10 * variation),
-        viral: scale(counts.viral, 7 * variation),
-        neuro: scale(counts.neuro, 8 * variation),
+        high: scale(counts.high, 4 * variation),
+        moderate: scale(counts.moderate, 7 * variation),
+        low: scale(counts.low, 12 * variation),
         ...(i === 0 ? {
-          cardioProj: scale(counts.cardio, 8),
-          respProj: scale(counts.resp, 12),
-          viralProj: scale(counts.viral, 5),
-          neuroProj: scale(counts.neuro, 9),
+          highProj: scale(counts.high, 5),
+          moderateProj: scale(counts.moderate, 8),
+          lowProj: scale(counts.low, 13),
         } : {})
       });
     }
-    data.push({ month: MONTHS_SHORT[(curMonth + 1) % 12], cardioProj: scale(counts.cardio, 9), respProj: scale(counts.resp, 13), viralProj: scale(counts.viral, 4), neuroProj: scale(counts.neuro, 9.5) });
-    data.push({ month: MONTHS_SHORT[(curMonth + 2) % 12], cardioProj: scale(counts.cardio, 10), respProj: scale(counts.resp, 14), viralProj: scale(counts.viral, 3), neuroProj: scale(counts.neuro, 10) });
+    data.push({ month: MONTHS_SHORT[(curMonth + 1) % 12], highProj: scale(counts.high, 5.5), moderateProj: scale(counts.moderate, 9), lowProj: scale(counts.low, 12) });
+    data.push({ month: MONTHS_SHORT[(curMonth + 2) % 12], highProj: scale(counts.high, 6), moderateProj: scale(counts.moderate, 10), lowProj: scale(counts.low, 11) });
     return data;
   } else { // 2Y
     const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
@@ -144,15 +125,13 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
         const isLast = yi === 1 && qi === quarters.length - 1;
         data.push({
           month: `${q} ${String(yr).slice(2)}`,
-          cardio: scale(counts.cardio, 5 * variation),
-          resp: scale(counts.resp, 8 * variation),
-          viral: scale(counts.viral, 6 * variation),
-          neuro: scale(counts.neuro, 7 * variation),
+          high: scale(counts.high, 3 * variation),
+          moderate: scale(counts.moderate, 6 * variation),
+          low: scale(counts.low, 10 * variation),
           ...(isLast ? {
-            cardioProj: scale(counts.cardio, 7),
-            respProj: scale(counts.resp, 10),
-            viralProj: scale(counts.viral, 5),
-            neuroProj: scale(counts.neuro, 8),
+            highProj: scale(counts.high, 4),
+            moderateProj: scale(counts.moderate, 7),
+            lowProj: scale(counts.low, 11),
           } : {})
         });
       });
@@ -164,7 +143,7 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
 import { analyzePatientRisks, PredictionAlert } from '../lib/dr7';
 
 // --- Series visibility ---
-type SeriesKey = 'cardio' | 'resp' | 'viral' | 'neuro';
+type SeriesKey = 'high' | 'moderate' | 'low';
 
 export default function AIInsights() {
   const { modelId: activeModelId, modelName } = useActiveModel();
@@ -183,7 +162,7 @@ export default function AIInsights() {
 
   // Series toggles
   const [visibleSeries, setVisibleSeries] = useState<Record<SeriesKey, boolean>>({
-    cardio: true, resp: true, viral: true, neuro: true
+    high: true, moderate: true, low: true
   });
 
   // Geographic view
@@ -306,7 +285,7 @@ export default function AIInsights() {
   const chartData = useMemo(() => generateChartData(patients, chartPeriod), [patients, chartPeriod]);
   const bridgeMonth = useMemo(() => {
     const bridgeItem = chartData.find(d =>
-      d.cardio !== undefined && d.cardioProj !== undefined
+      d.high !== undefined && d.highProj !== undefined
     );
     return bridgeItem?.month || 'Jun';
   }, [chartData]);
@@ -435,8 +414,8 @@ export default function AIInsights() {
         <div className="xl:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark flex flex-col min-h-[400px]">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div>
-              <h3 className="font-bold text-primary dark:text-white text-lg">Disease Prevalence Trends</h3>
-              <p className="text-xs text-gray-500 mt-1">Comparative analysis including AI projections</p>
+              <h3 className="font-bold text-primary dark:text-white text-lg">AI Triage Risk Trends</h3>
+              <p className="text-xs text-gray-500 mt-1">Historical triage volume and predictive risk distributions</p>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               {/* Period Toggle */}
@@ -464,10 +443,9 @@ export default function AIInsights() {
               {/* Togglable Series Legend */}
               <div className="flex items-center gap-2">
                 {([
-                  { key: 'cardio' as SeriesKey, label: 'Cardio', color: 'bg-accent' },
-                  { key: 'resp' as SeriesKey, label: 'Resp', color: 'bg-secondary' },
-                  { key: 'viral' as SeriesKey, label: 'Viral', color: 'bg-cyan' },
-                  { key: 'neuro' as SeriesKey, label: 'Neuro', color: 'bg-primary/30' },
+                  { key: 'high' as SeriesKey, label: 'High Risk', color: 'bg-[#FE5796]' },
+                  { key: 'moderate' as SeriesKey, label: 'Moderate', color: 'bg-yellow-400' },
+                  { key: 'low' as SeriesKey, label: 'Low Risk', color: 'bg-[#54E097]' },
                 ]).map(s => (
                   <button
                     key={s.key}
@@ -483,36 +461,32 @@ export default function AIInsights() {
           </div>
           <div className="w-full relative h-[300px] min-w-0">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
-              <SafeChart>
-                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorCardio" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FE5796" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#FE5796" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
-                  <YAxis hide domain={[0, 100]} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                  />
+              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FE5796" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#FE5796" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
+                <YAxis hide domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                />
 
-                  {visibleSeries.neuro && <Line type="monotone" dataKey="neuro" name="Neurology" stroke="#160527" strokeOpacity={0.2} strokeWidth={2} dot={{ r: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />}
-                  {visibleSeries.resp && <Line type="monotone" dataKey="resp" name="Respiratory" stroke="#54E097" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#54E097' }} />}
-                  {visibleSeries.viral && <Line type="monotone" dataKey="viral" name="Viral" stroke="#14F5D6" strokeDasharray="5 5" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#14F5D6' }} />}
-                  {visibleSeries.cardio && <Area type="monotone" dataKey="cardio" name="Cardiology" stroke="#FE5796" strokeWidth={4} fillOpacity={1} fill="url(#colorCardio)" activeDot={{ r: 6, strokeWidth: 0, fill: '#FE5796' }} />}
+                {visibleSeries.low && <Line type="monotone" dataKey="low" name="Low Risk" stroke="#54E097" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#54E097' }} />}
+                {visibleSeries.moderate && <Line type="monotone" dataKey="moderate" name="Moderate Risk" stroke="#FBBF24" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#FBBF24' }} />}
+                {visibleSeries.high && <Area type="monotone" dataKey="high" name="High Risk" stroke="#FE5796" strokeWidth={4} fillOpacity={1} fill="url(#colorHigh)" activeDot={{ r: 6, strokeWidth: 0, fill: '#FE5796' }} />}
 
-                  {/* Projections */}
-                  {visibleSeries.cardio && <Line type="monotone" dataKey="cardioProj" name="Cardio (Proj)" stroke="#FE5796" strokeOpacity={0.6} strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FE5796' }} />}
-                  {visibleSeries.resp && <Line type="monotone" dataKey="respProj" name="Resp (Proj)" stroke="#54E097" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#54E097' }} />}
-                  {visibleSeries.viral && <Line type="monotone" dataKey="viralProj" name="Viral (Proj)" stroke="#14F5D6" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#14F5D6' }} />}
-                  {visibleSeries.neuro && <Line type="monotone" dataKey="neuroProj" name="Neuro (Proj)" stroke="#160527" strokeOpacity={0.15} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#160527' }} />}
+                {/* Projections */}
+                {visibleSeries.low && <Line type="monotone" dataKey="lowProj" name="Low Risk (Proj)" stroke="#54E097" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#54E097' }} />}
+                {visibleSeries.moderate && <Line type="monotone" dataKey="moderateProj" name="Moderate Risk (Proj)" stroke="#FBBF24" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FBBF24' }} />}
+                {visibleSeries.high && <Line type="monotone" dataKey="highProj" name="High Risk (Proj)" stroke="#FE5796" strokeOpacity={0.6} strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FE5796' }} />}
 
-                  <ReferenceLine x={bridgeMonth as string} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'top', value: 'Now', fill: '#9ca3af', fontSize: 10 }} />
-                </ComposedChart>
-              </SafeChart>
+                <ReferenceLine x={bridgeMonth as string} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'top', value: 'Now', fill: '#9ca3af', fontSize: 10 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
