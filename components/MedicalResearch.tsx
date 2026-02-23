@@ -240,8 +240,8 @@ export default function MedicalResearch() {
             </div>
           </div>
           {/* Input Area (Bottom) */}
-          <div className="p-6 pt-2 bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent z-30 absolute bottom-0 left-0 w-full">
-            <div className="relative bg-white dark:bg-card-dark rounded-2xl shadow-lg border border-border-light dark:border-border-dark p-2 flex items-end gap-2 max-w-4xl">
+          <div className="bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent z-30 absolute bottom-0 left-0 w-full flex flex-col items-center pt-8 pb-4 px-6 scale-90 sm:scale-100 origin-bottom">
+            <div className="relative bg-white dark:bg-card-dark rounded-2xl shadow-lg border border-border-light dark:border-border-dark p-2 flex items-end gap-2 w-full max-w-4xl">
               <button className="p-2 text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
                 <Paperclip className="w-5 h-5" />
               </button>
@@ -266,7 +266,7 @@ export default function MedicalResearch() {
                 {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowUp className="w-5 h-5" />}
               </button>
             </div>
-            <div className="text-center mt-2 max-w-4xl">
+            <div className="text-center mt-2 max-w-4xl w-full">
               <p className="text-[10px] text-gray-400">MedGemma can make mistakes. Verify important clinical information.</p>
             </div>
           </div>
