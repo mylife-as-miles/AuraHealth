@@ -39,8 +39,15 @@ Return EXACTLY a JSON array of 3 objects with this structure (no markdown wrappe
 ]`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3-flash-preview',
             contents: prompt,
+            config: {
+                thinkingConfig: {
+                    thinkingLevel: 'high',
+                },
+                tools: [{ googleSearch: {} }],
+                responseMimeType: 'application/json',
+            }
         });
 
         const raw = response.text || '[]';
