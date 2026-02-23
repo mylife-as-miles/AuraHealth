@@ -82,7 +82,7 @@ const ForestPoint = (props: any) => {
 
 export default function MedicalResearch() {
   const [query, setQuery] = useState('');
-  const [data, setData] = useState(MOCK_DATA);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
@@ -171,111 +171,144 @@ export default function MedicalResearch() {
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative z-10">
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto custom-scroll relative">
-          <div className="flex flex-col min-h-full p-6 space-y-6 pb-32">
+          <div className="flex flex-col min-h-full p-6 space-y-6 pb-32 justify-end">
 
-            {/* User Query Card */}
-            <div className="flex justify-end animate-in slide-in-from-bottom-4 duration-500 delay-100">
-              <div className="bg-white dark:bg-card-dark p-4 rounded-2xl rounded-tr-sm shadow-sm border border-border-light dark:border-border-dark max-w-2xl">
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  Latest evidence on GLP-1 agonists for cardiovascular health in non-diabetic patients
+            {!data && !loading && (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 m-auto mt-12 mb-8 animate-in zoom-in duration-500">
+                <div className="w-16 h-16 rounded-2xl bg-cyan/10 text-cyan flex items-center justify-center mb-4 shadow-inner border border-cyan/20">
+                  <Library size={32} strokeWidth={1.5} />
+                </div>
+                <h2 className="text-xl font-bold text-primary dark:text-white mb-2">Clinical Evidence Synthesis</h2>
+                <p className="text-sm text-gray-500 max-w-md mb-8">
+                  Query the latest medical literature, RCTs, and clinical guidelines. MedGemma will synthesize the evidence and generate visual risk reductions.
                 </p>
-              </div>
-              <div className="ml-3 flex-shrink-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/20 to-cyan/20 flex items-center justify-center text-primary font-bold border border-white dark:border-card-dark shadow-sm">
-                  <span className="text-xs">MK</span>
+                <div className="flex flex-wrap justify-center gap-3 max-w-[600px]">
+                  {[
+                    "Latest evidence on GLP-1 agonists for cardiovascular health in non-diabetic patients",
+                    "Efficacy of PARP inhibitors in BRCA-mutated early breast cancer",
+                    "Efficacy of dual antiplatelet therapy vs monotherapy post-TAVR"
+                  ].map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setQuery(prompt)}
+                      className="text-xs bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-600 dark:text-gray-300 rounded-xl px-4 py-2 transition-all text-left shadow-sm hover:shadow-md"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* AI Response Area */}
-            <div className="flex gap-4 max-w-4xl animate-in slide-in-from-bottom-4 duration-500 delay-200">
-              <div className="flex-shrink-0 mt-1">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                  <Bot className="w-4 h-4" />
+            {data && (
+              <>
+                {/* User Query Card */}
+                <div className="flex justify-end animate-in slide-in-from-bottom-4 duration-500 delay-100">
+                  <div className="bg-white dark:bg-card-dark p-4 rounded-2xl rounded-tr-sm shadow-sm border border-border-light dark:border-border-dark max-w-2xl">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {query || "Latest evidence on GLP-1 agonists for cardiovascular health in non-diabetic patients"}
+                    </p>
+                  </div>
+                  <div className="ml-3 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/20 to-cyan/20 flex items-center justify-center text-primary font-bold border border-white dark:border-card-dark shadow-sm">
+                      <span className="text-xs">MK</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex-1 space-y-6">
-                <div className="bg-white dark:bg-card-dark rounded-3xl p-6 shadow-soft dark:shadow-none dark:border dark:border-border-dark border border-transparent transition-all hover:shadow-lg hover:shadow-primary/5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-primary dark:text-white flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-secondary" />
-                      Clinical Synthesis
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-bold text-gray-400">Confidence</span>
-                      <div className="flex gap-0.5">
-                        {[...Array(4)].map((_, i) => {
-                          const activeBars = Math.round((data.confidence || 0) * 4);
-                          return (
-                            <div key={i} className={`w-1.5 h-3 rounded-full ${i < activeBars ? 'bg-secondary' : 'bg-secondary/30'}`} />
-                          );
-                        })}
-                      </div>
+                {/* AI Response Area */}
+                <div className="flex gap-4 max-w-4xl animate-in slide-in-from-bottom-4 duration-500 delay-200">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                      <Bot className="w-4 h-4" />
                     </div>
                   </div>
 
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
-                    <ReactMarkdown
-                      components={{
-                        li: ({ node, ...props }) => (
-                          <li className="flex gap-3 text-sm mb-3">
-                            <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
-                            <span>{props.children}</span>
-                          </li>
-                        ),
-                        strong: ({ node, ...props }) => <strong className="text-primary dark:text-white font-bold">{props.children}</strong>,
-                        a: ({ node, ...props }) => <a className="text-cyan text-xs font-bold hover:underline ml-1" {...props}>{props.children}</a>
-                      }}
-                    >
-                      {data.synthesis}
-                    </ReactMarkdown>
-                  </div>
+                  <div className="flex-1 space-y-6">
+                    <div className="bg-white dark:bg-card-dark rounded-3xl p-6 shadow-soft dark:shadow-none dark:border dark:border-border-dark border border-transparent transition-all hover:shadow-lg hover:shadow-primary/5">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-primary dark:text-white flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-secondary" />
+                          Clinical Synthesis
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase font-bold text-gray-400">Confidence</span>
+                          <div className="flex gap-0.5">
+                            {[...Array(4)].map((_, i) => {
+                              const activeBars = Math.round((data.confidence || 0) * 4);
+                              return (
+                                <div key={i} className={`w-1.5 h-3 rounded-full ${i < activeBars ? 'bg-secondary' : 'bg-secondary/30'}`} />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
 
-                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
-                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#GLP1</span>
-                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#Cardiology</span>
-                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#ObesityManagement</span>
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
+                        <ReactMarkdown
+                          components={{
+                            li: ({ node, ...props }) => (
+                              <li className="flex gap-3 text-sm mb-3">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
+                                <span>{props.children}</span>
+                              </li>
+                            ),
+                            strong: ({ node, ...props }) => <strong className="text-primary dark:text-white font-bold">{props.children}</strong>,
+                            a: ({ node, ...props }) => <a className="text-cyan text-xs font-bold hover:underline ml-1" {...props}>{props.children}</a>
+                          }}
+                        >
+                          {data.synthesis}
+                        </ReactMarkdown>
+                      </div>
+
+                      <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
+                        <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#EvidenceBased</span>
+                        <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#ClinicalSynthesis</span>
+                        <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#MedGemma</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          {/* Input Area (Bottom) */}
-          <div className="bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent z-30 absolute bottom-0 left-0 w-full flex flex-col items-center pt-8 pb-4 px-6 scale-90 sm:scale-100 origin-bottom">
-            <div className="relative bg-white dark:bg-card-dark rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-border-light dark:border-border-dark p-2 flex items-end gap-2 w-full max-w-4xl">
-              <button className="p-2 text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
-                <Paperclip className="w-5 h-5" />
-              </button>
-              <textarea
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSearch();
-                  }
-                }}
-                className="w-full bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 resize-none py-2.5 max-h-32 custom-scroll"
-                placeholder="Ask a follow-up question or refine criteria..."
-                rows={1}
-              />
-              <button
-                onClick={handleSearch}
-                disabled={loading || !query.trim()}
-                className={`p-2 rounded-xl shadow-md transition-all flex items-center justify-center ${loading || !query.trim() ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
-              >
-                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowUp className="w-5 h-5" />}
-              </button>
-            </div>
-            <div className="text-center mt-3 max-w-4xl w-full">
-              <p className="text-[10px] text-gray-400">MedGemma can make mistakes. Verify important clinical information.</p>
-            </div>
+              </>
+            )}
           </div>
         </div>
+        {/* Input Area (Bottom) */}
+        <div className="bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent z-30 absolute bottom-0 left-0 w-full flex flex-col items-center pt-8 pb-4 px-6 scale-90 sm:scale-100 origin-bottom">
+          <div className="relative bg-white dark:bg-card-dark rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-border-light dark:border-border-dark p-2 flex items-end gap-2 w-full max-w-4xl">
+            <button className="p-2 text-gray-400 hover:text-primary dark:hover:text-white transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800">
+              <Paperclip className="w-5 h-5" />
+            </button>
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
+              className="w-full bg-transparent border-none focus:ring-0 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 resize-none py-2.5 max-h-32 custom-scroll"
+              placeholder="Ask a follow-up question or refine criteria..."
+              rows={1}
+            />
+            <button
+              onClick={handleSearch}
+              disabled={loading || !query.trim()}
+              className={`p-2 rounded-xl shadow-md transition-all flex items-center justify-center ${loading || !query.trim() ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
+            >
+              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowUp className="w-5 h-5" />}
+            </button>
+          </div>
+          <div className="text-center mt-3 max-w-4xl w-full">
+            <p className="text-[10px] text-gray-400">MedGemma can make mistakes. Verify important clinical information.</p>
+          </div>
+        </div>
+      </div>
 
-        {/* Right Sidebar (Evidence Visualization) */}
-        <aside className="w-full md:w-[400px] flex-shrink-0 bg-white/60 dark:bg-card-dark/30 border-l border-border-light dark:border-border-dark backdrop-blur-sm flex flex-col z-20 h-full">
+      {/* Right Sidebar (Evidence Visualization) */}
+      {data && (
+        <aside className="w-full md:w-[400px] flex-shrink-0 bg-white/60 dark:bg-card-dark/30 border-l border-border-light dark:border-border-dark backdrop-blur-sm flex flex-col z-20 h-full animate-in slide-in-from-right-8 duration-500">
           <div className="flex-1 p-5 overflow-y-auto custom-scroll space-y-4">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Evidence Visualization</h3>
 
@@ -395,8 +428,7 @@ export default function MedicalResearch() {
             </div>
           </div>
         </aside>
-      </div>
-
+      )}
     </div>
   );
 }

@@ -271,6 +271,9 @@ export default function AIInsights() {
           if (p.allergies) patientContext += `\nAllergies: ${p.allergies}`;
           if (p.doctorReport) patientContext += `\nDoctor Report: ${p.doctorReport}`;
         }
+      } else {
+        // Send all patients as JSON context
+        patientContext = JSON.stringify(patients);
       }
 
       const res = await fetch('/api/gemini/copilot', {
