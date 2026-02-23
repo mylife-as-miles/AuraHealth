@@ -459,7 +459,7 @@ export default function AIInsights() {
               </div>
             </div>
           </div>
-          <div className="w-full relative h-[300px] min-w-0">
+          <div className="w-full relative flex-1 min-h-[300px] min-w-0">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
               <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                 <defs>
