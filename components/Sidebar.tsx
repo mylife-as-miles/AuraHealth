@@ -10,7 +10,8 @@ import {
   Search,
   Command,
   Sparkles,
-  Cpu
+  Cpu,
+  Microscope
 } from 'lucide-react';
 import { useActiveModel } from '../lib/useActiveModel';
 
@@ -74,6 +75,7 @@ export default function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void })
       <nav className="flex-1 space-y-1">
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Overview</div>
         <NavItem icon={LayoutDashboard} label="Dashboard" to="/" />
+        <NavItem icon={Microscope} label="Medical Research" to="/research" />
         <NavItem icon={FolderOpen} label="Clinical Queue" to="/patients" />
         <NavItem icon={Activity} label="Diagnostics" to="/diagnostics" />
         <NavItem icon={BrainCircuit} label="AI Insights" to="/ai-insights" isNew />
