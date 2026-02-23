@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   ChevronDown,
   Activity,
-  Loader2
+  Loader2,
+  List,
+  ChevronRight
 } from 'lucide-react';
 import {
   BarChart,
@@ -92,8 +94,10 @@ export default function MedicalResearch() {
   const [loading, setLoading] = useState(false);
   const [progressStep, setProgressStep] = useState<string>('');
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const handleSearch = async (overrideQuery?: string) => {
+    const searchQuery = overrideQuery || query;
+    if (!searchQuery.trim()) return;
+    if (overrideQuery) setQuery(overrideQuery);
     setLoading(true);
     setData(null);
     setProgressStep('analyzing');
@@ -103,7 +107,7 @@ export default function MedicalResearch() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query, modelId }),
+        body: JSON.stringify({ query: searchQuery, modelId }),
       });
 
       if (!res.ok) throw new Error('Research analysis failed');
@@ -321,6 +325,28 @@ export default function MedicalResearch() {
                           <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">{modelName ? `#${modelName.replace(/\s+/g, '')}` : '#MedGemma'}</span>
                         </div>
                       </div>
+
+                      {/* Follow-Up Questions Card */}
+                      {data.followUpQuestions?.length > 0 && (
+                        <div className="bg-gray-50 dark:bg-[#2A2A3E] rounded-2xl p-5 border border-gray-100 dark:border-white/5 mt-4">
+                          <h4 className="font-bold text-sm text-primary dark:text-white flex items-center gap-2 mb-4">
+                            <List className="w-4 h-4 text-gray-400" />
+                            Follow-Up Questions
+                          </h4>
+                          <div className="space-y-0 divide-y divide-gray-200/60 dark:divide-white/5">
+                            {data.followUpQuestions.map((q: string, i: number) => (
+                              <button
+                                key={i}
+                                onClick={() => handleSearch(q)}
+                                className="w-full flex items-center justify-between py-3 text-left text-sm text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors group"
+                              >
+                                <span className="pr-4">{q}</span>
+                                <ChevronRight className="w-4 h-4 flex-shrink-0 text-orange-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
@@ -347,7 +373,7 @@ export default function MedicalResearch() {
                 rows={1}
               />
               <button
-                onClick={handleSearch}
+                onClick={() => handleSearch()}
                 disabled={loading || !query.trim()}
                 className={`p-2 rounded-xl shadow-md transition-all flex items-center justify-center ${loading || !query.trim() ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
               >

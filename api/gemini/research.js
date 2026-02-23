@@ -70,6 +70,10 @@ export default async function handler(req, res) {
           "sources": [
             { "id": "1", "title": "Study Title", "journal": "Journal Name", "year": "2024", "url": "https://pubmed.ncbi.nlm.nih.gov/..." }
           ],
+          "followUpQuestions": [
+            "What are the demographics of children most affected by COVID-19 vaccination rates?",
+            "What are the common side effects observed in vaccinated children?"
+          ],
           "charts": [
             {
               "type": "risk_reduction",
