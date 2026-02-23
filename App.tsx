@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import PatientRecords from './components/PatientRecords';
 import AIInsights from './components/AIInsights';
+import MedicalResearch from './components/MedicalResearch';
 import ClinicalWorkflow from './components/ClinicalWorkflow';
 import Settings from './components/Settings';
 import Diagnostics from './components/Diagnostics';
@@ -65,6 +66,8 @@ const Layout = () => {
         return { title: "Diagnostics Center", subtitle: "Real-time diagnostic analysis" };
       case '/ai-insights':
         return { title: "Population Analytics", subtitle: `AI-driven insights powered by ${modelName} & HAI-DEF` };
+      case '/research':
+        return { title: "Medical Research", subtitle: `Real-time evidence synthesis powered by ${modelName}` };
       case '/workflow':
         return { title: "Clinical Workflow", subtitle: "Triage Board • Cardiology Unit A" };
       case '/settings':
@@ -91,6 +94,7 @@ const Layout = () => {
               <Route path="/patients" element={<PatientRecords />} />
               <Route path="/diagnostics" element={<Diagnostics />} />
               <Route path="/ai-insights" element={<AIInsights />} />
+              <Route path="/research" element={<MedicalResearch />} />
               <Route path="/workflow" element={<ClinicalWorkflow />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/notifications" element={<Notifications />} />
