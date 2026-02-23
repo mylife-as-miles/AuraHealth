@@ -11,7 +11,10 @@ import {
   MoreHorizontal,
   FileText,
   Search,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  Activity,
+  Loader2
 } from 'lucide-react';
 import {
   BarChart,
@@ -87,10 +90,13 @@ export default function MedicalResearch() {
   const [query, setQuery] = useState('');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [progressStep, setProgressStep] = useState<string>('');
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
+    setData(null);
+    setProgressStep('analyzing');
     try {
       const res = await fetch('/api/gemini/research', {
         method: 'POST',
@@ -102,32 +108,49 @@ export default function MedicalResearch() {
 
       if (!res.ok) throw new Error('Research analysis failed');
 
-      const newData = await res.json();
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('Response body is not readable');
+      const decoder = new TextDecoder('utf-8');
 
-      // Transform chart data if necessary or trust the API response structure
-      // Here we assume the API returns the correct structure, but we might need to map it
-      // to the specific Recharts format we defined (x, y, error) if the prompt isn't perfect.
-      // For now, we update the state directly.
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
 
-      // Basic validation/transformation fallback
-      const transformedData = {
-        ...newData,
-        riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data.map((d: any, i: number) => ({
-          ...d,
-          x: d.value,
-          y: i + 1,
-          // Calculate error bars if min/max are provided
-          error: [d.value - d.min, d.max - d.value]
-        })) || [],
-        weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
-      };
-
-      setData(transformedData);
+        // Split by newline because we are streaming JSON lines
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.status === 'complete') {
+              const newData = parsed.data;
+              const transformedData = {
+                ...newData,
+                riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data.map((d: any, i: number) => ({
+                  ...d,
+                  x: d.value,
+                  y: i + 1,
+                  error: [d.value - d.min, d.max - d.value]
+                })) || [],
+                weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
+              };
+              setData(transformedData);
+            } else if (parsed.status === 'error') {
+              throw new Error(parsed.message || 'Stream parsing error');
+            } else if (parsed.status) {
+              setProgressStep(parsed.status);
+            }
+          } catch (e) {
+            console.error("JSON parse error on line:", line, e);
+          }
+        }
+      }
     } catch (error) {
       console.error("Search failed", error);
-      // Optional: Add error state/toast here
     } finally {
       setLoading(false);
+      setProgressStep('');
     }
   };
 
@@ -177,6 +200,50 @@ export default function MedicalResearch() {
                 </div>
               </div>
             )}
+
+            {loading && (
+              <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full mt-8 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-white dark:bg-card-dark/80 backdrop-blur-xl p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+                  <h3 className="font-bold text-sm flex items-center gap-2 mb-6 text-gray-800 dark:text-gray-200">
+                    <ChevronDown className="w-4 h-4 text-gray-400" /> Finished thinking
+                  </h3>
+
+                  <div className="pl-2 space-y-0 relative border-l-2 border-gray-100 dark:border-gray-800 ml-2">
+
+                    {/* Step 1 */}
+                    <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${progressStep && progressStep !== '' ? 'opacity-100' : 'opacity-40'}`}>
+                      <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#FE5796] border-4 border-white dark:border-[#1E1E2E]" />
+                      <Activity className={`w-4 h-4 ${progressStep === 'analyzing' ? 'text-[#FE5796] animate-pulse' : 'text-gray-400'}`} />
+                      <span className={`text-sm ${progressStep === 'analyzing' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Analyzing query</span>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${['searching', 'synthesizing', 'finished', 'complete'].includes(progressStep) ? 'opacity-100' : 'opacity-40'}`}>
+                      <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#F5A623] border-4 border-white dark:border-[#1E1E2E]" />
+                      {progressStep === 'searching' ? (
+                        <Loader2 className="w-4 h-4 text-[#F5A623] animate-spin" />
+                      ) : (
+                        <Search className={`w-4 h-4 ${['synthesizing', 'finished', 'complete'].includes(progressStep) ? 'text-gray-400' : 'text-[#F5A623]'}`} />
+                      )}
+                      <span className={`text-sm ${progressStep === 'searching' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Searching published medical literature, guidelines, FDA, CDC, and more</span>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${['synthesizing', 'finished', 'complete'].includes(progressStep) ? 'opacity-100' : 'opacity-40'}`}>
+                      <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#FF453A] border-4 border-white dark:border-[#1E1E2E]" />
+                      {progressStep === 'synthesizing' ? (
+                        <Loader2 className="w-4 h-4 text-[#FF453A] animate-spin" />
+                      ) : (
+                        <Library className={`w-4 h-4 ${['finished', 'complete'].includes(progressStep) ? 'text-gray-400' : 'text-[#FF453A]'}`} />
+                      )}
+                      <span className={`text-sm ${progressStep === 'synthesizing' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Synthesizing relevant information</span>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            )}
+
 
             {data && (
               <>
