@@ -43,7 +43,7 @@ Return EXACTLY a JSON array of 3 objects with this structure (no markdown wrappe
             contents: prompt,
             config: {
                 thinkingConfig: {
-                    thinkingLevel: 'high',
+                    thinkingLevel: 'HIGH',
                 },
                 tools: [{ googleSearch: {} }],
                 responseMimeType: 'application/json',
