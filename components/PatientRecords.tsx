@@ -43,6 +43,7 @@ import { SafeChart } from './SafeChart';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { Patient } from '../lib/types';
+import { exportPatientRecord } from '../lib/exportUtils';
 import { triageReferralNotes, streamPatientReasoning } from '../lib/dr7';
 import { useActiveModel } from '../lib/useActiveModel';
 import ReactMarkdown from 'react-markdown';
@@ -1217,15 +1218,7 @@ export default function PatientRecords() {
                               setContextMenuPatientId(null);
                               const p = patients.find(mp => mp.id === patient.id);
                               if (!p) return;
-                              const headers = 'Time,Heart Rate,Systolic BP,Diastolic BP,Temperature,Weight\n';
-                              const rows = p.vitals.map(d => `${d.time},${d.hr},${d.sys},${d.dia},${d.temp},${d.weight}`).join('\n');
-                              const csvContent = 'data:text/csv;charset=utf-8,' + headers + rows;
-                              const link = document.createElement('a');
-                              link.setAttribute('href', encodeURI(csvContent));
-                              link.setAttribute('download', `record_${p.name.replace(' ', '_')}.csv`);
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
+                              exportPatientRecord(p);
                             }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                           >
