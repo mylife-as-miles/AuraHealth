@@ -701,12 +701,12 @@ export default function AIInsights() {
                       {msg.role === 'user' ? (
                         <p className="text-xs leading-relaxed">{msg.content}</p>
                       ) : (
-                        <ReactMarkdown
-                          className="text-xs leading-relaxed prose prose-sm dark:prose-invert max-w-none
-                            prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:font-bold prose-headings:my-2 prose-headings:text-sm"
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
+                        <div className="text-xs leading-relaxed prose prose-sm dark:prose-invert max-w-none
+                            prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:font-bold prose-headings:my-2 prose-headings:text-sm">
+                          <ReactMarkdown>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                     </div>
                   </div>
