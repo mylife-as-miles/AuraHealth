@@ -205,7 +205,7 @@ export default function MedicalResearch() {
               <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full mt-8 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="bg-white dark:bg-card-dark/80 backdrop-blur-xl p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
                   <h3 className="font-bold text-sm flex items-center gap-2 mb-6 text-gray-800 dark:text-gray-200">
-                    <ChevronDown className="w-4 h-4 text-gray-400" /> Finished thinking
+                    <ChevronDown className="w-4 h-4 text-gray-400" /> Thinking
                   </h3>
 
                   <div className="pl-2 space-y-0 relative border-l-2 border-gray-100 dark:border-gray-800 ml-2">
