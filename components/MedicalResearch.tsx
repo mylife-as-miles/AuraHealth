@@ -112,13 +112,20 @@ export default function MedicalResearch() {
       if (!reader) throw new Error('Response body is not readable');
       const decoder = new TextDecoder('utf-8');
 
+      let readBuffer = '';
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
+
+        readBuffer += decoder.decode(value, { stream: true });
 
         // Split by newline because we are streaming JSON lines
-        const lines = chunk.split('\n');
+        const lines = readBuffer.split('\n');
+
+        // Keep the last incomplete line in the buffer
+        readBuffer = lines.pop() || '';
+
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
@@ -127,11 +134,11 @@ export default function MedicalResearch() {
               const newData = parsed.data;
               const transformedData = {
                 ...newData,
-                riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data.map((d: any, i: number) => ({
+                riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data?.map((d: any, i: number) => ({
                   ...d,
                   x: d.value,
                   y: i + 1,
-                  error: [d.value - d.min, d.max - d.value]
+                  error: d.min !== undefined && d.max !== undefined ? [Math.abs(d.value - d.min), Math.abs(d.max - d.value)] : [0, 0]
                 })) || [],
                 weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
               };
