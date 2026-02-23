@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useActiveModel } from '../lib/useActiveModel';
 import {
   SlidersHorizontal,
@@ -198,6 +198,8 @@ export default function AIInsights() {
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('all');
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Model settings state
   const [modelConfidence, setModelConfidence] = useState(95);
@@ -223,44 +225,72 @@ export default function AIInsights() {
     try {
       const patients = await db.patients.toArray();
       const cases = await db.diagnosticCases.toArray();
-      const results = await analyzePatientRisks(patients, cases);
-      setAiAlerts(results);
+      const res = await fetch('/api/gemini/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patients: patients.map(p => ({ id: p.id, age: p.age, condition: p.condition, risk: p.risk })),
+          cases: cases.map(c => ({ scanType: c.scanType, findings: c.findings })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Prediction request failed');
+      setAiAlerts(data.alerts || []);
     } catch (e: any) {
-      if (e?.code === 'NO_API_KEY') {
-        setAiError('API key not configured. Add your DR7_API_KEY to the .env file and restart the dev server.');
-      } else if (e?.code === 'INVALID_API_KEY') {
-        setAiError('Invalid Dr7.ai API key. Check your DR7_API_KEY in .env.');
-      } else if (e?.code === 'INSUFFICIENT_BALANCE') {
-        setAiError('Insufficient Dr7.ai balance. Top up at dr7.ai.');
-      } else if (e?.code === 'RATE_LIMITED') {
-        setAiError('Rate limit exceeded. Please wait a moment and try again.');
-      } else {
-        setAiError('AI analysis failed. Check your API key and network connection.');
-      }
+      setAiError(e.message || 'AI analysis failed. Check your network connection and try again.');
       console.error(e);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleSendChatMessage = (e?: React.FormEvent) => {
+  const handleSendChatMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!chatInput.trim() || isAiTyping) return;
 
     const userMsg = chatInput.trim();
-    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const newMessages = [...chatMessages, { role: 'user' as const, content: userMsg }];
+    setChatMessages(newMessages);
     setChatInput('');
     setIsAiTyping(true);
 
-    // Dummy AI Response logic for now
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `I've analyzed the query: "${userMsg}". Based on the current patient data, everything appears stable. Would you like me to pull up specific vitals or cross-reference this with the latest clinical protocols?`
-      }]);
+    try {
+      // Build patient context string
+      let patientContext = '';
+      if (selectedPatientId !== 'all') {
+        const p = patients.find(pt => pt.id === selectedPatientId);
+        if (p) {
+          patientContext = `Patient: ${p.name} (ID: ${p.id}), Age: ${p.age}, Gender: ${p.gender}, Condition: ${p.condition}, Risk: ${p.risk}`;
+          if (p.aiSummary) patientContext += `\nAI Summary: ${p.aiSummary}`;
+          if (p.vitals?.length) {
+            const latest = p.vitals[p.vitals.length - 1];
+            patientContext += `\nLatest Vitals — Heart Rate: ${latest.hr}, BP: ${latest.sys}/${latest.dia}, Temp: ${latest.temp}°C, Weight: ${latest.weight}kg`;
+          }
+          if (p.medications?.length) patientContext += `\nMedications: ${p.medications.map(m => m.name).join(', ')}`;
+          if (p.allergies) patientContext += `\nAllergies: ${p.allergies}`;
+          if (p.doctorReport) patientContext += `\nDoctor Report: ${p.doctorReport}`;
+        }
+      }
+
+      const res = await fetch('/api/gemini/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages, patientContext }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+    } catch (err: any) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${err.message || 'Failed to reach Copilot. Check your API key and try again.'}` }]);
+    } finally {
       setIsAiTyping(false);
-    }, 1500);
+    }
   };
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, isAiTyping]);
 
   // Patient data for chart generation
   const patients = useLiveQuery(() => db.patients.toArray()) || [];
@@ -614,15 +644,27 @@ export default function AIInsights() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
 
         {/* AuraHealth Copilot Chat Interface */}
-        <div className="lg:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark flex flex-col h-[400px]">
+        <div className="lg:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark flex flex-col h-[520px]">
           <div className="flex items-center justify-between mb-4 flex-shrink-0 border-b border-gray-100 dark:border-border-dark pb-4">
             <h3 className="font-bold text-primary dark:text-white flex items-center gap-2">
               <Sparkles className="text-cyan animate-pulse" size={20} />
               AuraHealth Copilot
             </h3>
-            <span className="text-[10px] bg-cyan/10 text-cyan px-2 py-0.5 rounded-full font-bold">
-              Powered by {modelName}
-            </span>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedPatientId}
+                onChange={(e) => { setSelectedPatientId(e.target.value); setChatMessages([]); }}
+                className="bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs font-semibold text-primary dark:text-white focus:outline-none focus:border-cyan appearance-none cursor-pointer max-w-[180px] truncate"
+              >
+                <option value="all">All Patients (General)</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} — {p.condition}</option>
+                ))}
+              </select>
+              <span className="text-[10px] bg-cyan/10 text-cyan px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+                {modelName}
+              </span>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2 custom-scrollbar flex flex-col">
@@ -671,6 +713,7 @@ export default function AIInsights() {
                     </div>
                   </div>
                 )}
+                <div ref={chatEndRef} />
               </>
             )}
           </div>
