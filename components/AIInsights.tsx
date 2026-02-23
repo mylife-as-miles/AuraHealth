@@ -48,6 +48,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { NotificationItem } from '../lib/types';
 import EmptyState from './EmptyState';
+import ReactMarkdown from 'react-markdown';
 
 // ─── Category mapping for patient conditions ──────────────────────────────
 const CONDITION_CATEGORIES: Record<string, 'cardio' | 'resp' | 'viral' | 'neuro'> = {
@@ -697,7 +698,16 @@ export default function AIInsights() {
                       {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                     </div>
                     <div className={`p-3 rounded-2xl max-w-[80%] ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-background-light dark:bg-background-dark text-primary dark:text-gray-200 border border-gray-100 dark:border-gray-800 rounded-tl-sm'}`}>
-                      <p className="text-xs leading-relaxed">{msg.content}</p>
+                      {msg.role === 'user' ? (
+                        <p className="text-xs leading-relaxed">{msg.content}</p>
+                      ) : (
+                        <ReactMarkdown
+                          className="text-xs leading-relaxed prose prose-sm dark:prose-invert max-w-none
+                            prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:font-bold prose-headings:my-2 prose-headings:text-sm"
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      )}
                     </div>
                   </div>
                 ))}
