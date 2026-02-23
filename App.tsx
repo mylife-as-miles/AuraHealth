@@ -67,7 +67,7 @@ const Layout = () => {
       case '/ai-insights':
         return { title: "AI Insight", subtitle: `AI-driven insights powered by ${modelName} & HAI-DEF` };
       case '/research':
-        return { title: "Medical Research", subtitle: `Real-time evidence synthesis powered by Gemini 3.1 Pro with Google search` };
+        return { title: "Medical Research", subtitle: `Real-time evidence synthesis powered by ${modelName} X Gemini 3.1 Pro with Google search` };
       case '/workflow':
         return { title: "Clinical Workflow", subtitle: "Triage Board • Cardiology Unit A" };
       case '/settings':
