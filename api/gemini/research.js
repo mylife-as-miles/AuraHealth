@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { buildDr7SystemPrompt, MODEL_CONFIG } from '../../lib/prompts.js';
+import { buildDr7SystemPrompt, MODEL_CONFIG } from '../lib/prompts.js';
 
 export const config = {
   maxDuration: 120,
