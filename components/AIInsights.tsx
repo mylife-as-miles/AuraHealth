@@ -25,7 +25,11 @@ import {
   Bell,
   BellOff,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  Send,
+  Bot,
+  User
 } from 'lucide-react';
 import {
   ComposedChart,
@@ -190,6 +194,11 @@ export default function AIInsights() {
   const workflowCards = useLiveQuery(() => db.workflowCards.toArray()) || [];
   const aiEvents = useLiveQuery(() => db.aiDecisions.toArray()) || [];
 
+  // Chat UI State
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+
   // Model settings state
   const [modelConfidence, setModelConfidence] = useState(95);
   const [modelVersion, setModelVersion] = useState('v4.2');
@@ -232,6 +241,25 @@ export default function AIInsights() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleSendChatMessage = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isAiTyping) return;
+
+    const userMsg = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatInput('');
+    setIsAiTyping(true);
+
+    // Dummy AI Response logic for now
+    setTimeout(() => {
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `I've analyzed the query: "${userMsg}". Based on the current patient data, everything appears stable. Would you like me to pull up specific vitals or cross-reference this with the latest clinical protocols?`
+      }]);
+      setIsAiTyping(false);
+    }, 1500);
   };
 
   // Patient data for chart generation
@@ -585,96 +613,85 @@ export default function AIInsights() {
       {/* Bottom Section Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
 
-        {/* Geographic Health Insights */}
-        <div className="lg:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-primary dark:text-white">Geographic Health Insights</h3>
-            <div className="flex gap-2 bg-background-light dark:bg-background-dark p-1 rounded-full">
-              <button
-                onClick={() => setGeoView('city')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${geoView === 'city' ? 'bg-white dark:bg-card-dark shadow-sm text-primary dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-              >City View</button>
-              <button
-                onClick={() => setGeoView('regional')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${geoView === 'regional' ? 'bg-white dark:bg-card-dark shadow-sm text-primary dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-              >Regional</button>
-            </div>
+        {/* AuraHealth Copilot Chat Interface */}
+        <div className="lg:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark flex flex-col h-[400px]">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0 border-b border-gray-100 dark:border-border-dark pb-4">
+            <h3 className="font-bold text-primary dark:text-white flex items-center gap-2">
+              <Sparkles className="text-cyan animate-pulse" size={20} />
+              AuraHealth Copilot
+            </h3>
+            <span className="text-[10px] bg-cyan/10 text-cyan px-2 py-0.5 rounded-full font-bold">
+              Powered by {modelName}
+            </span>
           </div>
 
-          <div className="relative h-64 w-full bg-background-light dark:bg-gray-800 rounded-2xl overflow-hidden group border border-border-light dark:border-border-dark">
-            <div className="absolute inset-0 opacity-30 dark:opacity-10 bg-[url('https://www.transparenttextures.com/patterns/map-cubes.png')]"></div>
-
-            {geoView === 'city' ? (
-              <>
-                <div className="absolute top-[30%] left-[20%] w-32 h-32 bg-secondary rounded-full filter blur-3xl opacity-40 animate-pulse"></div>
-                <div className="absolute top-[60%] left-[60%] w-40 h-40 bg-accent rounded-full filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute top-[20%] right-[20%] w-24 h-24 bg-cyan rounded-full filter blur-3xl opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-
-                <div className="absolute top-[35%] left-[22%] group/pin cursor-pointer">
-                  <div className="w-3 h-3 bg-secondary rounded-full ring-4 ring-secondary/20 group-hover/pin:scale-125 transition-transform"></div>
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    Low Risk Zone
-                  </div>
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2 custom-scrollbar flex flex-col">
+            {chatMessages.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-60 m-auto mt-6">
+                <Bot size={32} className="text-cyan mb-3 opacity-50" />
+                <p className="text-sm font-bold text-primary dark:text-white mb-1">How can I assist you today?</p>
+                <p className="text-xs text-gray-500 max-w-[250px] mb-6">Ask me to analyze trends, cross-reference patient histories, or summarize alerts.</p>
+                <div className="flex flex-wrap justify-center gap-2 max-w-[400px]">
+                  {[
+                    "Summarize today's active prediction alerts",
+                    "Which patients have the highest cardiology risk?",
+                    "Analyze the recent spike in respiratory cases"
+                  ].map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setChatInput(prompt)}
+                      className="text-[10px] bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-500 rounded-full px-3 py-1.5 transition-all text-left"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
                 </div>
-                <div className="absolute top-[65%] left-[62%] group/pin cursor-pointer">
-                  <div className="w-4 h-4 bg-accent rounded-full ring-4 ring-accent/20 animate-ping absolute opacity-75"></div>
-                  <div className="w-4 h-4 bg-accent rounded-full relative group-hover/pin:scale-125 transition-transform"></div>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-accent whitespace-nowrap z-10">
-                    High Concentration
-                  </div>
-                </div>
-                <div className="absolute top-[25%] right-[25%] group/pin cursor-pointer">
-                  <div className="w-3 h-3 bg-cyan rounded-full ring-4 ring-cyan/20 group-hover/pin:scale-125 transition-transform"></div>
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-cyan whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    Monitoring Zone
-                  </div>
-                </div>
-              </>
+              </div>
             ) : (
               <>
-                <div className="absolute top-[15%] left-[10%] w-48 h-48 bg-secondary rounded-full filter blur-[60px] opacity-30 animate-pulse"></div>
-                <div className="absolute top-[40%] left-[45%] w-56 h-56 bg-accent rounded-full filter blur-[60px] opacity-25 animate-pulse" style={{ animationDelay: '0.8s' }}></div>
-                <div className="absolute top-[10%] right-[10%] w-40 h-40 bg-cyan rounded-full filter blur-[60px] opacity-35 animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-
-                <div className="absolute top-[25%] left-[18%] group/pin cursor-pointer">
-                  <div className="w-5 h-5 bg-secondary rounded-full ring-4 ring-secondary/20 group-hover/pin:scale-125 transition-transform flex items-center justify-center text-[8px] font-bold text-white">N</div>
-                  <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    North Region — Low Risk
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-cyan/20 text-cyan'}`}>
+                      {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                    </div>
+                    <div className={`p-3 rounded-2xl max-w-[80%] ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-background-light dark:bg-background-dark text-primary dark:text-gray-200 border border-gray-100 dark:border-gray-800 rounded-tl-sm'}`}>
+                      <p className="text-xs leading-relaxed">{msg.content}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="absolute top-[50%] left-[50%] group/pin cursor-pointer">
-                  <div className="w-6 h-6 bg-accent rounded-full ring-4 ring-accent/20 animate-ping absolute opacity-75"></div>
-                  <div className="w-6 h-6 bg-accent rounded-full relative group-hover/pin:scale-125 transition-transform flex items-center justify-center text-[8px] font-bold text-white">C</div>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-accent whitespace-nowrap z-10">
-                    Central Region — Critical
+                ))}
+                {isAiTyping && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan/20 text-cyan flex items-center justify-center">
+                      <Bot size={14} />
+                    </div>
+                    <div className="bg-background-light dark:bg-background-dark border border-gray-100 dark:border-gray-800 p-4 rounded-2xl rounded-tl-sm flex gap-1 items-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                    </div>
                   </div>
-                </div>
-                <div className="absolute top-[20%] right-[18%] group/pin cursor-pointer">
-                  <div className="w-5 h-5 bg-cyan rounded-full ring-4 ring-cyan/20 group-hover/pin:scale-125 transition-transform flex items-center justify-center text-[8px] font-bold text-white">E</div>
-                  <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-cyan whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    East Region — Watch
-                  </div>
-                </div>
+                )}
               </>
             )}
           </div>
 
-          <div className="mt-4 flex gap-6 overflow-x-auto pb-2">
-            <div className="flex items-center gap-3 min-w-max p-2 rounded-xl hover:bg-background-light dark:hover:bg-white/5 transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary"><ShieldCheck size={20} /></div>
-              <div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold">Low Risk Zones</div>
-                <div className="font-bold text-sm text-primary dark:text-white">{geoView === 'city' ? 'North, West Districts' : 'North, West Regions'}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 min-w-max p-2 rounded-xl hover:bg-background-light dark:hover:bg-white/5 transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent"><Flame size={20} /></div>
-              <div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold">Hotspots</div>
-                <div className="font-bold text-sm text-primary dark:text-white">{geoView === 'city' ? 'Downtown, East Side' : 'Central, South Regions'}</div>
-              </div>
-            </div>
-          </div>
+          <form onSubmit={handleSendChatMessage} className="mt-4 flex-shrink-0 relative">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask Copilot anything about these insights..."
+              className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-cyan focus:ring-1 focus:ring-cyan text-primary dark:text-white placeholder-gray-400 disabled:opacity-50"
+              disabled={isAiTyping}
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim() || isAiTyping}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-cyan text-white rounded-lg disabled:opacity-50 disabled:bg-gray-300 disabled:text-gray-500 hover:bg-cyan/90 transition-colors"
+            >
+              <Send size={16} />
+            </button>
+          </form>
         </div>
 
         {/* System Notifications */}
