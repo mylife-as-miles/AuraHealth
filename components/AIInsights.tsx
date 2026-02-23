@@ -190,6 +190,7 @@ export default function AIInsights() {
   const [geoView, setGeoView] = useState<'city' | 'regional'>('city');
 
   // Notifications and generated insight data
+  const patients = useLiveQuery(() => db.patients.toArray()) || [];
   const notifications = useLiveQuery(() => db.notifications.toArray()) || [];
   const diagnosticCases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
   const workflowCards = useLiveQuery(() => db.workflowCards.toArray()) || [];
@@ -256,24 +257,27 @@ export default function AIInsights() {
     setIsAiTyping(true);
 
     try {
-      // Build patient context string
       let patientContext = '';
+
+      const formatPatient = (p: any) => {
+        let text = `Patient: ${p.name} (ID: ${p.id}), Age: ${p.age}, Gender: ${p.gender}, Condition: ${p.condition}, Risk: ${p.risk}`;
+        if (p.aiSummary) text += `\nAI Summary: ${p.aiSummary}`;
+        if (p.vitals?.length) {
+          const latest = p.vitals[p.vitals.length - 1];
+          text += `\nLatest Vitals — Heart Rate: ${latest.hr}, BP: ${latest.sys}/${latest.dia}, Temp: ${latest.temp}°C, Weight: ${latest.weight}kg`;
+        }
+        if (p.medications?.length) text += `\nMedications: ${p.medications.map((m: any) => m.name).join(', ')}`;
+        if (p.allergies) text += `\nAllergies: ${p.allergies}`;
+        if (p.doctorReport) text += `\nDoctor Report: ${p.doctorReport}`;
+        return text;
+      };
+
       if (selectedPatientId !== 'all') {
         const p = patients.find(pt => pt.id === selectedPatientId);
-        if (p) {
-          patientContext = `Patient: ${p.name} (ID: ${p.id}), Age: ${p.age}, Gender: ${p.gender}, Condition: ${p.condition}, Risk: ${p.risk}`;
-          if (p.aiSummary) patientContext += `\nAI Summary: ${p.aiSummary}`;
-          if (p.vitals?.length) {
-            const latest = p.vitals[p.vitals.length - 1];
-            patientContext += `\nLatest Vitals — Heart Rate: ${latest.hr}, BP: ${latest.sys}/${latest.dia}, Temp: ${latest.temp}°C, Weight: ${latest.weight}kg`;
-          }
-          if (p.medications?.length) patientContext += `\nMedications: ${p.medications.map(m => m.name).join(', ')}`;
-          if (p.allergies) patientContext += `\nAllergies: ${p.allergies}`;
-          if (p.doctorReport) patientContext += `\nDoctor Report: ${p.doctorReport}`;
-        }
+        if (p) patientContext = formatPatient(p);
       } else {
-        // Send all patients as JSON context
-        patientContext = JSON.stringify(patients);
+        // Send all patients formatted identically
+        patientContext = patients.map(formatPatient).join('\n\n');
       }
 
       const res = await fetch('/api/gemini/copilot', {
@@ -297,7 +301,7 @@ export default function AIInsights() {
   }, [chatMessages, isAiTyping]);
 
   // Patient data for chart generation
-  const patients = useLiveQuery(() => db.patients.toArray()) || [];
+  // patients query moved to top of component
 
   const chartData = useMemo(() => generateChartData(patients, chartPeriod), [patients, chartPeriod]);
   const bridgeMonth = useMemo(() => {

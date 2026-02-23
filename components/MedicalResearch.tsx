@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { SafeChart } from './SafeChart';
+import { useActiveModel } from '../lib/useActiveModel';
 
 // Mock Data matching the screenshot
 const MOCK_DATA = {
@@ -81,6 +82,8 @@ const ForestPoint = (props: any) => {
 };
 
 export default function MedicalResearch() {
+  const { modelId, modelName } = useActiveModel();
+
   const [query, setQuery] = useState('');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -94,7 +97,7 @@ export default function MedicalResearch() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, modelId }),
       });
 
       if (!res.ok) throw new Error('Research analysis failed');
@@ -144,29 +147,7 @@ export default function MedicalResearch() {
   return (
     <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-hidden relative animate-in fade-in duration-500">
 
-      {/* Secondary Toolbar */}
-      <header className="h-16 flex items-center justify-between px-6 border-b border-border-light dark:border-border-dark bg-white/50 dark:bg-card-dark/50 backdrop-blur-md sticky top-0 z-20 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-primary dark:text-white">Evidence Synthesis</h2>
-          <span className="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold border border-secondary/20">BETA</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-gray-800 border border-border-light dark:border-border-dark text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Export Research
-          </button>
-          <button
-            onClick={() => setQuery('')}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-          >
-            <Plus className="w-4 h-4" />
-            New Query
-          </button>
-        </div>
-      </header>
+
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative z-10">
         {/* Main Content Area */}
@@ -178,10 +159,7 @@ export default function MedicalResearch() {
                 <div className="w-16 h-16 rounded-2xl bg-cyan/10 text-cyan flex items-center justify-center mb-4 shadow-inner border border-cyan/20">
                   <Library size={32} strokeWidth={1.5} />
                 </div>
-                <h2 className="text-xl font-bold text-primary dark:text-white mb-2">Clinical Evidence Synthesis</h2>
-                <p className="text-sm text-gray-500 max-w-md mb-8">
-                  Query the latest medical literature, RCTs, and clinical guidelines. MedGemma will synthesize the evidence and generate visual risk reductions.
-                </p>
+                <h2 className="text-xl font-bold text-primary dark:text-white mb-6">Clinical Evidence Synthesis</h2>
                 <div className="flex flex-wrap justify-center gap-3 max-w-[600px]">
                   {[
                     "Latest evidence on GLP-1 agonists for cardiovascular health in non-diabetic patients",
@@ -264,7 +242,7 @@ export default function MedicalResearch() {
                       <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
                         <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#EvidenceBased</span>
                         <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#ClinicalSynthesis</span>
-                        <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">#MedGemma</span>
+                        <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 font-medium">{modelName ? `#${modelName.replace(/\s+/g, '')}` : '#MedGemma'}</span>
                       </div>
                     </div>
                   </div>
@@ -301,7 +279,7 @@ export default function MedicalResearch() {
             </button>
           </div>
           <div className="text-center mt-3 max-w-4xl w-full">
-            <p className="text-[10px] text-gray-400">MedGemma can make mistakes. Verify important clinical information.</p>
+            <p className="text-[10px] text-gray-400">{modelName || 'MedGemma'} can make mistakes. Verify important clinical information.</p>
           </div>
         </div>
       </div>
