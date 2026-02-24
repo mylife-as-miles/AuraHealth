@@ -50,10 +50,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-card-dark p-2 border border-border-light dark:border-border-dark rounded-lg shadow-lg text-xs">
-        <p className="font-bold text-primary dark:text-white mb-1">{label || payload[0].payload.name}</p>
+        <p className="font-bold text-primary dark:text-white mb-1">{payload?.[0]?.payload?.name || label || "Point"}</p>
         {payload.map((entry: any, index: number) => (
-          <p key={index} style={{ color: entry.color }}>
-            {entry.name}: {entry.value}%
+          <p key={index} style={{ color: entry.color || '#9CA3AF' }}>
+            Risk Ratio: {entry.value}
           </p>
         ))}
       </div>
@@ -207,12 +207,17 @@ export default function MedicalResearch() {
               const newData = parsed.data;
               const transformedData = {
                 ...newData,
-                riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data?.map((d: any, i: number) => ({
-                  ...d,
-                  x: d.value,
-                  y: i + 1,
-                  error: d.min !== undefined && d.max !== undefined ? [Math.abs(d.value - d.min), Math.abs(d.max - d.value)] : [0, 0]
-                })) || [],
+                riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data?.map((d: any, i: number) => {
+                  const val = Number(d.value) || 1.0;
+                  const min = Number(d.min);
+                  const max = Number(d.max);
+                  return {
+                    ...d,
+                    x: val,
+                    y: i + 1,
+                    error: !isNaN(min) && !isNaN(max) ? [Math.abs(val - min), Math.abs(max - val)] : [0, 0]
+                  };
+                }) || [],
                 weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
               };
 
@@ -575,33 +580,33 @@ export default function MedicalResearch() {
                   </div>
                 </div>
               )}
-
-              {/* Sources List */}
-              {activeData.sources && activeData.sources.length > 0 && (
-                <div className="bg-white dark:bg-card-dark border-t border-border-light dark:border-border-dark flex flex-col shadow-[-4px_-4px_20px_rgba(0,0,0,0.05)] rounded-tl-2xl -mx-5 -mb-5 mt-auto">
-                  <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Library className="w-4 h-4 text-gray-400" />
-                      <h3 className="text-xs font-bold text-primary dark:text-white">Sources</h3>
-                    </div>
-                    <span className="text-[10px] text-gray-400">{activeData.sources.length} citations</span>
-                  </div>
-                  <div className="max-h-48 overflow-y-auto custom-scroll p-2">
-                    {activeData.sources.map((source: any) => (
-                      <a key={source.id} href={source.url} className="block p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
-                        <div className="flex items-start gap-2">
-                          <span className="text-[10px] font-bold text-cyan mt-0.5">[{source.id}]</span>
-                          <div>
-                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors line-clamp-1">{source.title}</p>
-                            <p className="text-[10px] text-gray-400">{source.journal}, {source.year}</p>
-                          </div>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+
+            {/* Sticky Sources List at Bottom */}
+            {activeData.sources && activeData.sources.length > 0 && (
+              <div className="bg-white dark:bg-card-dark border-t border-border-light dark:border-border-dark flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 w-full relative">
+                <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-gray-50/50 dark:bg-card-dark flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Library className="w-4 h-4 text-gray-400" />
+                    <h3 className="text-xs font-bold text-primary dark:text-white">Sources</h3>
+                  </div>
+                  <span className="text-[10px] text-gray-400">{activeData.sources.length} citations</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto custom-scroll p-2">
+                  {activeData.sources.map((source: any, i: number) => (
+                    <a key={source.id || i} href={source.url} target="_blank" rel="noopener noreferrer" className="block p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+                      <div className="flex items-start gap-2">
+                        <span className="text-[10px] font-bold text-cyan mt-0.5">[{i + 1}]</span>
+                        <div>
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary dark:group-hover:text-white transition-colors line-clamp-2 leading-snug">{source.title}</p>
+                          <p className="text-[10px] text-gray-400 mt-1">{source.journal}, {source.year}</p>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </aside>
         )}
       </div>
