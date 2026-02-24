@@ -34,6 +34,8 @@ import {
 } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import { SafeChart } from './SafeChart';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../lib/db';
 import { useActiveModel } from '../lib/useActiveModel';
 
 interface Message {
@@ -68,6 +70,14 @@ const ForestPoint = (props: any) => {
 
 export default function MedicalResearch() {
   const { modelId, modelName } = useActiveModel();
+
+  const userEmail = localStorage.getItem('aura_auth_email');
+  const user = useLiveQuery(() => userEmail ? db.authUsers.where('email').equals(userEmail).first() : undefined, [userEmail]);
+
+  // Get initials from user name or fallback to "DR"
+  const userInitials = user?.name
+    ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'DR';
 
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -258,7 +268,7 @@ export default function MedicalResearch() {
                       </div>
                       <div className="ml-3 flex-shrink-0">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary/20 to-cyan/20 flex items-center justify-center text-primary font-bold border border-white dark:border-card-dark shadow-sm">
-                          <span className="text-xs">MK</span>
+                          <span className="text-xs">{userInitials}</span>
                         </div>
                       </div>
                     </div>
