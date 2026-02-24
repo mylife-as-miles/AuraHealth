@@ -245,7 +245,7 @@ export default function ClinicalWorkflow() {
       case 'ORDER_LABS':
         db.notifications.add({
           id: `n-${Date.now()}`,
-          type: 'alert',
+          type: 'task',
           title: 'Order Submitted',
           content: `Orders placed for ${selectedCard.patientName}. Labs pending.`,
           time: 'Just now',
@@ -257,7 +257,7 @@ export default function ClinicalWorkflow() {
       case 'ASSIGN_SELF':
         db.notifications.add({
           id: `n-${Date.now()}`,
-          type: 'message',
+          type: 'system',
           title: 'Patient Assigned',
           content: `You are now assigned to ${selectedCard.patientName}.`,
           time: 'Just now',
@@ -579,10 +579,10 @@ export default function ClinicalWorkflow() {
                               </div>
                             ) : (
                               <button
-                                onClick={() => handleAssistantAction(rec.systemAction, feedbackKey, rec.actionLabel + 'd')}
-                                className={`w-full mt-2 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-bold text-gray-600 dark:text-gray-200 ${rec.actionColor} dark:${rec.actionColor} transition-colors shadow-sm`}
+                                onClick={() => handleAssistantAction(rec.systemAction, feedbackKey, (rec.actionLabel || 'Take Action') + 'd')}
+                                className={`w-full mt-2 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-bold text-gray-600 dark:text-gray-200 ${rec.actionColor || 'hover:bg-cyan hover:text-white hover:border-cyan'} dark:${rec.actionColor || 'hover:bg-cyan'} transition-colors shadow-sm`}
                               >
-                                {rec.actionLabel}
+                                {rec.actionLabel || 'Take Action'}
                               </button>
                             )}
                           </div>
