@@ -117,7 +117,7 @@ function DiagnosticOverviewContent() {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-secondary"></span>
             <p className="text-sm font-bold text-primary dark:text-white">
-              {payload[0].value} <span className="font-medium text-gray-500 dark:text-gray-400">Patients</span>
+              {payload?.[0]?.value ?? 0} <span className="font-medium text-gray-500 dark:text-gray-400">Patients</span>
             </p>
           </div>
         </div>

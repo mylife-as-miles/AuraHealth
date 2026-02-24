@@ -29,7 +29,7 @@ Example: ["Query 1", "Query 2", "Query 3"]`;
             }
         });
 
-        const text = response.text();
+        const text = response.text;
         let prompts;
         try {
             prompts = JSON.parse(text);
