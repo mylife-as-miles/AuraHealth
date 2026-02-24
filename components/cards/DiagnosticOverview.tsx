@@ -190,7 +190,7 @@ function DiagnosticOverviewContent() {
 
         <ErrorBoundary>
           {allCases.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={data} margin={{ top: 30, right: 0, left: 30, bottom: 0 }}>
                 <defs>
                   <pattern id="stripePattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
