@@ -18,9 +18,10 @@ AuraHealth is an Agentic AI platform that transforms traditional, passive patien
 ### AI Integration & Serverless
 - **Google Gemini SDK (`@google/genai`)**:
   - `gemini-3.1-pro-preview`: Used for complex medical research, utilizing **Google Search Grounding** to read real clinical literature, FDA guidelines, and generate accurate synthesis with dynamic citations and data visualizations (Forest/Bar charts). It also leverages High Thinking configurations for extreme accuracy.
-  - `gemini-2.5-flash`: Drives the **AuraHealth Copilot**, rapid pre-triage routing, and dynamic contextual prompt generation for interactive empty states across the application.
 - **Dr7.ai Medical API**: 
-  - `medgemma-27b-it` / `medgemma-4b-it`: Specialized medical logic for parsing structured EHR and clinical notes.
+  - `MedGemma models`: Specialized medical logic for parsing structured EHR and clinical notes.
+  - Drives the **AuraHealth Copilot**, rapid pre-triage routing, and dynamic contextual prompt generation for interactive empty states across the application.
+  - Used for complex medical research with Gemini 3.1 Pro
 - **Backend Architecture**: Vercel Serverless Functions (`api/gemini/*`) handle streaming AI responses, multi-agent orchestrations, and secure API key management.
 
 ## 🏥 Application Pages & Features
@@ -35,7 +36,7 @@ AuraHealth is an Agentic AI platform that transforms traditional, passive patien
    - **Unstructured Ingestion**: A drag-and-drop modal allowing clinicians to paste raw referral notes or upload labs/imaging for instant MedGemma analysis.
 
 3. **Medical Research Center**
-   - An advanced search engine for clinicians, powered by Gemini 3.1 Pro. Retrieves real-time data from PubMed, CDC, and FDA using natively integrated Google Search capabilities.
+   - An advanced search engine for clinicians, powered by MedGemma Models and Gemini 3.1 Pro. Retrieves real-time data from PubMed, CDC, and FDA using natively integrated Google Search capabilities.
    - Returns deeply sourced clinical syntheses, AI-generated Follow-Up Questions, and dynamically rendered **Evidence Visualizations** (e.g., Risk Reduction scatter plots or Efficacy bar charts) built autonomously from the scraped data matrices.
 
 4. **AI Insights & AuraHealth Copilot (`/ai-insights`)**
@@ -44,7 +45,7 @@ AuraHealth is an Agentic AI platform that transforms traditional, passive patien
 
 5. **Diagnostics Center (`/diagnostics`)**
    - Deep dive into patient lab results and medical imaging.
-   - **Multi-Agent Pipeline**: Ingests radiological images using an autonomous architectural flow (Triage Fast Pass leveraging Flash -> High Thinking Verification leveraging 3.1 Pro -> Simulated EHR Synthesis) to recreate real-world specialist routing logic.
+   - **Multi-Agent Pipeline**: Ingests radiological images using an autonomous architectural flow (Triage Fast Pass leveraging BiomedClip-> High Thinking Verification leveraging MedGemma Model ->  EHR Synthesis) for real-world specialist routing logic.
 
 6. **Clinical Workflow (`/workflow`)**
    - Kanban-style triage board for managing active cases, departmental handoffs, and resource allocation.
