@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { buildStructurePrompt, STRUCTURE_SCHEMA, MODEL_CONFIG } from '../lib/prompts.js';
+import { buildStructurePrompt, STRUCTURE_SCHEMA, MODEL_CONFIG } from '../_lib/prompts.js';
 
 export const config = {
     maxDuration: 120,
