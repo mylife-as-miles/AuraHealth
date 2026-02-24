@@ -85,6 +85,43 @@ export default function MedicalResearch() {
   const [loading, setLoading] = useState(false);
   const [progressStep, setProgressStep] = useState<string>('');
 
+  const [promptIdeas, setPromptIdeas] = useState<string[]>([]);
+  const [loadingPrompts, setLoadingPrompts] = useState(true);
+
+  // Fetch AI generated prompts on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPrompts = async () => {
+      try {
+        const res = await fetch('/api/gemini/researchPrompts', { method: 'POST' });
+        const data = await res.json();
+        if (isMounted) {
+          if (data.prompts && Array.isArray(data.prompts)) {
+            setPromptIdeas(data.prompts);
+          } else {
+            setPromptIdeas([
+              "Latest evidence on GLP-1 agonists for cardiovascular health",
+              "Efficacy of PARP inhibitors in BRCA-mutated early breast cancer",
+              "Efficacy of dual antiplatelet therapy vs monotherapy post-TAVR"
+            ]);
+          }
+        }
+      } catch (e) {
+        if (isMounted) {
+          setPromptIdeas([
+            "Latest evidence on GLP-1 agonists for cardiovascular health",
+            "Efficacy of PARP inhibitors in BRCA-mutated early breast cancer",
+            "Efficacy of dual antiplatelet therapy vs monotherapy post-TAVR"
+          ]);
+        }
+      } finally {
+        if (isMounted) setLoadingPrompts(false);
+      }
+    };
+    fetchPrompts();
+    return () => { isMounted = false; };
+  }, []);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -233,33 +270,37 @@ export default function MedicalResearch() {
 
               {messages.length === 0 && !loading && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 m-auto mt-12 mb-8 animate-in zoom-in duration-500">
-                  <div className="w-16 h-16 rounded-2xl bg-cyan/10 text-cyan flex items-center justify-center mb-4 shadow-inner border border-cyan/20">
-                    <Library size={32} strokeWidth={1.5} />
-                  </div>
-                  <h2 className="text-xl font-bold text-primary dark:text-white mb-6">Clinical Evidence Synthesis</h2>
-                  <div className="flex flex-wrap justify-center gap-3 max-w-[600px]">
-                    {[
-                      "Latest evidence on GLP-1 agonists for cardiovascular health in non-diabetic patients",
-                      "Efficacy of PARP inhibitors in BRCA-mutated early breast cancer",
-                      "Efficacy of dual antiplatelet therapy vs monotherapy post-TAVR"
-                    ].map((prompt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setQuery(prompt)}
-                        className="text-xs bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-600 dark:text-gray-300 rounded-xl px-4 py-2 transition-all text-left shadow-sm hover:shadow-md"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
+                  <Bot size={32} className="text-cyan mb-3 opacity-50" />
+                  <h2 className="text-xl font-bold text-primary dark:text-white mb-2">How can I assist you today?</h2>
+                  <p className="text-xs text-gray-500 max-w-[250px] mb-8">Ask me to synthesize evidence, check clinical trials, or verify new guidelines.</p>
+
+                  {loadingPrompts ? (
+                    <div className="flex flex-wrap justify-center gap-3 max-w-[600px]">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-8 w-64 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-full"></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 max-w-[600px]">
+                      {promptIdeas.map((prompt, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setQuery(prompt)}
+                          className="text-xs bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-500 rounded-full px-5 py-2.5 transition-all text-center shadow-sm w-fit max-w-full"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
               {messages.map((msg) => (
                 <div key={msg.id} className="w-full">
                   {msg.role === 'user' ? (
-                     /* User Query Card */
+                    /* User Query Card */
                     <div className="flex justify-end animate-in slide-in-from-bottom-4 duration-500">
                       <div className="bg-white dark:bg-card-dark p-4 rounded-2xl rounded-tr-sm shadow-sm border border-border-light dark:border-border-dark max-w-2xl">
                         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -283,44 +324,44 @@ export default function MedicalResearch() {
 
                       <div className="flex-1 space-y-6">
                         {msg.isLoading ? (
-                           <div className="bg-white dark:bg-card-dark/80 backdrop-blur-xl p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                             <h3 className="font-bold text-sm flex items-center gap-2 mb-6 text-gray-800 dark:text-gray-200">
-                               <ChevronDown className="w-4 h-4 text-gray-400" /> Thinking
-                             </h3>
+                          <div className="bg-white dark:bg-card-dark/80 backdrop-blur-xl p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+                            <h3 className="font-bold text-sm flex items-center gap-2 mb-6 text-gray-800 dark:text-gray-200">
+                              <ChevronDown className="w-4 h-4 text-gray-400" /> Thinking
+                            </h3>
 
-                             <div className="pl-2 space-y-0 relative border-l-2 border-gray-100 dark:border-gray-800 ml-2">
+                            <div className="pl-2 space-y-0 relative border-l-2 border-gray-100 dark:border-gray-800 ml-2">
 
-                               {/* Step 1 */}
-                               <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${progressStep && progressStep !== '' ? 'opacity-100' : 'opacity-40'}`}>
-                                 <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#FE5796] border-4 border-white dark:border-[#1E1E2E]" />
-                                 <Activity className={`w-4 h-4 ${progressStep === 'analyzing' ? 'text-[#FE5796] animate-pulse' : 'text-gray-400'}`} />
-                                 <span className={`text-sm ${progressStep === 'analyzing' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Analyzing query</span>
-                               </div>
+                              {/* Step 1 */}
+                              <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${progressStep && progressStep !== '' ? 'opacity-100' : 'opacity-40'}`}>
+                                <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#FE5796] border-4 border-white dark:border-[#1E1E2E]" />
+                                <Activity className={`w-4 h-4 ${progressStep === 'analyzing' ? 'text-[#FE5796] animate-pulse' : 'text-gray-400'}`} />
+                                <span className={`text-sm ${progressStep === 'analyzing' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Analyzing query</span>
+                              </div>
 
-                               {/* Step 2 */}
-                               <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${['searching', 'synthesizing', 'finished', 'complete'].includes(progressStep) ? 'opacity-100' : 'opacity-40'}`}>
-                                 <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#F5A623] border-4 border-white dark:border-[#1E1E2E]" />
-                                 {progressStep === 'searching' ? (
-                                   <Loader2 className="w-4 h-4 text-[#F5A623] animate-spin" />
-                                 ) : (
-                                   <Search className={`w-4 h-4 ${['synthesizing', 'finished', 'complete'].includes(progressStep) ? 'text-gray-400' : 'text-[#F5A623]'}`} />
-                                 )}
-                                 <span className={`text-sm ${progressStep === 'searching' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Searching published medical literature, guidelines, FDA, CDC, and more</span>
-                               </div>
+                              {/* Step 2 */}
+                              <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${['searching', 'synthesizing', 'finished', 'complete'].includes(progressStep) ? 'opacity-100' : 'opacity-40'}`}>
+                                <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#F5A623] border-4 border-white dark:border-[#1E1E2E]" />
+                                {progressStep === 'searching' ? (
+                                  <Loader2 className="w-4 h-4 text-[#F5A623] animate-spin" />
+                                ) : (
+                                  <Search className={`w-4 h-4 ${['synthesizing', 'finished', 'complete'].includes(progressStep) ? 'text-gray-400' : 'text-[#F5A623]'}`} />
+                                )}
+                                <span className={`text-sm ${progressStep === 'searching' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Searching published medical literature, guidelines, FDA, CDC, and more</span>
+                              </div>
 
-                               {/* Step 3 */}
-                               <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${['synthesizing', 'finished', 'complete'].includes(progressStep) ? 'opacity-100' : 'opacity-40'}`}>
-                                 <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#FF453A] border-4 border-white dark:border-[#1E1E2E]" />
-                                 {progressStep === 'synthesizing' ? (
-                                   <Loader2 className="w-4 h-4 text-[#FF453A] animate-spin" />
-                                 ) : (
-                                   <Library className={`w-4 h-4 ${['finished', 'complete'].includes(progressStep) ? 'text-gray-400' : 'text-[#FF453A]'}`} />
-                                 )}
-                                 <span className={`text-sm ${progressStep === 'synthesizing' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Synthesizing relevant information</span>
-                               </div>
+                              {/* Step 3 */}
+                              <div className={`flex items-center gap-3 py-3 px-4 relative transition-opacity duration-300 ${['synthesizing', 'finished', 'complete'].includes(progressStep) ? 'opacity-100' : 'opacity-40'}`}>
+                                <div className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#FF453A] border-4 border-white dark:border-[#1E1E2E]" />
+                                {progressStep === 'synthesizing' ? (
+                                  <Loader2 className="w-4 h-4 text-[#FF453A] animate-spin" />
+                                ) : (
+                                  <Library className={`w-4 h-4 ${['finished', 'complete'].includes(progressStep) ? 'text-gray-400' : 'text-[#FF453A]'}`} />
+                                )}
+                                <span className={`text-sm ${progressStep === 'synthesizing' ? 'text-primary dark:text-white font-bold' : 'text-gray-500 font-medium'}`}>Synthesizing relevant information</span>
+                              </div>
 
-                             </div>
-                           </div>
+                            </div>
+                          </div>
                         ) : msg.content && (
                           <>
                             <div
