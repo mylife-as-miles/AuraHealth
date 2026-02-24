@@ -182,6 +182,43 @@ export default function AIInsights() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>('all');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const [promptIdeas, setPromptIdeas] = useState<string[]>([]);
+  const [loadingPrompts, setLoadingPrompts] = useState(true);
+
+  // Fetch AI generated Copilot prompts on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPrompts = async () => {
+      try {
+        const res = await fetch('/api/gemini/copilotPrompts', { method: 'POST' });
+        const data = await res.json();
+        if (isMounted) {
+          if (data.prompts && Array.isArray(data.prompts)) {
+            setPromptIdeas(data.prompts);
+          } else {
+            setPromptIdeas([
+              "Summarize today's active prediction alerts",
+              "Which patients have the highest cardiology risk?",
+              "Analyze the recent spike in respiratory cases"
+            ]);
+          }
+        }
+      } catch (e) {
+        if (isMounted) {
+          setPromptIdeas([
+            "Summarize today's active prediction alerts",
+            "Which patients have the highest cardiology risk?",
+            "Analyze the recent spike in respiratory cases"
+          ]);
+        }
+      } finally {
+        if (isMounted) setLoadingPrompts(false);
+      }
+    };
+    fetchPrompts();
+    return () => { isMounted = false; };
+  }, []);
+
   // Model settings state
   const [modelConfidence, setModelConfidence] = useState(95);
   const [modelVersion, setModelVersion] = useState('v4.2');
@@ -655,21 +692,25 @@ export default function AIInsights() {
                 <Bot size={32} className="text-cyan mb-3 opacity-50" />
                 <p className="text-sm font-bold text-primary dark:text-white mb-1">How can I assist you today?</p>
                 <p className="text-xs text-gray-500 max-w-[250px] mb-6">Ask me to analyze trends, cross-reference patient histories, or summarize alerts.</p>
-                <div className="flex flex-wrap justify-center gap-2 max-w-[400px]">
-                  {[
-                    "Summarize today's active prediction alerts",
-                    "Which patients have the highest cardiology risk?",
-                    "Analyze the recent spike in respiratory cases"
-                  ].map((prompt, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setChatInput(prompt)}
-                      className="text-[10px] bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-500 rounded-full px-3 py-1.5 transition-all text-left"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
+                {loadingPrompts ? (
+                  <div className="flex flex-wrap justify-center gap-2 max-w-[400px]">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-6 w-48 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-full"></div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-2 max-w-[400px]">
+                    {promptIdeas.map((prompt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setChatInput(prompt)}
+                        className="text-[10px] bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-500 rounded-full px-3 py-1.5 transition-all text-left"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <>
