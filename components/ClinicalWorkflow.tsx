@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useActiveModel } from '../lib/useActiveModel';
 import {
   Search,
@@ -53,7 +53,8 @@ const COLUMNS: { id: ColumnId; label: string; dot: string }[] = [
 
 // AI recommendations per card
 // --- Dynamic Recommendations ---
-const getRecommendations = (card: EnrichedCard) => {
+// --- Dynamic Recommendations ---
+const getFallbackRecommendations = (card: EnrichedCard) => {
   const recs = [];
   if (card.priority === 'urgent') {
     recs.push({ icon: 'alert', title: 'Priority Escalation', description: 'Condition marked as Urgent. Recommend immediate review.', actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent' });
@@ -67,7 +68,7 @@ const getRecommendations = (card: EnrichedCard) => {
   return recs;
 };
 
-const getNextSteps = (card: EnrichedCard) => {
+const getFallbackNextSteps = (card: EnrichedCard) => {
   const steps = [];
   if (card.priority === 'urgent') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary' });
   steps.push({ icon: 'clipboard', title: 'Review Vitals', subtitle: 'Check recent trends', color: 'cyan' });
@@ -113,12 +114,57 @@ export default function ClinicalWorkflow() {
   const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({});
   const [quickNote, setQuickNote] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
+
+  // Workflow Assistant AI State
+  const [aiRecommendations, setAiRecommendations] = useState<Record<string, { recommendations: any[], nextSteps: any[] }>>({});
+  const [loadingRecs, setLoadingRecs] = useState<Record<string, boolean>>({});
+
+
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [showAddModal, setShowAddModal] = useState<ColumnId | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
 
   const selectedCard = useMemo(() => cards.find(c => c.id === selectedCardId) || null, [cards, selectedCardId]);
+
+  useEffect(() => {
+    if (!selectedCard || !showAssistant) return;
+
+    // Check cache
+    if (aiRecommendations[selectedCard.id] || loadingRecs[selectedCard.id]) return;
+
+    const fetchRecs = async () => {
+      setLoadingRecs(prev => ({ ...prev, [selectedCard.id]: true }));
+      try {
+        const response = await fetch('/api/gemini/workflowAssistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ card: selectedCard, allColumns: COLUMNS })
+        });
+        const data = await response.json();
+        setAiRecommendations(prev => ({
+          ...prev,
+          [selectedCard.id]: {
+            recommendations: data.recommendations?.length ? data.recommendations : getFallbackRecommendations(selectedCard),
+            nextSteps: data.nextSteps?.length ? data.nextSteps : getFallbackNextSteps(selectedCard)
+          }
+        }));
+      } catch (e) {
+        console.error("Failed to fetch workflow recs", e);
+        setAiRecommendations(prev => ({
+          ...prev,
+          [selectedCard.id]: {
+            recommendations: getFallbackRecommendations(selectedCard),
+            nextSteps: getFallbackNextSteps(selectedCard)
+          }
+        }));
+      } finally {
+        setLoadingRecs(prev => ({ ...prev, [selectedCard.id]: false }));
+      }
+    };
+
+    fetchRecs();
+  }, [selectedCard, showAssistant, aiRecommendations, loadingRecs]);
   const cardsByColumn = useMemo(() => {
     const result: Record<ColumnId, EnrichedCard[]> = { pending: [], analysis: [], consultation: [], treatment: [] };
     cards.forEach(c => result[c.column].push(c));
@@ -460,10 +506,16 @@ export default function ClinicalWorkflow() {
                   </div>
 
                   {/* AI Recommendations */}
-                  {getRecommendations(selectedCard).length > 0 && (
+                  {loadingRecs[selectedCard.id] ? (
                     <div className="space-y-4 mb-8">
                       <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">AI Recommended Actions</p>
-                      {getRecommendations(selectedCard).map((rec, i) => {
+                      <div className="animate-pulse bg-gray-100 dark:bg-white/5 rounded-2xl h-32 w-full"></div>
+                      <div className="animate-pulse bg-gray-100 dark:bg-white/5 rounded-2xl h-32 w-full"></div>
+                    </div>
+                  ) : (aiRecommendations[selectedCard.id]?.recommendations || getFallbackRecommendations(selectedCard)).length > 0 && (
+                    <div className="space-y-4 mb-8">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold text-cyan">✨ AI Recommended Actions</p>
+                      {(aiRecommendations[selectedCard.id]?.recommendations || getFallbackRecommendations(selectedCard)).map((rec, i) => {
                         const feedbackKey = `rec-${selectedCard.id}-${i}`;
                         return (
                           <div key={i} className="bg-gradient-to-br from-white to-background-light dark:from-card-dark dark:to-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
@@ -495,11 +547,19 @@ export default function ClinicalWorkflow() {
                   )}
 
                   {/* Suggested Next Steps */}
-                  {getNextSteps(selectedCard).length > 0 && (
+                  {loadingRecs[selectedCard.id] ? (
                     <div className="mb-8">
                       <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-3">Suggested Next Steps</p>
                       <div className="space-y-2">
-                        {getNextSteps(selectedCard).map((step, i) => {
+                        <div className="animate-pulse bg-gray-50 dark:bg-white/5 rounded-xl h-14 w-full"></div>
+                        <div className="animate-pulse bg-gray-50 dark:bg-white/5 rounded-xl h-14 w-full"></div>
+                      </div>
+                    </div>
+                  ) : (aiRecommendations[selectedCard.id]?.nextSteps || getFallbackNextSteps(selectedCard)).length > 0 && (
+                    <div className="mb-8">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-3 text-cyan">✨ Suggested Next Steps</p>
+                      <div className="space-y-2">
+                        {(aiRecommendations[selectedCard.id]?.nextSteps || getFallbackNextSteps(selectedCard)).map((step, i) => {
                           const feedbackKey = `step-${selectedCard.id}-${i}`;
                           return actionFeedback[feedbackKey] ? (
                             <div key={i} className="w-full flex items-center justify-center p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-xs font-bold text-green-600 dark:text-green-400 gap-1">
