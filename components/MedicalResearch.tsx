@@ -370,7 +370,7 @@ export default function MedicalResearch() {
                             </div>
 
                             {/* Follow-Up Questions Card */}
-                            {msg.content.followUpQuestions?.length > 0 && (
+                            {msg.content.followUpQuestions?.length > 0 && msg.id === messages[messages.length - 1]?.id && (
                               <div className="bg-gray-50 dark:bg-[#2A2A3E] rounded-2xl p-5 border border-gray-100 dark:border-white/5 mt-4">
                                 <h4 className="font-bold text-sm text-primary dark:text-white flex items-center gap-2 mb-4">
                                   <List className="w-4 h-4 text-gray-400" />
