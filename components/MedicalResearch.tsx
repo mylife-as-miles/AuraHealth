@@ -207,18 +207,34 @@ export default function MedicalResearch() {
               const newData = parsed.data;
               const transformedData = {
                 ...newData,
-                riskChart: newData.charts?.find((c: any) => c.type === 'risk_reduction')?.data?.map((d: any, i: number) => {
-                  const val = Number(d.value) || 1.0;
-                  const min = Number(d.min);
-                  const max = Number(d.max);
-                  return {
-                    ...d,
-                    x: val,
-                    y: i + 1,
-                    error: !isNaN(min) && !isNaN(max) ? [Math.abs(val - min), Math.abs(max - val)] : [0, 0]
-                  };
-                }) || [],
-                weightChart: newData.charts?.find((c: any) => c.type === 'bar_comparison')?.data || []
+                charts: newData.charts?.map((c: any) => {
+                  if (c.type === 'scatter_plot' || c.type === 'risk_reduction') {
+                    return {
+                      ...c,
+                      type: 'scatter_plot',
+                      data: c.data?.map((d: any, i: number) => {
+                        const val = Number(d.value) || 1.0;
+                        const min = Number(d.min);
+                        const max = Number(d.max);
+                        return {
+                          ...d,
+                          x: val,
+                          y: i + 1,
+                          error: !isNaN(min) && !isNaN(max) ? [Math.abs(val - min), Math.abs(max - val)] : [0, 0]
+                        };
+                      }) || []
+                    };
+                  } else {
+                    return {
+                      ...c,
+                      type: 'bar_chart',
+                      data: c.data?.map((d: any) => ({
+                        ...d,
+                        value: Number(d.value) || 0
+                      })) || []
+                    };
+                  }
+                }) || []
               };
 
               setMessages(prev => prev.map(m =>
@@ -486,100 +502,95 @@ export default function MedicalResearch() {
             <div className="flex-1 p-5 overflow-y-auto custom-scroll space-y-4">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Evidence Visualization</h3>
 
-              {/* Chart 1: MACE Risk Reduction (Forest Plot approx) */}
-              {activeData.riskChart && activeData.riskChart.length > 0 && (
-                <div className="bg-white dark:bg-card-dark rounded-2xl p-4 shadow-sm border border-border-light dark:border-border-dark">
+              {/* Dynamic Charts Loop */}
+              {activeData.charts && activeData.charts.map((chart: any, chartIndex: number) => (
+                <div key={chartIndex} className="bg-white dark:bg-card-dark rounded-2xl p-4 shadow-sm border border-border-light dark:border-border-dark">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-bold text-primary dark:text-white">MACE Risk Reduction</h4>
-                    <button className="text-gray-400 hover:text-primary dark:hover:text-white transition-colors">
+                    <h4 className="text-xs font-bold text-primary dark:text-white line-clamp-1 pr-2" title={chart.title}>{chart.title || "Clinical Metric"}</h4>
+                    <button className="text-gray-400 hover:text-primary dark:hover:text-white transition-colors flex-shrink-0">
                       <Maximize2 className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="h-40 w-full relative">
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                      <div className="w-px h-full border-l border-dashed border-gray-300 dark:border-gray-700 absolute left-1/2" />
-                    </div>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <SafeChart>
-                        <ScatterChart
-                          layout="vertical"
-                          margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(0,0,0,0.05)" />
-                          <XAxis type="number" dataKey="x" domain={[0.4, 1.6]} tick={{ fontSize: 9 }} tickCount={5} stroke="#9CA3AF" />
-                          <YAxis
-                            type="number"
-                            dataKey="y"
-                            domain={[0, 4]}
-                            ticks={[1, 2, 3]}
-                            tick={({ x, y, payload }) => {
-                              const item = activeData.riskChart.find((d: any) => d.y === payload.value);
-                              if (!item) return null;
-                              return (
-                                <text x={x} y={y} dy={3} textAnchor="end" fill="#6B7280" fontSize={9} fontWeight={600}>
-                                  {item.name}
-                                </text>
-                              );
-                            }}
-                            width={70}
-                            stroke="#9CA3AF"
-                            interval={0}
-                          />
-                          <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                          <Scatter data={activeData.riskChart} fill="#8884d8" shape={<ForestPoint />}>
-                            {activeData.riskChart.map((entry: any, index: number) => (
-                              <Cell key={`cell-\${index}`} fill={entry.color} />
-                            ))}
-                            <ErrorBar dataKey="error" width={0} strokeWidth={2} direction="x" stroke="#374151" />
-                          </Scatter>
-                        </ScatterChart>
-                      </SafeChart>
-                    </ResponsiveContainer>
 
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-between px-8 text-[9px] text-gray-400 pointer-events-none">
-                      <span>Favors Treatment</span>
-                      <span>Favors Placebo</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Chart 2: Weight Loss Comparison */}
-              {activeData.weightChart && activeData.weightChart.length > 0 && (
-                <div className="bg-white dark:bg-card-dark rounded-2xl p-4 shadow-sm border border-border-light dark:border-border-dark">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-bold text-primary dark:text-white">Weight Loss Efficacy (68 Weeks)</h4>
-                  </div>
-                  <div className="h-32 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <SafeChart>
-                        <BarChart data={activeData.weightChart} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                          <XAxis dataKey="name" tick={{ fontSize: 9 }} stroke="#9CA3AF" axisLine={false} tickLine={false} />
-                          <Tooltip
-                            cursor={{ fill: 'transparent' }}
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
+                  {chart.type === 'scatter_plot' ? (
+                    <div className="h-40 w-full relative">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                        <div className="w-px h-full border-l border-dashed border-gray-300 dark:border-gray-700 absolute left-1/2" />
+                      </div>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <SafeChart>
+                          <ScatterChart
+                            layout="vertical"
+                            margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(0,0,0,0.05)" />
+                            <XAxis type="number" dataKey="x" domain={['auto', 'auto']} tick={{ fontSize: 9 }} tickCount={5} stroke="#9CA3AF" />
+                            <YAxis
+                              type="number"
+                              dataKey="y"
+                              domain={[0, chart.data.length + 1]}
+                              ticks={chart.data.map((d: any) => d.y)}
+                              tick={({ x, y, payload }) => {
+                                const item = chart.data.find((d: any) => d.y === payload.value);
+                                if (!item) return null;
                                 return (
-                                  <div className="bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg border border-border-light dark:border-border-dark text-[10px] font-bold">
-                                    {payload[0].value}%
-                                  </div>
+                                  <text x={x} y={y} dy={3} textAnchor="end" fill="#6B7280" fontSize={9} fontWeight={600}>
+                                    {item.name}
+                                  </text>
                                 );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
-                            {activeData.weightChart.map((entry: any, index: number) => (
-                              <Cell key={`cell-\${index}`} fill={entry.color} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </SafeChart>
-                    </ResponsiveContainer>
-                  </div>
+                              }}
+                              width={70}
+                              stroke="#9CA3AF"
+                              interval={0}
+                            />
+                            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                            <Scatter data={chart.data} fill="#8884d8" shape={<ForestPoint />}>
+                              {chart.data.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={entry.color || '#54E097'} />
+                              ))}
+                              <ErrorBar dataKey="error" width={0} strokeWidth={2} direction="x" stroke="#374151" />
+                            </Scatter>
+                          </ScatterChart>
+                        </SafeChart>
+                      </ResponsiveContainer>
+                      <div className="absolute bottom-0 left-0 right-0 flex justify-between px-8 text-[9px] text-gray-400 pointer-events-none">
+                        <span>{chart.xAxisLabel?.split('|')[0]?.trim() || "Favors Treatment"}</span>
+                        <span>{chart.xAxisLabel?.split('|')[1]?.trim() || "Favors Placebo"}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-32 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <SafeChart>
+                          <BarChart data={chart.data} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                            <XAxis dataKey="name" tick={{ fontSize: 9 }} stroke="#9CA3AF" axisLine={false} tickLine={false} />
+                            <YAxis hide domain={['auto', 'auto']} />
+                            <Tooltip
+                              cursor={{ fill: 'transparent' }}
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg border border-border-light dark:border-border-dark text-[10px] font-bold">
+                                      {payload[0].value}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={chart.data.length > 5 ? 15 : 30}>
+                              {chart.data.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={entry.color || '#3b82f6'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </SafeChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
 
             {/* Sticky Sources List at Bottom */}

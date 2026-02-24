@@ -24,14 +24,14 @@ export default async function handler(req, res) {
         let content = msg.content;
         // If model response is a JSON string, try to extract synthesis text to save tokens/reduce noise
         if (msg.role === 'model' && typeof content === 'string') {
-           try {
-             // Try to parse the JSON response from previous turns to just get the text synthesis
-             // This avoids feeding back huge JSON structures with chart data
-             const parsed = JSON.parse(content);
-             if (parsed.synthesis) content = parsed.synthesis;
-           } catch (e) {
-             // If parsing fails, use the raw content string
-           }
+          try {
+            // Try to parse the JSON response from previous turns to just get the text synthesis
+            // This avoids feeding back huge JSON structures with chart data
+            const parsed = JSON.parse(content);
+            if (parsed.synthesis) content = parsed.synthesis;
+          } catch (e) {
+            // If parsing fails, use the raw content string
+          }
         }
         return `${msg.role === 'user' ? 'USER' : 'ASSISTANT'}: ${content}`;
       }).join('\n\n') + "\n\n";
@@ -98,14 +98,20 @@ export default async function handler(req, res) {
           ],
           "charts": [
             {
-              "type": "risk_reduction",
-              "title": "Risk Reduction (Hazard Ratio)",
+              "type": "scatter_plot", // OR "bar_chart"
+              "title": "Clear, Descriptive Chart Title",
+              "xAxisLabel": "Favors Treatment | Favors Placebo", // Optional, used for scatter/forest plots
               "data": [
-                { "name": "Study Name", "value": 0.8, "min": 0.7, "max": 0.9, "color": "#54E097" }
+                 // For scatter_plot (e.g., forest plot points):
+                 { "name": "Found Real Study Name", "value": 0.8, "min": 0.7, "max": 0.9, "color": "#54E097" },
+                 // For bar_chart (e.g., efficacy percentages):
+                 { "name": "Label", "value": 15.5, "color": "#8884d8" }
               ]
             }
           ]
-        }`;
+        }
+        
+        CRITICAL RULE: DO NOT hallucinate the charts. Extract real statistical metrics (like Hazard Ratios, Risk Reductions, or efficacy percentages) from the literature you find via Google Search to populate the charts data. Choose the chart type ("scatter_plot" for comparing Hazard/Risk Ratios with min/max intervals, "bar_chart" for comparing simple percentages or counts) that best fits the data you find. If no relevant statistical data is found, return an empty charts array [].`;
 
     const tools = [
       { codeExecution: {} },
