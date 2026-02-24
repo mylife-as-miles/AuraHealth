@@ -15,7 +15,27 @@ export default async function handler(req, res) {
   res.setHeader('Transfer-Encoding', 'chunked');
 
   try {
-    const { query, modelId } = req.body;
+    const { query, modelId, history } = req.body;
+
+    // Build history context string
+    let historyContext = "";
+    if (history && Array.isArray(history) && history.length > 0) {
+      historyContext = "PREVIOUS CONVERSATION HISTORY:\n" + history.map(msg => {
+        let content = msg.content;
+        // If model response is a JSON string, try to extract synthesis text to save tokens/reduce noise
+        if (msg.role === 'model' && typeof content === 'string') {
+           try {
+             // Try to parse the JSON response from previous turns to just get the text synthesis
+             // This avoids feeding back huge JSON structures with chart data
+             const parsed = JSON.parse(content);
+             if (parsed.synthesis) content = parsed.synthesis;
+           } catch (e) {
+             // If parsing fails, use the raw content string
+           }
+        }
+        return `${msg.role === 'user' ? 'USER' : 'ASSISTANT'}: ${content}`;
+      }).join('\n\n') + "\n\n";
+    }
 
     // 1. ANNOUNCE ANALYZING
     res.write(JSON.stringify({ status: 'analyzing' }) + '\n');
@@ -56,12 +76,14 @@ export default async function handler(req, res) {
     });
 
     const prompt = `You are a medical research assistant. 
+        ${historyContext}
         Original User Query: "${query}"
         
         Preliminary Dr7 Model Analysis:
         "${dr7Analysis}"
         
         Task: Synthesize the preliminary analysis and verify/expand it by searching recent published medical literature, guidelines, FDA, CDC, and more.
+        If there is previous conversation history, ensure your response maintains context and continuity.
         
         Return a strictly formatted JSON object with the following structure:
         {
