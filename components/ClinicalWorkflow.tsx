@@ -57,21 +57,21 @@ const COLUMNS: { id: ColumnId; label: string; dot: string }[] = [
 const getFallbackRecommendations = (card: EnrichedCard) => {
   const recs = [];
   if (card.priority === 'urgent') {
-    recs.push({ icon: 'alert', title: 'Priority Escalation', description: 'Condition marked as Urgent. Recommend immediate review.', actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent' });
+    recs.push({ icon: 'alert', title: 'Priority Escalation', description: 'Condition marked as Urgent. Recommend immediate review.', actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent', systemAction: 'ASSIGN_SELF' });
   }
   if (card.column === 'analysis') {
-    recs.push({ icon: 'file', title: 'Draft Report', description: 'Generate preliminary diagnostic report.', actionLabel: 'Generate Draft', actionColor: 'hover:bg-secondary hover:text-white hover:border-secondary' });
+    recs.push({ icon: 'file', title: 'Draft Report', description: 'Generate preliminary diagnostic report.', actionLabel: 'Generate Draft', actionColor: 'hover:bg-secondary hover:text-white hover:border-secondary', systemAction: 'ADD_NOTE' });
   }
   if (card.column === 'consultation') {
-    recs.push({ icon: 'stethoscope', title: 'Prepare Consult', description: 'Compile history and vitals for consultation.', actionLabel: 'Prepare Pack', actionColor: 'hover:bg-cyan hover:text-white hover:border-cyan' });
+    recs.push({ icon: 'stethoscope', title: 'Prepare Consult', description: 'Compile history and vitals for consultation.', actionLabel: 'Prepare Pack', actionColor: 'hover:bg-cyan hover:text-white hover:border-cyan', systemAction: 'MOVE_FORWARD' });
   }
   return recs;
 };
 
 const getFallbackNextSteps = (card: EnrichedCard) => {
   const steps = [];
-  if (card.priority === 'urgent') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary' });
-  steps.push({ icon: 'clipboard', title: 'Review Vitals', subtitle: 'Check recent trends', color: 'cyan' });
+  if (card.priority === 'urgent') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary', systemAction: 'ORDER_LABS' });
+  steps.push({ icon: 'clipboard', title: 'Review Vitals', subtitle: 'Check recent trends', color: 'cyan', systemAction: 'MOVE_FORWARD' });
   return steps;
 };
 
@@ -226,6 +226,51 @@ export default function ClinicalWorkflow() {
   const triggerAction = (key: string, label: string) => {
     setActionFeedback(prev => ({ ...prev, [key]: label }));
     setTimeout(() => setActionFeedback(prev => { const copy = { ...prev }; delete copy[key]; return copy; }), 2500);
+  };
+
+  const handleAssistantAction = (actionType: string | undefined, feedbackKey: string, feedbackLabel: string) => {
+    if (!selectedCard) return;
+
+    // Default visual feedback
+    triggerAction(feedbackKey, feedbackLabel);
+
+    switch (actionType) {
+      case 'MOVE_FORWARD':
+        moveCardForward(selectedCard.id);
+        break;
+      case 'ADD_NOTE':
+        setShowNoteModal(true);
+        break;
+      case 'OPEN_DIAGNOSTICS':
+      case 'ORDER_LABS':
+        db.notifications.add({
+          id: `n-${Date.now()}`,
+          type: 'alert',
+          title: 'Order Submitted',
+          content: `Orders placed for ${selectedCard.patientName}. Labs pending.`,
+          time: 'Just now',
+          timestamp: Date.now(),
+          read: false,
+          dismissible: true
+        });
+        break;
+      case 'ASSIGN_SELF':
+        db.notifications.add({
+          id: `n-${Date.now()}`,
+          type: 'message',
+          title: 'Patient Assigned',
+          content: `You are now assigned to ${selectedCard.patientName}.`,
+          time: 'Just now',
+          timestamp: Date.now(),
+          read: false,
+          dismissible: true
+        });
+        break;
+      case 'DISCHARGE':
+        db.workflowCards.delete(selectedCard.id);
+        setSelectedCardId(null);
+        break;
+    }
   };
 
   // Save note
@@ -534,7 +579,7 @@ export default function ClinicalWorkflow() {
                               </div>
                             ) : (
                               <button
-                                onClick={() => triggerAction(feedbackKey, rec.actionLabel + 'd')}
+                                onClick={() => handleAssistantAction(rec.systemAction, feedbackKey, rec.actionLabel + 'd')}
                                 className={`w-full mt-2 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-bold text-gray-600 dark:text-gray-200 ${rec.actionColor} dark:${rec.actionColor} transition-colors shadow-sm`}
                               >
                                 {rec.actionLabel}
@@ -568,7 +613,7 @@ export default function ClinicalWorkflow() {
                           ) : (
                             <button
                               key={i}
-                              onClick={() => triggerAction(feedbackKey, step.title + ' initiated')}
+                              onClick={() => handleAssistantAction(step.systemAction, feedbackKey, step.title + ' initiated')}
                               className={`w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 hover:border-${step.color} hover:shadow-sm transition-all group text-left`}
                             >
                               <div className="flex items-center gap-3">

@@ -36,6 +36,12 @@ export default async function handler(req, res) {
         2. Keep the "description" highly specific to the patient's condition and current column.
         3. For Action Cards (recommendations), match the "icon" strictly to: "alert", "file", "stethoscope". Match "actionColor" to Tailwind classes like "hover:bg-accent hover:text-white" or "hover:bg-cyan hover:text-white".
         4. For Checklist Items (nextSteps), match the "icon" strictly to: "clipboard" or "stethoscope". Match "color" strictly to: "cyan" or "secondary" or "accent".
+        5. For BOTH arrays, you MUST assign a "systemAction" property that strictly matches one of the following exact strings: 
+           - "MOVE_FORWARD" (to advance column)
+           - "ADD_NOTE" (to open triage notes)
+           - "ASSIGN_SELF" (to take ownership of patient)
+           - "ORDER_LABS" (mock generic order)
+           - "DISCHARGE" (remove from workflow)
 
         Expected JSON response schema:
         {
@@ -45,7 +51,8 @@ export default async function handler(req, res) {
                     "title": "string",
                     "description": "string",
                     "actionLabel": "Submit Order",
-                    "actionColor": "hover:bg-cyan hover:text-white hover:border-cyan"
+                    "actionColor": "hover:bg-cyan hover:text-white hover:border-cyan",
+                    "systemAction": "string"
                 }
             ],
             "nextSteps": [
@@ -53,7 +60,8 @@ export default async function handler(req, res) {
                     "icon": "clipboard" | "stethoscope",
                     "title": "string",
                     "subtitle": "string",
-                    "color": "cyan" | "secondary" | "accent"
+                    "color": "cyan" | "secondary" | "accent",
+                    "systemAction": "string"
                 }
             ]
         }
