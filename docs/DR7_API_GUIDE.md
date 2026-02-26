@@ -76,16 +76,16 @@ curl -X POST https://api.dr7.ai/v1/medical/chat/completions \
 
 ## 4. Available Medical Models & Pricing
 
-Dr7.ai uses a token-based pay-as-you-go pricing model. Key models for the AuraHealth architecture include:
+Dr7.ai uses a token-based pay-as-you-go pricing model. Based on the AuraHealth HAI-DEF Model Configuration settings, the following models are integrated into the platform:
 
-| Model ID | Specialization | Input Cost (/1K tokens) | Output Cost (/1K tokens) |
-| :--- | :--- | :--- | :--- |
-| `medgemma-4b-it` | Lightweight clinical reasoning, general consultations | $0.001 | $0.002 |
-| `medgemma-27b-it` | Advanced medical AI with enhanced reasoning | $0.003 | $0.006 |
-| `chexagent` | Specialized X-Ray analysis and interpretation | $0.002 | $0.004 |
-| `medsiglip-v1` | Medical image-text zero-shot classification | $0.005 | $0.002 |
-| `llava-med` | Multimodal medical image and text analysis | $0.002 | $0.004 |
-| `alphagenome` | DeepMind DNA sequence analysis | $0.002 | $0.004 |
+| Model ID | Specialization | Input Cost (/1K tokens) | Output Cost (/1K tokens) | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `medgemma-27b-it` | **[Hackathon Submission Benchmark]** Advanced medical AI providing high-accuracy reasoning | $0.003 | $0.006 | Active |
+| `medgemma-4b-it` | **[Hackathon Submission Benchmark]** Lightweight model optimized for rapid local edge deployment | $0.001 | $0.002 | Active |
+| `med-palm-2` | Expert-level medical Q&A and clinical reasoning | $0.001 | $0.002 | Active |
+| `biogpt` | Specialized transformer for biomedical literature mining | $0.001 | $0.002 | Available |
+| `chexagent` | Specialized vision model for interpretation of Chest X-rays | $0.002 | $0.004 | Coming Soon |
+| `llava-med` | Multimodal medical image and text analysis | $0.002 | $0.004 | Coming Soon |
 
 ## 5. Error Handling
 

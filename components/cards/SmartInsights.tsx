@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Zap, Verified, TrendingUp, ArrowUp } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../lib/db';
+import { useActiveModel } from '../../lib/useActiveModel';
 
 export default function SmartInsights() {
   const navigate = useNavigate();
+  const { modelName } = useActiveModel();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -45,7 +47,7 @@ export default function SmartInsights() {
       {
         text: 'Average diagnostic confidence across completed scans is',
         highlight: `${avgConfidence}%`,
-        suffix: 'powered by MedGemma model analysis.'
+        suffix: `powered by ${modelName} model analysis.`
       },
       {
         text: 'High-confidence detection (>90%) achieved in',

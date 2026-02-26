@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import { useNavigate } from 'react-router-dom';
 import {
     Search,
@@ -31,14 +32,7 @@ const PAGES = [
     { id: 'notifications', title: 'Notifications', icon: Bell, path: '/notifications' },
 ];
 
-const PATIENTS = [
-    { id: '#AH-8832', name: 'Eleanor Pena', age: 45, condition: 'Arrhythmia', priority: 'high' },
-    { id: '#AH-9211', name: 'Cody Fisher', age: 32, condition: 'Hypertension', priority: 'high' },
-    { id: '#AH-7742', name: 'Jerome Webb', age: 58, condition: 'Type 2 Diabetes', priority: 'moderate' },
-    { id: '#AH-1029', name: 'Kristin Watson', age: 29, condition: 'Migraine', priority: 'low' },
-    { id: '#AH-5621', name: 'Darrell Steward', age: 41, condition: 'Post-Op Recovery', priority: 'high' },
-    { id: '#AH-2291', name: 'Arlene McCoy', age: 63, condition: 'Arthritis', priority: 'moderate' },
-];
+const PATIENTS: any[] = [];
 
 const ACTIONS = [
     { id: 'add-patient', title: 'Add New Patient', icon: Plus, group: 'Actions' },
@@ -46,6 +40,7 @@ const ACTIONS = [
 ];
 
 export default function CommandPalette({ isOpen, onClose }: Props) {
+    const { modelName } = useActiveModel();
     const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -243,7 +238,7 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
                         <span className="flex items-center gap-1"><span>ESC</span> <span>to close</span></span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span>Powered by Dr7.ai MedGemma</span>
+                        <span>Powered by Dr7.ai {modelName}</span>
                         <div className="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
                     </div>
                 </div>

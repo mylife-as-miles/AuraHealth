@@ -181,13 +181,13 @@ export default function AuthPage() {
     const handleBiometric = async (type: 'touch' | 'face') => {
         setBiometricModal(type);
         const existingUser = await db.authUsers.toCollection().first();
-        const userEmail = existingUser ? existingUser.email : 'doctor@hospital.com';
+        const userEmail = existingUser ? existingUser.email : '';
 
         if (!existingUser) {
             const now = Date.now();
             await db.authUsers.add({
-                name: 'Alex Williamson',
-                email: 'doctor@hospital.com',
+                name: '',
+                email: '',
                 password: 'biometric_login_placeholder',
                 createdAt: now,
                 updatedAt: now
@@ -269,7 +269,7 @@ export default function AuthPage() {
                             </span>
                         </h2>
                         <p className="text-gray-300 text-lg max-w-md leading-relaxed">
-                            Secure access to MedGemma and HAI-DEF models for next-generation diagnostics and workflow optimization.
+                            Secure access to HAI-DEF clinical AI models for next-generation diagnostics and workflow optimization.
                         </p>
                         <div className="flex items-center gap-4 mt-8">
                             <div className="flex -space-x-3">

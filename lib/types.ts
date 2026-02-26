@@ -44,6 +44,34 @@ export interface Patient {
     baselineSummary?: string;    // AI-generated baseline summary for HAI-DEF
     currentPriority?: string;    // AI-assigned queue priority
     riskIfIgnored?: number;      // Numeric risk score if patient is ignored
+    priorityAccepted?: boolean;  // Clinician confirmed priority flag
+    medicalHistoryNotes?: string;
+    medicationsNotes?: string;
+    familyHistoryNotes?: string;
+    allergies?: string;
+
+    // AI Structured Output Elements
+    conditionInfo?: {
+        title: string;
+        severity: string;
+        confidence: number;
+        keyIndicators: string[];
+    };
+    doctorReport?: string;
+    aiDiagnostics?: Array<{ // changed to avoid name conflict with the other Diagnosis interface
+        category: string;
+        findings: string[];
+        status: 'critical' | 'warning' | 'normal' | string;
+    }>;
+    recommendedActions?: Array<{
+        type: string;
+        description: string;
+        priority: 'high' | 'medium' | 'low' | string;
+    }>;
+    differentialDiagnosis?: string[];
+    clinicalPlan?: string;
+    safetyNet?: string;
+    workerResults?: Array<{ fileName: string; status: string }>;
 }
 
 // Diagnostics
@@ -77,7 +105,7 @@ export interface DiagCase {
     patientId: string; // Link to Patient.id
     patientName: string; // Denormalized for easy display
     scanType: string;
-    status: 'Critical' | 'Ready' | 'In Progress' | 'Pending';
+    status: 'Critical' | 'Ready' | 'In Progress' | 'Pending' | 'Completed';
     time: string;
     image: string;
     totalSlices: number;

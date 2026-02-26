@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import {
   Search,
   MoreHorizontal,
@@ -23,7 +24,8 @@ import {
   User,
   Send,
   MessageSquare,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
@@ -51,24 +53,25 @@ const COLUMNS: { id: ColumnId; label: string; dot: string }[] = [
 
 // AI recommendations per card
 // --- Dynamic Recommendations ---
-const getRecommendations = (card: EnrichedCard) => {
+// --- Dynamic Recommendations ---
+const getFallbackRecommendations = (card: EnrichedCard) => {
   const recs = [];
   if (card.priority === 'urgent') {
-    recs.push({ icon: 'alert', title: 'Priority Escalation', description: 'Condition marked as Urgent. Recommend immediate review.', actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent' });
+    recs.push({ icon: 'alert', title: 'Priority Escalation', description: 'Condition marked as Urgent. Recommend immediate review.', actionLabel: 'Escalate Now', actionColor: 'hover:bg-accent hover:text-white hover:border-accent', systemAction: 'ASSIGN_SELF' });
   }
   if (card.column === 'analysis') {
-    recs.push({ icon: 'file', title: 'Draft Report', description: 'Generate preliminary diagnostic report.', actionLabel: 'Generate Draft', actionColor: 'hover:bg-secondary hover:text-white hover:border-secondary' });
+    recs.push({ icon: 'file', title: 'Draft Report', description: 'Generate preliminary diagnostic report.', actionLabel: 'Generate Draft', actionColor: 'hover:bg-secondary hover:text-white hover:border-secondary', systemAction: 'ADD_NOTE' });
   }
   if (card.column === 'consultation') {
-    recs.push({ icon: 'stethoscope', title: 'Prepare Consult', description: 'Compile history and vitals for consultation.', actionLabel: 'Prepare Pack', actionColor: 'hover:bg-cyan hover:text-white hover:border-cyan' });
+    recs.push({ icon: 'stethoscope', title: 'Prepare Consult', description: 'Compile history and vitals for consultation.', actionLabel: 'Prepare Pack', actionColor: 'hover:bg-cyan hover:text-white hover:border-cyan', systemAction: 'MOVE_FORWARD' });
   }
   return recs;
 };
 
-const getNextSteps = (card: EnrichedCard) => {
+const getFallbackNextSteps = (card: EnrichedCard) => {
   const steps = [];
-  if (card.priority === 'urgent') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary' });
-  steps.push({ icon: 'clipboard', title: 'Review Vitals', subtitle: 'Check recent trends', color: 'cyan' });
+  if (card.priority === 'urgent') steps.push({ icon: 'stethoscope', title: 'Order Stat Labs', subtitle: 'Check critical values', color: 'secondary', systemAction: 'ORDER_LABS' });
+  steps.push({ icon: 'clipboard', title: 'Review Vitals', subtitle: 'Check recent trends', color: 'cyan', systemAction: 'MOVE_FORWARD' });
   return steps;
 };
 
@@ -83,6 +86,7 @@ const priorityStyle = (p?: string) => {
 };
 
 export default function ClinicalWorkflow() {
+  const { modelName } = useActiveModel();
   const workflowCards = useLiveQuery(() => db.workflowCards.toArray()) || [];
   const patients = useLiveQuery(() => db.patients.toArray()) || [];
 
@@ -110,12 +114,57 @@ export default function ClinicalWorkflow() {
   const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({});
   const [quickNote, setQuickNote] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
+
+  // Workflow Assistant AI State
+  const [aiRecommendations, setAiRecommendations] = useState<Record<string, { recommendations: any[], nextSteps: any[] }>>({});
+  const [loadingRecs, setLoadingRecs] = useState<Record<string, boolean>>({});
+
+
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [showAddModal, setShowAddModal] = useState<ColumnId | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
 
   const selectedCard = useMemo(() => cards.find(c => c.id === selectedCardId) || null, [cards, selectedCardId]);
+
+  useEffect(() => {
+    if (!selectedCard || !showAssistant) return;
+
+    // Check cache
+    if (aiRecommendations[selectedCard.id] || loadingRecs[selectedCard.id]) return;
+
+    const fetchRecs = async () => {
+      setLoadingRecs(prev => ({ ...prev, [selectedCard.id]: true }));
+      try {
+        const response = await fetch('/api/gemini/workflowAssistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ card: selectedCard, allColumns: COLUMNS })
+        });
+        const data = await response.json();
+        setAiRecommendations(prev => ({
+          ...prev,
+          [selectedCard.id]: {
+            recommendations: data.recommendations?.length ? data.recommendations : getFallbackRecommendations(selectedCard),
+            nextSteps: data.nextSteps?.length ? data.nextSteps : getFallbackNextSteps(selectedCard)
+          }
+        }));
+      } catch (e) {
+        console.error("Failed to fetch workflow recs", e);
+        setAiRecommendations(prev => ({
+          ...prev,
+          [selectedCard.id]: {
+            recommendations: getFallbackRecommendations(selectedCard),
+            nextSteps: getFallbackNextSteps(selectedCard)
+          }
+        }));
+      } finally {
+        setLoadingRecs(prev => ({ ...prev, [selectedCard.id]: false }));
+      }
+    };
+
+    fetchRecs();
+  }, [selectedCard, showAssistant, aiRecommendations, loadingRecs]);
   const cardsByColumn = useMemo(() => {
     const result: Record<ColumnId, EnrichedCard[]> = { pending: [], analysis: [], consultation: [], treatment: [] };
     cards.forEach(c => result[c.column].push(c));
@@ -177,6 +226,51 @@ export default function ClinicalWorkflow() {
   const triggerAction = (key: string, label: string) => {
     setActionFeedback(prev => ({ ...prev, [key]: label }));
     setTimeout(() => setActionFeedback(prev => { const copy = { ...prev }; delete copy[key]; return copy; }), 2500);
+  };
+
+  const handleAssistantAction = (actionType: string | undefined, feedbackKey: string, feedbackLabel: string) => {
+    if (!selectedCard) return;
+
+    // Default visual feedback
+    triggerAction(feedbackKey, feedbackLabel);
+
+    switch (actionType) {
+      case 'MOVE_FORWARD':
+        moveCardForward(selectedCard.id);
+        break;
+      case 'ADD_NOTE':
+        setShowNoteModal(true);
+        break;
+      case 'OPEN_DIAGNOSTICS':
+      case 'ORDER_LABS':
+        db.notifications.add({
+          id: `n-${Date.now()}`,
+          type: 'task',
+          title: 'Order Submitted',
+          content: `Orders placed for ${selectedCard.patientName}. Labs pending.`,
+          time: 'Just now',
+          timestamp: Date.now(),
+          read: false,
+          dismissible: true
+        });
+        break;
+      case 'ASSIGN_SELF':
+        db.notifications.add({
+          id: `n-${Date.now()}`,
+          type: 'system',
+          title: 'Patient Assigned',
+          content: `You are now assigned to ${selectedCard.patientName}.`,
+          time: 'Just now',
+          timestamp: Date.now(),
+          read: false,
+          dismissible: true
+        });
+        break;
+      case 'DISCHARGE':
+        db.workflowCards.delete(selectedCard.id);
+        setSelectedCardId(null);
+        break;
+    }
   };
 
   // Save note
@@ -306,9 +400,22 @@ export default function ClinicalWorkflow() {
                             {/* Left accent bar */}
                             <div className={`absolute left-0 top-0 bottom-0 ${card.priority === 'urgent' ? 'w-1.5' : 'w-1'} ${ps.bar}`}></div>
 
-                            {/* Drag handle */}
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-40 transition-opacity">
-                              <GripVertical size={14} className="text-gray-400" />
+                            {/* Drag and Delete handle */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  db.workflowCards.delete(card.id);
+                                  if (selectedCardId === card.id) setSelectedCardId(null);
+                                }}
+                                className="p-1 bg-white dark:bg-card-dark shadow-sm hover:bg-red-50 hover:text-red-500 rounded-md text-gray-400 transition-colors"
+                                title="Delete Card"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <div className="p-1 cursor-grab opacity-40 hover:opacity-100 transition-opacity">
+                                <GripVertical size={14} className="text-gray-400" />
+                              </div>
                             </div>
 
                             <div className="flex justify-between items-start mb-3 pl-2">
@@ -353,7 +460,7 @@ export default function ClinicalWorkflow() {
                             {card.column === 'analysis' && card.aiProgress !== undefined && (
                               <div className="bg-background-light dark:bg-background-dark rounded-xl p-2.5 mb-3">
                                 <div className="flex justify-between text-[10px] font-bold text-gray-500 mb-1.5">
-                                  <span className="flex items-center gap-1"><RefreshCw size={10} className="animate-spin" /> MedGemma Processing</span>
+                                  <span className="flex items-center gap-1"><RefreshCw size={10} className="animate-spin" /> {modelName} Processing</span>
                                   <span className="text-cyan-700 dark:text-cyan">{card.aiProgress}%</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -444,10 +551,16 @@ export default function ClinicalWorkflow() {
                   </div>
 
                   {/* AI Recommendations */}
-                  {getRecommendations(selectedCard).length > 0 && (
+                  {loadingRecs[selectedCard.id] ? (
                     <div className="space-y-4 mb-8">
                       <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">AI Recommended Actions</p>
-                      {getRecommendations(selectedCard).map((rec, i) => {
+                      <div className="animate-pulse bg-gray-100 dark:bg-white/5 rounded-2xl h-32 w-full"></div>
+                      <div className="animate-pulse bg-gray-100 dark:bg-white/5 rounded-2xl h-32 w-full"></div>
+                    </div>
+                  ) : (aiRecommendations[selectedCard.id]?.recommendations || getFallbackRecommendations(selectedCard)).length > 0 && (
+                    <div className="space-y-4 mb-8">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold text-cyan">✨ AI Recommended Actions</p>
+                      {(aiRecommendations[selectedCard.id]?.recommendations || getFallbackRecommendations(selectedCard)).map((rec, i) => {
                         const feedbackKey = `rec-${selectedCard.id}-${i}`;
                         return (
                           <div key={i} className="bg-gradient-to-br from-white to-background-light dark:from-card-dark dark:to-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
@@ -466,10 +579,10 @@ export default function ClinicalWorkflow() {
                               </div>
                             ) : (
                               <button
-                                onClick={() => triggerAction(feedbackKey, rec.actionLabel + 'd')}
-                                className={`w-full mt-2 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-bold text-gray-600 dark:text-gray-200 ${rec.actionColor} dark:${rec.actionColor} transition-colors shadow-sm`}
+                                onClick={() => handleAssistantAction(rec.systemAction, feedbackKey, (rec.actionLabel || 'Take Action') + 'd')}
+                                className={`w-full mt-2 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-bold text-gray-600 dark:text-gray-200 ${rec.actionColor || 'hover:bg-cyan hover:text-white hover:border-cyan'} dark:${rec.actionColor || 'hover:bg-cyan'} transition-colors shadow-sm`}
                               >
-                                {rec.actionLabel}
+                                {rec.actionLabel || 'Take Action'}
                               </button>
                             )}
                           </div>
@@ -479,11 +592,19 @@ export default function ClinicalWorkflow() {
                   )}
 
                   {/* Suggested Next Steps */}
-                  {getNextSteps(selectedCard).length > 0 && (
+                  {loadingRecs[selectedCard.id] ? (
                     <div className="mb-8">
                       <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-3">Suggested Next Steps</p>
                       <div className="space-y-2">
-                        {getNextSteps(selectedCard).map((step, i) => {
+                        <div className="animate-pulse bg-gray-50 dark:bg-white/5 rounded-xl h-14 w-full"></div>
+                        <div className="animate-pulse bg-gray-50 dark:bg-white/5 rounded-xl h-14 w-full"></div>
+                      </div>
+                    </div>
+                  ) : (aiRecommendations[selectedCard.id]?.nextSteps || getFallbackNextSteps(selectedCard)).length > 0 && (
+                    <div className="mb-8">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-3 text-cyan">✨ Suggested Next Steps</p>
+                      <div className="space-y-2">
+                        {(aiRecommendations[selectedCard.id]?.nextSteps || getFallbackNextSteps(selectedCard)).map((step, i) => {
                           const feedbackKey = `step-${selectedCard.id}-${i}`;
                           return actionFeedback[feedbackKey] ? (
                             <div key={i} className="w-full flex items-center justify-center p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-xs font-bold text-green-600 dark:text-green-400 gap-1">
@@ -492,7 +613,7 @@ export default function ClinicalWorkflow() {
                           ) : (
                             <button
                               key={i}
-                              onClick={() => triggerAction(feedbackKey, step.title + ' initiated')}
+                              onClick={() => handleAssistantAction(step.systemAction, feedbackKey, step.title + ' initiated')}
                               className={`w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-700 hover:border-${step.color} hover:shadow-sm transition-all group text-left`}
                             >
                               <div className="flex items-center gap-3">

@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import {
   SlidersHorizontal,
   Brain,
@@ -24,7 +25,11 @@ import {
   Bell,
   BellOff,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  Send,
+  Bot,
+  User
 } from 'lucide-react';
 import {
   ComposedChart,
@@ -43,34 +48,21 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { NotificationItem } from '../lib/types';
 import EmptyState from './EmptyState';
+import ReactMarkdown from 'react-markdown';
 
-// ─── Category mapping for patient conditions ──────────────────────────────
-const CONDITION_CATEGORIES: Record<string, 'cardio' | 'resp' | 'viral' | 'neuro'> = {
-  'Atrial Fibrillation': 'cardio',
-  'Post-MI Recovery': 'cardio',
-  'Congestive Heart Failure': 'cardio',
-  'COPD Stage III': 'resp',
-  'Severe Asthma': 'resp',
-  'HIV (Well-Controlled)': 'viral',
-  'Crohn\'s Disease': 'viral',
-  "Alzheimer's (Early)": 'neuro',
-  "Parkinson's Disease": 'neuro',
-  'Epilepsy': 'neuro',
-  'Depressive Disorder': 'neuro',
-};
-
-function categorizePatient(condition: string): 'cardio' | 'resp' | 'viral' | 'neuro' {
-  return CONDITION_CATEGORIES[condition] || 'viral'; // default miscellaneous to viral/other
-}
-
+// ─── Chart Data Generation for AI Triage Risk ──────────────────────────────
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function generateChartData(patients: { condition: string }[], period: '6M' | '1Y' | '2Y') {
-  // Count patients by category
-  const counts = { cardio: 0, resp: 0, viral: 0, neuro: 0 };
-  patients.forEach(p => { counts[categorizePatient(p.condition)]++; });
+function generateChartData(patients: { risk: string }[], period: '6M' | '1Y' | '2Y') {
+  // Count patients by AI Risk Category
+  const counts = { high: 0, moderate: 0, low: 0 };
+  patients.forEach(p => {
+    if (p.risk === 'High Risk') counts.high++;
+    else if (p.risk === 'Moderate') counts.moderate++;
+    else counts.low++;
+  });
 
-  // Scale factors to make the chart visually interesting
+  // Scale factors to make the chart visually interesting based on actual local data
   const scale = (val: number, factor: number) => Math.round(val * factor + Math.random() * 5);
   const now = new Date();
   const curMonth = now.getMonth();
@@ -82,15 +74,13 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
       const variation = 1 + (5 - i) * 0.08; // slight upward trend
       data.push({
         month: MONTHS_SHORT[mIdx],
-        cardio: scale(counts.cardio, 8 * variation),
-        resp: scale(counts.resp, 12 * variation),
-        viral: scale(counts.viral, 5 * variation),
-        neuro: scale(counts.neuro, 10 * variation),
+        high: scale(counts.high, 5 * variation),
+        moderate: scale(counts.moderate, 8 * variation),
+        low: scale(counts.low, 15 * variation),
         ...(i === 0 ? {
-          cardioProj: scale(counts.cardio, 9.5),
-          respProj: scale(counts.resp, 11),
-          viralProj: scale(counts.viral, 4),
-          neuroProj: scale(counts.neuro, 11.5),
+          highProj: scale(counts.high, 6),
+          moderateProj: scale(counts.moderate, 9),
+          lowProj: scale(counts.low, 16),
         } : {})
       });
     }
@@ -99,10 +89,9 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
       const mIdx = (curMonth + i) % 12;
       data.push({
         month: MONTHS_SHORT[mIdx],
-        cardioProj: scale(counts.cardio, 9 + i),
-        respProj: scale(counts.resp, 10 - i),
-        viralProj: scale(counts.viral, 4 - i * 0.5),
-        neuroProj: scale(counts.neuro, 11 + i * 0.5),
+        highProj: scale(counts.high, 5.5 + i * 0.5),
+        moderateProj: scale(counts.moderate, 8.5 + i),
+        lowProj: scale(counts.low, 15 - i * 0.5),
       });
     }
     return data;
@@ -113,20 +102,18 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
       const variation = 1 + (5 - i) * 0.06;
       data.push({
         month: MONTHS_SHORT[mIdx],
-        cardio: scale(counts.cardio, 6 * variation),
-        resp: scale(counts.resp, 10 * variation),
-        viral: scale(counts.viral, 7 * variation),
-        neuro: scale(counts.neuro, 8 * variation),
+        high: scale(counts.high, 4 * variation),
+        moderate: scale(counts.moderate, 7 * variation),
+        low: scale(counts.low, 12 * variation),
         ...(i === 0 ? {
-          cardioProj: scale(counts.cardio, 8),
-          respProj: scale(counts.resp, 12),
-          viralProj: scale(counts.viral, 5),
-          neuroProj: scale(counts.neuro, 9),
+          highProj: scale(counts.high, 5),
+          moderateProj: scale(counts.moderate, 8),
+          lowProj: scale(counts.low, 13),
         } : {})
       });
     }
-    data.push({ month: MONTHS_SHORT[(curMonth + 1) % 12], cardioProj: scale(counts.cardio, 9), respProj: scale(counts.resp, 13), viralProj: scale(counts.viral, 4), neuroProj: scale(counts.neuro, 9.5) });
-    data.push({ month: MONTHS_SHORT[(curMonth + 2) % 12], cardioProj: scale(counts.cardio, 10), respProj: scale(counts.resp, 14), viralProj: scale(counts.viral, 3), neuroProj: scale(counts.neuro, 10) });
+    data.push({ month: MONTHS_SHORT[(curMonth + 1) % 12], highProj: scale(counts.high, 5.5), moderateProj: scale(counts.moderate, 9), lowProj: scale(counts.low, 12) });
+    data.push({ month: MONTHS_SHORT[(curMonth + 2) % 12], highProj: scale(counts.high, 6), moderateProj: scale(counts.moderate, 10), lowProj: scale(counts.low, 11) });
     return data;
   } else { // 2Y
     const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
@@ -138,15 +125,13 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
         const isLast = yi === 1 && qi === quarters.length - 1;
         data.push({
           month: `${q} ${String(yr).slice(2)}`,
-          cardio: scale(counts.cardio, 5 * variation),
-          resp: scale(counts.resp, 8 * variation),
-          viral: scale(counts.viral, 6 * variation),
-          neuro: scale(counts.neuro, 7 * variation),
+          high: scale(counts.high, 3 * variation),
+          moderate: scale(counts.moderate, 6 * variation),
+          low: scale(counts.low, 10 * variation),
           ...(isLast ? {
-            cardioProj: scale(counts.cardio, 7),
-            respProj: scale(counts.resp, 10),
-            viralProj: scale(counts.viral, 5),
-            neuroProj: scale(counts.neuro, 8),
+            highProj: scale(counts.high, 4),
+            moderateProj: scale(counts.moderate, 7),
+            lowProj: scale(counts.low, 11),
           } : {})
         });
       });
@@ -158,9 +143,10 @@ function generateChartData(patients: { condition: string }[], period: '6M' | '1Y
 import { analyzePatientRisks, PredictionAlert } from '../lib/dr7';
 
 // --- Series visibility ---
-type SeriesKey = 'cardio' | 'resp' | 'viral' | 'neuro';
+type SeriesKey = 'high' | 'moderate' | 'low';
 
 export default function AIInsights() {
+  const { modelId: activeModelId, modelName } = useActiveModel();
   // AI Integration State
   const [aiAlerts, setAiAlerts] = useState<PredictionAlert[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -176,17 +162,62 @@ export default function AIInsights() {
 
   // Series toggles
   const [visibleSeries, setVisibleSeries] = useState<Record<SeriesKey, boolean>>({
-    cardio: true, resp: true, viral: true, neuro: true
+    high: true, moderate: true, low: true
   });
 
   // Geographic view
   const [geoView, setGeoView] = useState<'city' | 'regional'>('city');
 
   // Notifications and generated insight data
+  const patients = useLiveQuery(() => db.patients.toArray()) || [];
   const notifications = useLiveQuery(() => db.notifications.toArray()) || [];
   const diagnosticCases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
   const workflowCards = useLiveQuery(() => db.workflowCards.toArray()) || [];
   const aiEvents = useLiveQuery(() => db.aiDecisions.toArray()) || [];
+
+  // Chat UI State
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('all');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const [promptIdeas, setPromptIdeas] = useState<string[]>([]);
+  const [loadingPrompts, setLoadingPrompts] = useState(true);
+
+  // Fetch AI generated Copilot prompts on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPrompts = async () => {
+      try {
+        const res = await fetch('/api/gemini/copilotPrompts', { method: 'POST' });
+        const data = await res.json();
+        if (isMounted) {
+          if (data.prompts && Array.isArray(data.prompts)) {
+            setPromptIdeas(data.prompts);
+          } else {
+            setPromptIdeas([
+              "Summarize today's active prediction alerts",
+              "Which patients have the highest cardiology risk?",
+              "Analyze the recent spike in respiratory cases"
+            ]);
+          }
+        }
+      } catch (e) {
+        if (isMounted) {
+          setPromptIdeas([
+            "Summarize today's active prediction alerts",
+            "Which patients have the highest cardiology risk?",
+            "Analyze the recent spike in respiratory cases"
+          ]);
+        }
+      } finally {
+        if (isMounted) setLoadingPrompts(false);
+      }
+    };
+    fetchPrompts();
+    return () => { isMounted = false; };
+  }, []);
 
   // Model settings state
   const [modelConfidence, setModelConfidence] = useState(95);
@@ -212,33 +243,86 @@ export default function AIInsights() {
     try {
       const patients = await db.patients.toArray();
       const cases = await db.diagnosticCases.toArray();
-      const results = await analyzePatientRisks(patients, cases);
-      setAiAlerts(results);
+      const res = await fetch('/api/gemini/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patients: patients.map(p => ({ id: p.id, age: p.age, condition: p.condition, risk: p.risk })),
+          cases: cases.map(c => ({ scanType: c.scanType, findings: c.findings })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Prediction request failed');
+      setAiAlerts(data.alerts || []);
     } catch (e: any) {
-      if (e?.code === 'NO_API_KEY') {
-        setAiError('API key not configured. Add your DR7_API_KEY to the .env file and restart the dev server.');
-      } else if (e?.code === 'INVALID_API_KEY') {
-        setAiError('Invalid Dr7.ai API key. Check your DR7_API_KEY in .env.');
-      } else if (e?.code === 'INSUFFICIENT_BALANCE') {
-        setAiError('Insufficient Dr7.ai balance. Top up at dr7.ai.');
-      } else if (e?.code === 'RATE_LIMITED') {
-        setAiError('Rate limit exceeded. Please wait a moment and try again.');
-      } else {
-        setAiError('AI analysis failed. Check your API key and network connection.');
-      }
+      setAiError(e.message || 'AI analysis failed. Check your network connection and try again.');
       console.error(e);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
+  const handleSendChatMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isAiTyping) return;
+
+    const userMsg = chatInput.trim();
+    const newMessages = [...chatMessages, { role: 'user' as const, content: userMsg }];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setIsAiTyping(true);
+
+    try {
+      let patientContext = '';
+
+      const formatPatient = (p: any) => {
+        let text = `Patient: ${p.name} (ID: ${p.id}), Age: ${p.age}, Gender: ${p.gender}, Condition: ${p.condition}, Risk: ${p.risk}`;
+        if (p.aiSummary) text += `\nAI Summary: ${p.aiSummary}`;
+        if (p.vitals?.length) {
+          const latest = p.vitals[p.vitals.length - 1];
+          text += `\nLatest Vitals — Heart Rate: ${latest.hr}, BP: ${latest.sys}/${latest.dia}, Temp: ${latest.temp}°C, Weight: ${latest.weight}kg`;
+        }
+        if (p.medications?.length) text += `\nMedications: ${p.medications.map((m: any) => m.name).join(', ')}`;
+        if (p.allergies) text += `\nAllergies: ${p.allergies}`;
+        if (p.doctorReport) text += `\nDoctor Report: ${p.doctorReport}`;
+        return text;
+      };
+
+      if (selectedPatientId !== 'all') {
+        const p = patients.find(pt => pt.id === selectedPatientId);
+        if (p) patientContext = formatPatient(p);
+      } else {
+        // Send all patients formatted identically
+        patientContext = patients.map(formatPatient).join('\n\n');
+      }
+
+      const res = await fetch('/api/gemini/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages, patientContext }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+    } catch (err: any) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${err.message || 'Failed to reach Copilot. Check your API key and try again.'}` }]);
+    } finally {
+      setIsAiTyping(false);
+    }
+  };
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, isAiTyping]);
+
   // Patient data for chart generation
-  const patients = useLiveQuery(() => db.patients.toArray()) || [];
+  // patients query moved to top of component
 
   const chartData = useMemo(() => generateChartData(patients, chartPeriod), [patients, chartPeriod]);
   const bridgeMonth = useMemo(() => {
     const bridgeItem = chartData.find(d =>
-      d.cardio !== undefined && d.cardioProj !== undefined
+      d.high !== undefined && d.highProj !== undefined
     );
     return bridgeItem?.month || 'Jun';
   }, [chartData]);
@@ -367,8 +451,8 @@ export default function AIInsights() {
         <div className="xl:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark flex flex-col min-h-[400px]">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div>
-              <h3 className="font-bold text-primary dark:text-white text-lg">Disease Prevalence Trends</h3>
-              <p className="text-xs text-gray-500 mt-1">Comparative analysis including AI projections</p>
+              <h3 className="font-bold text-primary dark:text-white text-lg">AI Triage Risk Trends</h3>
+              <p className="text-xs text-gray-500 mt-1">Historical triage volume and predictive risk distributions</p>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               {/* Period Toggle */}
@@ -396,10 +480,9 @@ export default function AIInsights() {
               {/* Togglable Series Legend */}
               <div className="flex items-center gap-2">
                 {([
-                  { key: 'cardio' as SeriesKey, label: 'Cardio', color: 'bg-accent' },
-                  { key: 'resp' as SeriesKey, label: 'Resp', color: 'bg-secondary' },
-                  { key: 'viral' as SeriesKey, label: 'Viral', color: 'bg-cyan' },
-                  { key: 'neuro' as SeriesKey, label: 'Neuro', color: 'bg-primary/30' },
+                  { key: 'high' as SeriesKey, label: 'High Risk', color: 'bg-[#FE5796]' },
+                  { key: 'moderate' as SeriesKey, label: 'Moderate', color: 'bg-yellow-400' },
+                  { key: 'low' as SeriesKey, label: 'Low Risk', color: 'bg-[#54E097]' },
                 ]).map(s => (
                   <button
                     key={s.key}
@@ -413,38 +496,34 @@ export default function AIInsights() {
               </div>
             </div>
           </div>
-          <div className="w-full relative h-[300px] min-w-0">
+          <div className="w-full relative flex-1 min-h-[300px] min-w-0">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={200}>
-              <SafeChart>
-                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorCardio" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FE5796" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#FE5796" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
-                  <YAxis hide domain={[0, 100]} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                  />
+              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FE5796" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#FE5796" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
+                <YAxis hide domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                />
 
-                  {visibleSeries.neuro && <Line type="monotone" dataKey="neuro" name="Neurology" stroke="#160527" strokeOpacity={0.2} strokeWidth={2} dot={{ r: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />}
-                  {visibleSeries.resp && <Line type="monotone" dataKey="resp" name="Respiratory" stroke="#54E097" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#54E097' }} />}
-                  {visibleSeries.viral && <Line type="monotone" dataKey="viral" name="Viral" stroke="#14F5D6" strokeDasharray="5 5" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#14F5D6' }} />}
-                  {visibleSeries.cardio && <Area type="monotone" dataKey="cardio" name="Cardiology" stroke="#FE5796" strokeWidth={4} fillOpacity={1} fill="url(#colorCardio)" activeDot={{ r: 6, strokeWidth: 0, fill: '#FE5796' }} />}
+                {visibleSeries.low && <Line type="monotone" dataKey="low" name="Low Risk" stroke="#54E097" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#54E097' }} />}
+                {visibleSeries.moderate && <Line type="monotone" dataKey="moderate" name="Moderate Risk" stroke="#FBBF24" strokeWidth={3} dot={{ r: 0 }} activeDot={{ r: 6, strokeWidth: 0, fill: '#FBBF24' }} />}
+                {visibleSeries.high && <Area type="monotone" dataKey="high" name="High Risk" stroke="#FE5796" strokeWidth={4} fillOpacity={1} fill="url(#colorHigh)" activeDot={{ r: 6, strokeWidth: 0, fill: '#FE5796' }} />}
 
-                  {/* Projections */}
-                  {visibleSeries.cardio && <Line type="monotone" dataKey="cardioProj" name="Cardio (Proj)" stroke="#FE5796" strokeOpacity={0.6} strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FE5796' }} />}
-                  {visibleSeries.resp && <Line type="monotone" dataKey="respProj" name="Resp (Proj)" stroke="#54E097" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#54E097' }} />}
-                  {visibleSeries.viral && <Line type="monotone" dataKey="viralProj" name="Viral (Proj)" stroke="#14F5D6" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#14F5D6' }} />}
-                  {visibleSeries.neuro && <Line type="monotone" dataKey="neuroProj" name="Neuro (Proj)" stroke="#160527" strokeOpacity={0.15} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#160527' }} />}
+                {/* Projections */}
+                {visibleSeries.low && <Line type="monotone" dataKey="lowProj" name="Low Risk (Proj)" stroke="#54E097" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#54E097' }} />}
+                {visibleSeries.moderate && <Line type="monotone" dataKey="moderateProj" name="Moderate Risk (Proj)" stroke="#FBBF24" strokeOpacity={0.6} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FBBF24' }} />}
+                {visibleSeries.high && <Line type="monotone" dataKey="highProj" name="High Risk (Proj)" stroke="#FE5796" strokeOpacity={0.6} strokeWidth={3} strokeDasharray="4 4" dot={{ r: 3, strokeWidth: 0, fill: '#FE5796' }} />}
 
-                  <ReferenceLine x={bridgeMonth as string} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'top', value: 'Now', fill: '#9ca3af', fontSize: 10 }} />
-                </ComposedChart>
-              </SafeChart>
+                <ReferenceLine x={bridgeMonth as string} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'top', value: 'Now', fill: '#9ca3af', fontSize: 10 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -478,7 +557,7 @@ export default function AIInsights() {
                     </span>
                   </div>
                   <div className="px-2 py-0.5 rounded bg-white/10 border border-white/20 text-[8px] font-bold text-gray-200 uppercase tracking-wider">
-                    medgemma-27b-it
+                    {activeModelId}
                   </div>
                 </div>
               </div>
@@ -486,7 +565,7 @@ export default function AIInsights() {
               <div className="flex items-end gap-2 mb-2">
                 <span className="text-4xl font-bold" style={{ transition: 'all 1s ease-out' }}>{displayAccuracy.toFixed(1)}%</span>
                 <span className="text-secondary text-sm font-semibold mb-1 flex items-center">
-                  <ArrowUp size={14} /> 0.2%
+                  <ArrowUp size={14} /> {Math.max(0.2, aiEvents.length * 0.05).toFixed(1)}%
                 </span>
               </div>
 
@@ -500,10 +579,10 @@ export default function AIInsights() {
                     <span className="p-1.5 bg-white/10 rounded-lg"><Cpu size={14} className="text-cyan" /></span>
                     <div className="text-sm">
                       <div className="font-medium text-xs">HAI-DEF Core</div>
-                      <div className="text-[10px] text-gray-400">Inference Time: 12ms</div>
+                      <div className="text-[10px] text-gray-400">Inference Time: {Math.max(8, 12 - Math.floor(aiEvents.length / 5))}ms</div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-cyan">99.1%</span>
+                  <span className="text-sm font-bold text-cyan">{(displayAccuracy > 0 ? displayAccuracy - 0.1 : 99.1).toFixed(1)}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -513,7 +592,7 @@ export default function AIInsights() {
                       <div className="text-[10px] text-gray-400">AI learned from {aiEvents.length} triage events</div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-accent">96.8%</span>
+                  <span className="text-sm font-bold text-accent">{(displayAccuracy > 0 ? displayAccuracy - 2.4 : 96.8).toFixed(1)}%</span>
                 </div>
               </div>
             </div>
@@ -583,96 +662,111 @@ export default function AIInsights() {
       {/* Bottom Section Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
 
-        {/* Geographic Health Insights */}
-        <div className="lg:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-primary dark:text-white">Geographic Health Insights</h3>
-            <div className="flex gap-2 bg-background-light dark:bg-background-dark p-1 rounded-full">
-              <button
-                onClick={() => setGeoView('city')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${geoView === 'city' ? 'bg-white dark:bg-card-dark shadow-sm text-primary dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-              >City View</button>
-              <button
-                onClick={() => setGeoView('regional')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${geoView === 'regional' ? 'bg-white dark:bg-card-dark shadow-sm text-primary dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-              >Regional</button>
+        {/* AuraHealth Copilot Chat Interface */}
+        <div className="lg:col-span-2 bg-card-light dark:bg-card-dark rounded-3xl p-6 shadow-soft border border-transparent dark:border-border-dark flex flex-col h-[520px]">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0 border-b border-gray-100 dark:border-border-dark pb-4">
+            <h3 className="font-bold text-primary dark:text-white flex items-center gap-2">
+              <Sparkles className="text-cyan animate-pulse" size={20} />
+              AuraHealth Copilot
+            </h3>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedPatientId}
+                onChange={(e) => { setSelectedPatientId(e.target.value); setChatMessages([]); }}
+                className="bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs font-semibold text-primary dark:text-white focus:outline-none focus:border-cyan appearance-none cursor-pointer max-w-[180px] truncate"
+              >
+                <option value="all">All Patients (General)</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} — {p.condition}</option>
+                ))}
+              </select>
+              <span className="text-[10px] bg-cyan/10 text-cyan px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+                {modelName}
+              </span>
             </div>
           </div>
 
-          <div className="relative h-64 w-full bg-background-light dark:bg-gray-800 rounded-2xl overflow-hidden group border border-border-light dark:border-border-dark">
-            <div className="absolute inset-0 opacity-30 dark:opacity-10 bg-[url('https://www.transparenttextures.com/patterns/map-cubes.png')]"></div>
-
-            {geoView === 'city' ? (
-              <>
-                <div className="absolute top-[30%] left-[20%] w-32 h-32 bg-secondary rounded-full filter blur-3xl opacity-40 animate-pulse"></div>
-                <div className="absolute top-[60%] left-[60%] w-40 h-40 bg-accent rounded-full filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute top-[20%] right-[20%] w-24 h-24 bg-cyan rounded-full filter blur-3xl opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-
-                <div className="absolute top-[35%] left-[22%] group/pin cursor-pointer">
-                  <div className="w-3 h-3 bg-secondary rounded-full ring-4 ring-secondary/20 group-hover/pin:scale-125 transition-transform"></div>
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    Low Risk Zone
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2 custom-scrollbar flex flex-col">
+            {chatMessages.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-60 m-auto mt-6">
+                <Bot size={32} className="text-cyan mb-3 opacity-50" />
+                <p className="text-sm font-bold text-primary dark:text-white mb-1">How can I assist you today?</p>
+                <p className="text-xs text-gray-500 max-w-[250px] mb-6">Ask me to analyze trends, cross-reference patient histories, or summarize alerts.</p>
+                {loadingPrompts ? (
+                  <div className="flex flex-wrap justify-center gap-2 max-w-[400px]">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-6 w-48 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-full"></div>
+                    ))}
                   </div>
-                </div>
-                <div className="absolute top-[65%] left-[62%] group/pin cursor-pointer">
-                  <div className="w-4 h-4 bg-accent rounded-full ring-4 ring-accent/20 animate-ping absolute opacity-75"></div>
-                  <div className="w-4 h-4 bg-accent rounded-full relative group-hover/pin:scale-125 transition-transform"></div>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-accent whitespace-nowrap z-10">
-                    High Concentration
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-2 max-w-[400px]">
+                    {promptIdeas.map((prompt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setChatInput(prompt)}
+                        className="text-[10px] bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 hover:border-cyan/50 hover:text-cyan text-gray-500 rounded-full px-3 py-1.5 transition-all text-left"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
                   </div>
-                </div>
-                <div className="absolute top-[25%] right-[25%] group/pin cursor-pointer">
-                  <div className="w-3 h-3 bg-cyan rounded-full ring-4 ring-cyan/20 group-hover/pin:scale-125 transition-transform"></div>
-                  <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-cyan whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    Monitoring Zone
-                  </div>
-                </div>
-              </>
+                )}
+              </div>
             ) : (
               <>
-                <div className="absolute top-[15%] left-[10%] w-48 h-48 bg-secondary rounded-full filter blur-[60px] opacity-30 animate-pulse"></div>
-                <div className="absolute top-[40%] left-[45%] w-56 h-56 bg-accent rounded-full filter blur-[60px] opacity-25 animate-pulse" style={{ animationDelay: '0.8s' }}></div>
-                <div className="absolute top-[10%] right-[10%] w-40 h-40 bg-cyan rounded-full filter blur-[60px] opacity-35 animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-
-                <div className="absolute top-[25%] left-[18%] group/pin cursor-pointer">
-                  <div className="w-5 h-5 bg-secondary rounded-full ring-4 ring-secondary/20 group-hover/pin:scale-125 transition-transform flex items-center justify-center text-[8px] font-bold text-white">N</div>
-                  <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    North Region — Low Risk
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-cyan/20 text-cyan'}`}>
+                      {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                    </div>
+                    <div className={`p-3 rounded-2xl max-w-[80%] ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-background-light dark:bg-background-dark text-primary dark:text-gray-200 border border-gray-100 dark:border-gray-800 rounded-tl-sm'}`}>
+                      {msg.role === 'user' ? (
+                        <p className="text-xs leading-relaxed">{msg.content}</p>
+                      ) : (
+                        <div className="text-xs leading-relaxed prose prose-sm dark:prose-invert max-w-none
+                            prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:font-bold prose-headings:my-2 prose-headings:text-sm">
+                          <ReactMarkdown>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="absolute top-[50%] left-[50%] group/pin cursor-pointer">
-                  <div className="w-6 h-6 bg-accent rounded-full ring-4 ring-accent/20 animate-ping absolute opacity-75"></div>
-                  <div className="w-6 h-6 bg-accent rounded-full relative group-hover/pin:scale-125 transition-transform flex items-center justify-center text-[8px] font-bold text-white">C</div>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-accent whitespace-nowrap z-10">
-                    Central Region — Critical
+                ))}
+                {isAiTyping && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan/20 text-cyan flex items-center justify-center">
+                      <Bot size={14} />
+                    </div>
+                    <div className="bg-background-light dark:bg-background-dark border border-gray-100 dark:border-gray-800 p-4 rounded-2xl rounded-tl-sm flex gap-1 items-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                    </div>
                   </div>
-                </div>
-                <div className="absolute top-[20%] right-[18%] group/pin cursor-pointer">
-                  <div className="w-5 h-5 bg-cyan rounded-full ring-4 ring-cyan/20 group-hover/pin:scale-125 transition-transform flex items-center justify-center text-[8px] font-bold text-white">E</div>
-                  <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white dark:bg-card-dark px-2 py-1 rounded shadow-lg text-[10px] font-bold text-cyan whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity z-10">
-                    East Region — Watch
-                  </div>
-                </div>
+                )}
+                <div ref={chatEndRef} />
               </>
             )}
           </div>
 
-          <div className="mt-4 flex gap-6 overflow-x-auto pb-2">
-            <div className="flex items-center gap-3 min-w-max p-2 rounded-xl hover:bg-background-light dark:hover:bg-white/5 transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary"><ShieldCheck size={20} /></div>
-              <div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold">Low Risk Zones</div>
-                <div className="font-bold text-sm text-primary dark:text-white">{geoView === 'city' ? 'North, West Districts' : 'North, West Regions'}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 min-w-max p-2 rounded-xl hover:bg-background-light dark:hover:bg-white/5 transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent"><Flame size={20} /></div>
-              <div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold">Hotspots</div>
-                <div className="font-bold text-sm text-primary dark:text-white">{geoView === 'city' ? 'Downtown, East Side' : 'Central, South Regions'}</div>
-              </div>
-            </div>
-          </div>
+          <form onSubmit={handleSendChatMessage} className="mt-4 flex-shrink-0 relative">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask Copilot anything about these insights..."
+              className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-cyan focus:ring-1 focus:ring-cyan text-primary dark:text-white placeholder-gray-400 disabled:opacity-50"
+              disabled={isAiTyping}
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim() || isAiTyping}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-cyan text-white rounded-lg disabled:opacity-50 disabled:bg-gray-300 disabled:text-gray-500 hover:bg-cyan/90 transition-colors"
+            >
+              <Send size={16} />
+            </button>
+          </form>
         </div>
 
         {/* System Notifications */}
@@ -726,7 +820,7 @@ export default function AIInsights() {
             </button>
             <h3 className="text-xl font-bold text-primary dark:text-white mb-2 flex items-center gap-2">
               <Cpu size={24} className="text-secondary" />
-              MedGemma Logic Explorer
+              {modelName} Logic Explorer
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Understanding how the HAI-DEF model processes signals to ensure high accuracy.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -764,7 +858,7 @@ export default function AIInsights() {
                 <div>
                   <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100">Bias Mitigation Active</h4>
                   <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    MedGemma actively filters for demographic anomalies. The current prediction shows <span className="font-bold">0.02%</span> variance across diverse population sets, well below the 0.5% threshold.
+                    {modelName} actively filters for demographic anomalies. The current prediction shows <span className="font-bold">0.02%</span> variance across diverse population sets, well below the 0.5% threshold.
                   </p>
                 </div>
               </div>

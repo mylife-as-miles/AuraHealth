@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useActiveModel } from '../lib/useActiveModel';
 import {
   Search,
   MoreVertical,
@@ -26,7 +27,8 @@ import {
   AlertTriangle,
   X,
   Send,
-  Activity
+  Activity,
+  Trash2
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
@@ -42,11 +44,13 @@ const statusStyle = (s: DiagCase['status']) => {
     case 'Ready': return { dot: 'bg-secondary', text: 'text-secondary' };
     case 'In Progress': return { dot: '', text: 'text-cyan' };
     case 'Pending': return { dot: 'bg-gray-400', text: 'text-gray-500' };
+    case 'Completed': return { dot: 'bg-green-500', text: 'text-green-500' };
   }
 };
 
 // --- Component ---
 export default function Diagnostics() {
+  const { modelName } = useActiveModel();
   const cases = useLiveQuery(() => db.diagnosticCases.toArray()) || [];
 
   // Selection & search
@@ -78,9 +82,18 @@ export default function Diagnostics() {
   // Derived
   const selectedCase = useMemo(() => cases.find(c => c.id === selectedCaseId) || cases[0], [cases, selectedCaseId]);
   const filteredCases = useMemo(() => {
-    if (!queueSearch.trim()) return cases;
-    const q = queueSearch.toLowerCase();
-    return cases.filter(c => c.patientName.toLowerCase().includes(q) || c.scanType.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+    let result = cases;
+    if (queueSearch.trim()) {
+      const q = queueSearch.toLowerCase();
+      result = cases.filter(c => c.patientName.toLowerCase().includes(q) || c.scanType.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+    }
+    return result.sort((a, b) => {
+      // Critical jumps to the top
+      if (a.status === 'Critical' && b.status !== 'Critical') return -1;
+      if (b.status === 'Critical' && a.status !== 'Critical') return 1;
+      // Then sort by newest first
+      return b.timestamp - a.timestamp;
+    });
   }, [cases, queueSearch]);
 
   // Reset state when case changes
@@ -179,12 +192,25 @@ export default function Diagnostics() {
               <div
                 key={c.id}
                 onClick={() => setSelectedCaseId(c.id)}
-                className={`p-2.5 lg:p-3 border rounded-xl cursor-pointer transition-all ${isSelected
+                className={`group relative p-2.5 lg:p-3 border rounded-xl cursor-pointer transition-all ${isSelected
                   ? 'bg-primary/5 dark:bg-primary/20 border-primary/10 dark:border-primary/30 shadow-sm'
                   : 'bg-white dark:bg-card-dark border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   } ${c.status === 'Pending' ? 'opacity-60' : ''}`}
               >
-                <div className="flex justify-between items-start mb-2">
+                {/* Delete Handle */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    db.diagnosticCases.delete(c.id);
+                    if (selectedCaseId === c.id) setSelectedCaseId(null);
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 dark:hover:bg-red-900/50"
+                  title="Delete Case"
+                >
+                  <Trash2 size={14} />
+                </button>
+
+                <div className="flex justify-between items-start mb-2 pr-6">
                   <div className="flex items-center gap-2">
                     {style.dot && <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>}
                     <span className={`text-[10px] lg:text-xs font-bold uppercase tracking-wider ${style.text}`}>{c.status}</span>
@@ -265,51 +291,81 @@ export default function Diagnostics() {
 
           {selectedCase.image ? (
             <div
-              className="relative w-[90%] md:w-[85%] h-[90%] md:h-[85%] max-w-[800px] aspect-[3/4] md:aspect-square bg-gray-900 rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-transform duration-150"
-              style={{ transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)` }}
+              className={`relative w-[90%] md:w-[85%] h-[90%] md:h-[85%] max-w-[800px] aspect-[3/4] md:aspect-square ${selectedCase.scanType.toLowerCase().includes('screening') || selectedCase.scanType.toLowerCase().includes('lab') ? 'bg-card-dark text-white p-8 lg:p-12 overflow-y-auto' : 'bg-gray-900'} rounded-lg overflow-hidden border border-gray-800 shadow-2xl transition-transform duration-150`}
+              style={selectedCase.scanType.toLowerCase().includes('screening') || selectedCase.scanType.toLowerCase().includes('lab') ? {} : { transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)` }}
             >
-              <img alt="Medical Scan" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity grayscale contrast-125 brightness-75" src={selectedCase.image} />
+              {selectedCase.scanType.toLowerCase().includes('screening') || selectedCase.scanType.toLowerCase().includes('lab') ? (
+                <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-4 border-b border-white/10 pb-6 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-cyan/10 flex items-center justify-center text-cyan shadow-sm">
+                      <Activity size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold font-serif">{selectedCase.scanType}</h2>
+                      <p className="text-sm text-gray-400">BiomedCLIP</p>
+                    </div>
+                  </div>
 
-              {/* AI Overlays */}
-              {showOverlays && (
-                <div className="absolute inset-0 z-10">
-                  {selectedCase.annotations.map((ann, i) => (
-                    <React.Fragment key={i}>
-                      {ann.type === 'box' && (
-                        <div
-                          className="absolute border-2 border-cyan/60 rounded-sm shadow-[0_0_15px_rgba(20,245,214,0.3)] flex items-start justify-end group cursor-pointer hover:bg-cyan/5 transition-colors"
-                          style={{ top: ann.top, left: ann.left, width: ann.width, height: ann.height }}
-                        >
-                          <div className="absolute -top-6 right-0 bg-cyan/20 backdrop-blur-sm border border-cyan/40 text-cyan text-[9px] md:text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            <span className="font-bold">{ann.confidence}%</span>
-                            <span>{ann.label}</span>
-                          </div>
-                        </div>
-                      )}
-                      {ann.type === 'point' && (
-                        <>
-                          <div className={`absolute w-2.5 h-2.5 md:w-3 md:h-3 rounded-full animate-pulse shadow-[0_0_15px_rgba(254,87,150,0.6)] ${ann.severity === 'critical' ? 'bg-accent' : 'bg-cyan'}`} style={{ top: ann.top, left: ann.left }}></div>
-                          {ann.lineX2 && ann.lineY2 && (
-                            <>
-                              <svg className="absolute inset-0 pointer-events-none w-full h-full">
-                                <line stroke={ann.severity === 'critical' ? '#FE5796' : '#14F5D6'} strokeDasharray="4 2" strokeWidth="1" x1={`${parseInt(ann.left) + 2}%`} x2={ann.lineX2} y1={`${parseInt(ann.top) + 1}%`} y2={ann.lineY2}></line>
-                              </svg>
-                              <div className={`absolute ${ann.severity === 'critical' ? 'bg-accent/20 border-accent/40 text-accent' : 'bg-cyan/20 border-cyan/40 text-cyan'} backdrop-blur-sm border text-[9px] md:text-[10px] px-2 py-1 rounded whitespace-nowrap`} style={{ top: ann.lineY2, left: ann.lineX2 }}>
-                                <span className="font-bold">{ann.severity === 'critical' ? 'Critical:' : 'Note:'}</span> {ann.label}
+                  <div className="prose prose-invert prose-sm max-w-none flex-1">
+                    <h3 className="text-cyan mb-2">Clinical Context Review</h3>
+                    <p className="text-gray-300 leading-relaxed mb-6">{selectedCase.aiSummary}</p>
+
+                    <h3 className="text-cyan mb-2">Automated Extraction</h3>
+                    <ul className="space-y-3">
+                      {selectedCase.findings.map((f, i) => (
+                        <li key={i} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                          <span className="font-bold text-white block mb-1">{f.title}</span>
+                          <span className="text-gray-400">{f.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <img alt="Medical Scan" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity grayscale contrast-125 brightness-75" src={selectedCase.image} />
+                  {/* AI Overlays */}
+                  {showOverlays && (
+                    <div className="absolute inset-0 z-10">
+                      {selectedCase.annotations.map((ann, i) => (
+                        <React.Fragment key={i}>
+                          {ann.type === 'box' && (
+                            <div
+                              className="absolute border-2 border-cyan/60 rounded-sm shadow-[0_0_15px_rgba(20,245,214,0.3)] flex items-start justify-end group cursor-pointer hover:bg-cyan/5 transition-colors"
+                              style={{ top: ann.top, left: ann.left, width: ann.width, height: ann.height }}
+                            >
+                              <div className="absolute -top-6 right-0 bg-cyan/20 backdrop-blur-sm border border-cyan/40 text-cyan text-[9px] md:text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                <span className="font-bold">{ann.confidence}%</span>
+                                <span>{ann.label}</span>
                               </div>
+                            </div>
+                          )}
+                          {ann.type === 'point' && (
+                            <>
+                              <div className={`absolute w-2.5 h-2.5 md:w-3 md:h-3 rounded-full animate-pulse shadow-[0_0_15px_rgba(254,87,150,0.6)] ${ann.severity === 'critical' ? 'bg-accent' : 'bg-cyan'}`} style={{ top: ann.top, left: ann.left }}></div>
+                              {ann.lineX2 && ann.lineY2 && (
+                                <>
+                                  <svg className="absolute inset-0 pointer-events-none w-full h-full">
+                                    <line stroke={ann.severity === 'critical' ? '#FE5796' : '#14F5D6'} strokeDasharray="4 2" strokeWidth="1" x1={`${parseInt(ann.left) + 2}%`} x2={ann.lineX2} y1={`${parseInt(ann.top) + 1}%`} y2={ann.lineY2}></line>
+                                  </svg>
+                                  <div className={`absolute ${ann.severity === 'critical' ? 'bg-accent/20 border-accent/40 text-accent' : 'bg-cyan/20 border-cyan/40 text-cyan'} backdrop-blur-sm border text-[9px] md:text-[10px] px-2 py-1 rounded whitespace-nowrap`} style={{ top: ann.lineY2, left: ann.lineX2 }}>
+                                    <span className="font-bold">{ann.severity === 'critical' ? 'Critical:' : 'Note:'}</span> {ann.label}
+                                  </div>
+                                </>
+                              )}
                             </>
                           )}
-                        </>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        </React.Fragment>
+                      ))}
 
-                  {/* Corner Markers */}
-                  <div className="absolute top-3 left-3 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-t border-white/20"></div>
-                  <div className="absolute top-3 right-3 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-t border-white/20"></div>
-                  <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-b border-white/20"></div>
-                  <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-b border-white/20"></div>
-                </div>
+                      {/* Corner Markers */}
+                      <div className="absolute top-3 left-3 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-t border-white/20"></div>
+                      <div className="absolute top-3 right-3 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-t border-white/20"></div>
+                      <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-l border-b border-white/20"></div>
+                      <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-r border-b border-white/20"></div>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Measure overlay */}
@@ -372,7 +428,7 @@ export default function Diagnostics() {
       <section className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-border-light dark:border-border-dark flex flex-col p-4 lg:p-6 overflow-y-auto bg-white/50 dark:bg-card-dark/50 backdrop-blur-xl flex-shrink-0 h-auto lg:h-full">
         <div className="flex items-center gap-2 mb-4 lg:mb-6">
           <Brain className="text-cyan w-5 h-5 lg:w-6 lg:h-6" />
-          <h2 className="text-base lg:text-lg font-bold text-primary dark:text-white">MedGemma Analysis</h2>
+          <h2 className="text-base lg:text-lg font-bold text-primary dark:text-white">{modelName} Analysis</h2>
         </div>
 
         {selectedCase.confidence > 0 ? (
@@ -454,7 +510,6 @@ export default function Diagnostics() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="mt-auto space-y-3">
               {confirmed ? (
                 <div className="w-full py-2.5 lg:py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full flex items-center justify-center gap-2 text-xs lg:text-sm text-green-600 dark:text-green-400 font-bold">
@@ -462,7 +517,36 @@ export default function Diagnostics() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setConfirmed(true)}
+                  onClick={async () => {
+                    setConfirmed(true);
+                    try {
+                      // 1. Mark Diagnostics Case as completed
+                      await db.diagnosticCases.update(selectedCase.id, { status: 'Completed' });
+
+                      // 2. Add to Patient History
+                      const patient = await db.patients.get(selectedCase.patientId);
+                      if (patient) {
+                        await db.patients.update(patient.id, {
+                          history: [{
+                            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            title: `${selectedCase.scanType} Results Verified`,
+                            type: 'Diagnosis',
+                            description: `Dr. AI Findings Confirmed: ${selectedCase.aiSummary}`
+                          }, ...patient.history]
+                        });
+                      }
+
+                      // 3. Move Clinical Workflow Card to 'Treatment'
+                      const workflowCards = await db.workflowCards.where('patientId').equals(selectedCase.patientId).toArray();
+                      if (workflowCards.length > 0) {
+                        for (const card of workflowCards) {
+                          await db.workflowCards.update(card.id, { column: 'treatment', aiProgress: 100 });
+                        }
+                      }
+                    } catch (err) {
+                      console.error('Failed to confirm findings:', err);
+                    }
+                  }}
                   className="w-full py-2.5 lg:py-3 bg-secondary text-primary font-bold rounded-full shadow-lg shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-xs lg:text-sm"
                 >
                   <CheckCircle size={16} className="lg:w-[18px] lg:h-[18px]" />
@@ -515,19 +599,39 @@ export default function Diagnostics() {
               ].map((doc) => (
                 <button
                   key={doc.name}
-                  onClick={() => {
+                  onClick={async () => {
                     setShowConsultModal(false);
                     setConsultSent(true);
-                    db.notifications.add({
-                      id: `n-${Date.now()}`,
-                      type: 'consult',
-                      title: 'Consult Requested',
-                      content: `Requested consult from ${doc.name} for patient ${selectedCase.patientName}.`,
-                      time: 'Just now',
-                      timestamp: Date.now(),
-                      read: false,
-                      dismissible: true
-                    });
+                    try {
+                      // 1. Send Notification
+                      await db.notifications.add({
+                        id: `n-${Date.now()}`,
+                        type: 'consult',
+                        title: 'Consult Requested',
+                        content: `Requested consult from ${doc.name} for patient ${selectedCase.patientName}.`,
+                        time: 'Just now',
+                        timestamp: Date.now(),
+                        read: false,
+                        dismissible: true
+                      });
+
+                      // 2. Move Clinical Workflow Card to 'Consultation' and assign doctor
+                      const workflowCards = await db.workflowCards.where('patientId').equals(selectedCase.patientId).toArray();
+                      if (workflowCards.length > 0) {
+                        for (const card of workflowCards) {
+                          await db.workflowCards.update(card.id, {
+                            column: 'consultation',
+                            doctor: doc.name
+                          });
+                        }
+                      }
+
+                      // 3. Update Diagnostics Case tracking status
+                      await db.diagnosticCases.update(selectedCase.id, { status: 'Pending' });
+
+                    } catch (err) {
+                      console.error('Failed to request consult:', err);
+                    }
                   }}
                   className="w-full flex items-center gap-3 p-3 border border-gray-100 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left"
                 >
